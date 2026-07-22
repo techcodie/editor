@@ -13,8 +13,10 @@ const TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {
 export function ChatMessage({ message }: ChatMessageProps) {
   if (message.role === 'system') {
     return (
-      <div className="my-1 text-center text-[11px] leading-4 text-neutral-400" role="status">
-        {message.content}
+      <div className="my-1 flex items-center gap-2 text-[10px] font-medium text-neutral-400" role="status">
+        <span className="h-px flex-1 bg-neutral-200" />
+        <span>{message.content}</span>
+        <span className="h-px flex-1 bg-neutral-200" />
       </div>
     )
   }
@@ -25,29 +27,29 @@ export function ChatMessage({ message }: ChatMessageProps) {
     <article
       aria-label={`${isUser ? 'You' : 'Assistant'} at ${TIME_FORMATTER.format(message.timestamp)}`}
       className={cn(
-        'flex gap-2.5 [animation:ask-message-in_180ms_ease-out]',
+        'flex gap-2.5 [animation:ask-message-in_200ms_ease-out]',
         isUser ? 'justify-end' : 'justify-start',
       )}
     >
       {!isUser && (
-        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-600">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-neutral-900 text-white shadow-sm">
           <Sparkles size={14} strokeWidth={1.9} aria-hidden />
         </div>
       )}
-      <div className={cn('min-w-0 max-w-[85%]', isUser && 'text-right')}>
+      <div className={cn('min-w-0 max-w-[88%]', isUser && 'text-right')}>
         <div
           className={cn(
-            'whitespace-pre-wrap break-words rounded-xl px-3 py-2 text-left text-sm leading-5',
+            'whitespace-pre-wrap break-words rounded-lg px-3.5 py-2.5 text-left text-sm leading-6',
             isUser
-              ? 'rounded-br-sm bg-neutral-900 text-white'
-              : 'rounded-bl-sm border border-neutral-200 bg-white text-neutral-700 shadow-sm',
+              ? 'rounded-br-sm bg-neutral-900 text-white shadow-[0_4px_14px_-8px_rgba(23,23,23,0.65)]'
+              : 'rounded-bl-sm border border-neutral-200 bg-white text-neutral-700 shadow-[0_1px_2px_rgba(20,20,20,0.04),0_8px_18px_-14px_rgba(20,20,20,0.22)]',
           )}
         >
           {message.content}
         </div>
         <time
           dateTime={new Date(message.timestamp).toISOString()}
-          className="mt-1 inline-block px-1 text-[10px] text-neutral-400"
+          className="mt-1.5 inline-block px-0.5 text-[10px] text-neutral-400"
         >
           {TIME_FORMATTER.format(message.timestamp)}
         </time>

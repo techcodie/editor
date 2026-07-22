@@ -29,9 +29,9 @@ export function EditorWorkspace() {
   const getDocumentText = useCallback(() => api?.getDocumentText() ?? '', [api])
 
   return (
-    <div className="mx-auto flex w-full max-w-[82rem] items-start justify-center gap-4 px-4 py-6 sm:py-10 lg:py-6">
-      <div className="min-w-0 w-full max-w-[46rem]">
-        <div className="sticky top-4 z-30 flex items-start gap-2">
+    <div className="mx-auto flex w-full max-w-[84rem] items-start justify-center gap-5 px-3 py-4 sm:px-6 sm:py-7 lg:px-8 lg:py-6">
+      <div className="min-w-0 w-full max-w-[48rem]">
+        <div className="sticky top-3 z-30 flex items-start gap-2.5 sm:top-4">
           <Toolbar api={api} className="min-w-0" />
           <button
             ref={askDocumentButtonRef}
@@ -42,16 +42,16 @@ export function EditorWorkspace() {
             title={isAskDocumentOpen ? 'Close Ask Document' : 'Ask Document'}
             onClick={() => setIsAskDocumentOpen((isOpen) => !isOpen)}
             className={cn(
-              'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border bg-white/85 shadow-[0_1px_2px_rgba(16,15,15,0.04),0_10px_30px_-16px_rgba(16,15,15,0.12)] backdrop-blur-md transition-[border-color,background-color,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40',
+              'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border shadow-[0_1px_2px_rgba(20,20,20,0.04),0_8px_24px_-16px_rgba(20,20,20,0.28)] backdrop-blur-xl transition-[border-color,background-color,color,box-shadow,transform] duration-150 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f6f4] active:translate-y-0',
               isAskDocumentOpen
-                ? 'border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
-                : 'border-neutral-200/80 text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900',
+                ? 'border-neutral-800 bg-neutral-900 text-white shadow-[0_8px_24px_-14px_rgba(23,23,23,0.6)] hover:bg-neutral-800'
+                : 'border-neutral-200 bg-white/90 text-neutral-500 hover:border-neutral-300 hover:bg-white hover:text-neutral-950',
             )}
           >
             <MessageSquareText size={18} strokeWidth={1.9} aria-hidden />
           </button>
         </div>
-        <div className="pt-4">
+        <div className="pt-3.5 sm:pt-4">
           <DocumentEditor editor={editor} />
         </div>
       </div>

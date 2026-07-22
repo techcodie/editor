@@ -37,8 +37,8 @@ export function ChatInput({ disabled, isActive, onSend }: ChatInputProps) {
   }
 
   return (
-    <form className="shrink-0 border-t border-neutral-200/80 bg-white p-3" onSubmit={handleSubmit}>
-      <div className="rounded-xl border border-neutral-200 bg-white p-2 shadow-sm transition-[border-color,box-shadow] focus-within:border-neutral-300 focus-within:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]">
+    <form className="shrink-0 border-t border-neutral-200 bg-white p-3" onSubmit={handleSubmit}>
+      <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-2.5 shadow-[0_1px_2px_rgba(20,20,20,0.04)] transition-[border-color,background-color,box-shadow] duration-200 hover:border-neutral-300 focus-within:border-neutral-300 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(99,102,241,0.08),0_8px_20px_-16px_rgba(20,20,20,0.3)]">
         <label htmlFor="ask-document-input" className="sr-only">
           Ask something about this document
         </label>
@@ -51,16 +51,15 @@ export function ChatInput({ disabled, isActive, onSend }: ChatInputProps) {
           placeholder="Ask something about this document..."
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}
-          className="block max-h-36 min-h-[4.5rem] w-full resize-none bg-transparent px-1 py-0.5 text-sm leading-5 text-neutral-800 outline-none placeholder:text-neutral-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="block max-h-36 min-h-[4.5rem] w-full resize-none bg-transparent px-1 py-0.5 text-sm leading-6 text-neutral-800 outline-none placeholder:text-neutral-400 disabled:cursor-not-allowed disabled:opacity-60"
         />
-        <div className="mt-1 flex items-center justify-between gap-3 pl-1">
-          <span className="text-[10px] text-neutral-400">Shift + Enter for new line</span>
+        <div className="mt-1 flex items-center justify-end">
           <button
             type="submit"
             aria-label="Send question"
             title="Send question"
             disabled={!canSend}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-white transition-[background-color,transform] hover:bg-indigo-600 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:bg-neutral-200 disabled:text-neutral-400"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-neutral-900 text-white shadow-sm transition-[background-color,box-shadow,transform] duration-150 hover:bg-neutral-800 hover:shadow-md active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
           >
             <ArrowUp size={16} strokeWidth={2.2} aria-hidden />
           </button>

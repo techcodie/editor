@@ -33,14 +33,14 @@ export function AskDocumentPanel({ isOpen, getDocumentText, onClose }: AskDocume
       aria-hidden={!isOpen}
       inert={!isOpen}
       className={cn(
-        'fixed inset-y-0 right-0 z-40 flex w-full max-w-none flex-col overflow-hidden border-l border-neutral-200 bg-white shadow-[-16px_0_40px_-24px_rgba(23,23,23,0.28)] transition-[transform,opacity,width] duration-300 ease-out sm:max-w-[24rem]',
-        'lg:sticky lg:top-6 lg:z-20 lg:h-[calc(100vh-3rem)] lg:max-w-none lg:rounded-xl lg:border lg:shadow-[0_1px_2px_rgba(16,15,15,0.04),0_14px_40px_-20px_rgba(16,15,15,0.16)]',
+        'fixed inset-y-0 right-0 z-40 flex w-full max-w-none flex-col overflow-hidden border-l border-neutral-200 bg-white shadow-[-20px_0_50px_-28px_rgba(23,23,23,0.3)] transition-[transform,opacity,width] duration-300 ease-out sm:max-w-[24rem]',
+        'lg:sticky lg:top-6 lg:z-20 lg:h-[calc(100vh-3rem)] lg:max-w-none lg:rounded-lg lg:border lg:shadow-[0_1px_2px_rgba(20,20,20,0.04),0_18px_48px_-28px_rgba(20,20,20,0.32)]',
         isOpen
-          ? 'translate-x-0 opacity-100 lg:w-[23rem]'
+          ? 'translate-x-0 opacity-100 lg:w-[23.5rem]'
           : 'pointer-events-none translate-x-full opacity-0 lg:w-0 lg:translate-x-0 lg:border-transparent',
       )}
     >
-      <div className="flex h-full w-full min-w-0 flex-col lg:w-[23rem]">
+      <div className="flex h-full w-full min-w-0 flex-col lg:w-[23.5rem]">
         <ChatHeader
           canClear={messages.length > 0 || isLoading || error !== null}
           onClear={clearConversation}

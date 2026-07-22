@@ -29,18 +29,18 @@ const SIZE: Record<ToolbarButtonSize, { button: string; icon: number }> = {
 }
 
 const BUTTON_CLASS =
-  'inline-flex shrink-0 items-center justify-center rounded-lg text-neutral-500 ' +
-  'transition-[background-color,color] duration-150 ' +
-  'hover:bg-neutral-100 hover:text-neutral-800 ' +
-  'active:bg-neutral-200/70 ' +
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ' +
+  'inline-flex shrink-0 items-center justify-center rounded-md text-neutral-500 ' +
+  'transition-[background-color,color,box-shadow,transform] duration-150 ' +
+  'hover:bg-neutral-100 hover:text-neutral-950 ' +
+  'active:scale-[0.96] active:bg-neutral-200/70 ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 ' +
   'focus-visible:ring-offset-1 focus-visible:ring-offset-white ' +
-  'disabled:pointer-events-none disabled:opacity-40 ' +
-  'aria-pressed:bg-indigo-50 aria-pressed:text-indigo-600 ' +
-  'aria-pressed:hover:bg-indigo-100 aria-pressed:hover:text-indigo-700'
+  'disabled:pointer-events-none disabled:opacity-35 ' +
+  'aria-pressed:bg-neutral-900 aria-pressed:text-white aria-pressed:shadow-sm ' +
+  'aria-pressed:hover:bg-neutral-800 aria-pressed:hover:text-white'
 
 const TOOLTIP_CLASS =
-  'z-50 select-none rounded-md bg-neutral-900 px-2 py-1 text-xs font-medium text-white shadow-md ' +
+  'z-50 select-none rounded-md bg-neutral-900 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-[0_8px_24px_-8px_rgba(0,0,0,0.45)] ' +
   '[animation:toolbar-tooltip-in_120ms_ease-out]'
 
 export function ToolbarButton({

@@ -46,7 +46,7 @@ export function ChatConversation({
   return (
     <div
       ref={conversationRef}
-      className="min-h-0 flex-1 overflow-y-auto bg-neutral-50/70 px-4 py-4"
+      className="min-h-0 flex-1 scroll-smooth overflow-y-auto bg-[#fafaf9] px-4 py-5"
       role="log"
       aria-live="polite"
       aria-relevant="additions"
@@ -56,14 +56,14 @@ export function ChatConversation({
       {messages.length === 0 && !error ? (
         <EmptyState disabled={isLoading} onSelectSuggestion={onSelectSuggestion} />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {messages.map((message) => (
             <ChatMessage key={message.id} message={message} />
           ))}
           {isLoading && messages.at(-1)?.role !== 'assistant' && <LoadingState />}
           {error && (
             <div
-              className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-xs leading-5 text-red-700"
+              className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50/80 px-3.5 py-3 text-xs leading-5 text-red-700 shadow-[0_1px_2px_rgba(127,29,29,0.04)]"
               role="alert"
             >
               <CircleAlert size={15} className="mt-0.5 shrink-0" aria-hidden />
@@ -73,7 +73,7 @@ export function ChatConversation({
                   <button
                     type="button"
                     onClick={onRetry}
-                    className="mt-1.5 inline-flex items-center gap-1 font-semibold text-red-800 underline decoration-red-300 underline-offset-2 hover:decoration-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
+                    className="mt-2 inline-flex h-7 items-center gap-1.5 rounded-md bg-white px-2.5 font-semibold text-red-800 shadow-sm ring-1 ring-inset ring-red-200 transition-colors hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
                   >
                     <RotateCcw size={12} strokeWidth={2} aria-hidden />
                     Retry

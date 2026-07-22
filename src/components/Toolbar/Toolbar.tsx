@@ -23,9 +23,9 @@ export interface ToolbarProps {
 }
 
 const TOOLBAR_CLASS =
-  'flex w-full items-center gap-1 rounded-xl border border-neutral-200/80 bg-white/85 p-1.5 ' +
-  'shadow-[0_1px_2px_rgba(16,15,15,0.04),0_10px_30px_-16px_rgba(16,15,15,0.12)] ' +
-  'supports-[backdrop-filter]:bg-white/70 backdrop-blur-md ' +
+  'flex w-full items-center gap-0.5 rounded-lg border border-neutral-200 bg-white/90 p-1 ' +
+  'shadow-[0_1px_2px_rgba(20,20,20,0.04),0_8px_24px_-16px_rgba(20,20,20,0.28)] ' +
+  'supports-[backdrop-filter]:bg-white/80 backdrop-blur-xl ' +
   // Horizontal scroll on mobile; wrap into rows from the `sm` breakpoint up.
   'flex-nowrap overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ' +
   'sm:flex-wrap sm:overflow-visible'
@@ -39,7 +39,7 @@ export function Toolbar({ api, sticky = false, size = 'md', className }: Toolbar
     <Tooltip.Provider delayDuration={300} skipDelayDuration={200}>
       <ToolbarPrimitive.Root
         aria-label="Text formatting"
-        className={cn(TOOLBAR_CLASS, sticky && 'sticky top-4 z-30', className)}
+        className={cn(TOOLBAR_CLASS, sticky && 'sticky top-3 z-30 sm:top-4', className)}
       >
         {TOOLBAR_SECTIONS.map((section, index) => (
           <Fragment key={section.id}>
