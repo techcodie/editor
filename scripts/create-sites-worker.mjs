@@ -1,8 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 
-const worker = `const NOT_FOUND = new Response('Not found', { status: 404 })
-
-function withIndex(pathname) {
+const worker = `function withIndex(pathname) {
   return pathname.endsWith('/') ? \`\${pathname}index.html\` : pathname
 }
 
@@ -25,7 +23,7 @@ export default {
       return fetchAsset(request, env, '/index.html')
     }
 
-    return NOT_FOUND
+    return new Response('Not found', { status: 404 })
   },
 }
 `
