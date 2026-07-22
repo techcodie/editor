@@ -12,12 +12,3 @@ export interface AskDocumentRequest {
   question: string
   history: AskDocumentHistoryMessage[]
 }
-
-export type AskDocumentStreamEvent =
-  | { type: 'delta'; content: string }
-  | { type: 'done' }
-  | { type: 'error'; message: string }
-
-export interface AskDocumentErrorResponse {
-  error: string
-}

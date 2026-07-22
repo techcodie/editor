@@ -1,7 +1,7 @@
 const DEFAULT_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const DEFAULT_MODEL = 'llama-3.1-8b-instant'
 
-interface GroqChatMessage {
+export interface GroqChatMessage {
   role: 'system' | 'user' | 'assistant'
   content: string
 }

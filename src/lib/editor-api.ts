@@ -3,6 +3,20 @@ import type { Editor } from '@tiptap/react'
 export type HeadingLevel = 1 | 2 | 3
 export type TextAlignment = 'left' | 'center' | 'right' | 'justify'
 
+export interface EditorSelectionBounds {
+  top: number
+  right: number
+  bottom: number
+  left: number
+}
+
+export interface EditorTextSelection {
+  from: number
+  to: number
+  text: string
+  bounds: EditorSelectionBounds
+}
+
 /**
  * Framework-agnostic editor command surface.
  *
@@ -61,6 +75,12 @@ export interface EditorApi {
   // Document
   /** Returns readable plain text without mutating editor state. */
   getDocumentText(): string
+
+  // Selection
+  getTextSelection(): EditorTextSelection | null
+  replaceTextSelection(selection: EditorTextSelection, replacement: string): boolean
+  clearTextSelection(): void
+  focus(): void
 
   // Reactivity — an external-store contract consumed via useSyncExternalStore.
   /** Subscribe to editor changes; returns an unsubscribe function. */
@@ -170,6 +190,76 @@ export function createEditorApi(editor: Editor): EditorApi {
         .replace(/[ \t]+\n/g, '\n')
         .replace(/\n{3,}/g, '\n\n')
         .trim(),
+
+    getTextSelection: () => {
+      const { from, to, empty } = editor.state.selection
+      if (empty) return null
+
+      const text = editor.state.doc.textBetween(from, to, '\n')
+      if (!text.trim()) return null
+
+      const nativeSelection = editor.view.dom.ownerDocument.getSelection()
+      const nativeRange = nativeSelection?.rangeCount ? nativeSelection.getRangeAt(0) : null
+      const nativeRect =
+        nativeRange &&
+        !nativeRange.collapsed &&
+        nativeSelection?.anchorNode &&
+        editor.view.dom.contains(nativeSelection.anchorNode)
+          ? nativeRange.getBoundingClientRect()
+          : null
+
+      if (nativeRect && (nativeRect.width > 0 || nativeRect.height > 0)) {
+        return {
+          from,
+          to,
+          text,
+          bounds: {
+            top: nativeRect.top,
+            right: nativeRect.right,
+            bottom: nativeRect.bottom,
+            left: nativeRect.left,
+          },
+        }
+      }
+
+      const start = editor.view.coordsAtPos(from)
+      const end = editor.view.coordsAtPos(to)
+      return {
+        from,
+        to,
+        text,
+        bounds: {
+          top: Math.min(start.top, end.top),
+          right: Math.max(start.right, end.right),
+          bottom: Math.max(start.bottom, end.bottom),
+          left: Math.min(start.left, end.left),
+        },
+      }
+    },
+    replaceTextSelection: (selection, replacement) => {
+      const currentText = editor.state.doc.textBetween(selection.from, selection.to, '\n')
+      if (currentText !== selection.text || !replacement.trim()) return false
+
+      const safeContent = replacement
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;')
+        .replaceAll(/\r?\n/g, '<br>')
+
+      return editor
+        .chain()
+        .focus()
+        .insertContentAt({ from: selection.from, to: selection.to }, safeContent)
+        .run()
+    },
+    clearTextSelection: () => {
+      editor.chain().setTextSelection(editor.state.selection.to).focus().run()
+    },
+    focus: () => {
+      editor.chain().focus().run()
+    },
 
     subscribe: (listener) => {
       editor.on('transaction', listener)

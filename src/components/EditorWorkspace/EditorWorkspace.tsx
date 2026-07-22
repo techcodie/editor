@@ -6,6 +6,7 @@ import { cn } from '../../lib/cn'
 import { Toolbar } from '../Toolbar'
 import { DocumentEditor } from '../DocumentEditor'
 import { AskDocumentPanel } from '../AskDocument'
+import { SelectionAi } from '../SelectionAI'
 
 const PLACEHOLDER = 'Start writing…'
 
@@ -61,6 +62,7 @@ export function EditorWorkspace() {
           onClose={closeAskDocument}
         />
       </div>
+      <SelectionAi api={api} />
     </div>
   )
 }
