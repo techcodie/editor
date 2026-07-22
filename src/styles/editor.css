@@ -1,0 +1,180 @@
+/* Editing surface: typography, spacing, caret, selection and placeholder.
+   Scoped to `.tiptap` (the contenteditable element Tiptap renders). */
+
+.tiptap {
+  outline: none;
+  min-height: 24rem;
+  color: #37352f;
+  font-size: 1.125rem;
+  line-height: 1.75;
+  caret-color: #4f46e5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.tiptap :where(p, ul, ol, blockquote, pre, h1, h2, h3, hr) {
+  margin: 0;
+}
+
+/* Consistent vertical rhythm between top-level blocks. */
+.tiptap > * + * {
+  margin-top: 0.75em;
+}
+.tiptap > h1 {
+  margin-top: 1.6em;
+}
+.tiptap > h2 {
+  margin-top: 1.4em;
+}
+.tiptap > h3 {
+  margin-top: 1.1em;
+}
+.tiptap > :first-child {
+  margin-top: 0;
+}
+
+.tiptap h1 {
+  font-size: 1.9rem;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.021em;
+  color: #1a1a19;
+}
+.tiptap h2 {
+  font-size: 1.45rem;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.017em;
+  color: #1a1a19;
+}
+.tiptap h3 {
+  font-size: 1.2rem;
+  line-height: 1.4;
+  font-weight: 600;
+  color: #1a1a19;
+}
+
+.tiptap a {
+  color: #4f46e5;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+
+/* Highlight mark (single default color, styled for the light theme). */
+.tiptap mark {
+  background: #fdf1b8;
+  color: inherit;
+  border-radius: 3px;
+  padding: 0.05em 0.1em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.tiptap ul,
+.tiptap ol {
+  padding-left: 1.55em;
+}
+.tiptap ul {
+  list-style: disc;
+}
+.tiptap ol {
+  list-style: decimal;
+}
+.tiptap li {
+  margin: 0.25em 0;
+}
+.tiptap li::marker {
+  color: #a3a3a0;
+}
+.tiptap li > * + * {
+  margin-top: 0.25em;
+}
+
+/* GitHub-style task lists. */
+.tiptap ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0;
+}
+.tiptap ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6em;
+  margin: 0.35em 0;
+}
+.tiptap ul[data-type='taskList'] li > * + * {
+  margin-top: 0;
+}
+.tiptap ul[data-type='taskList'] li > label {
+  flex: 0 0 auto;
+  margin-top: 0.3em;
+  user-select: none;
+}
+.tiptap ul[data-type='taskList'] li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.tiptap ul[data-type='taskList'] input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: #4f46e5;
+}
+.tiptap ul[data-type='taskList'] li[data-checked='true'] > div {
+  color: #9b9b96;
+  text-decoration: line-through;
+}
+.tiptap ul[data-type='taskList'] ul[data-type='taskList'] {
+  margin-top: 0.35em;
+  padding-left: 0.4em;
+}
+
+.tiptap blockquote {
+  border-left: 3px solid #e4e4e1;
+  padding-left: 1em;
+  color: #6b6b66;
+}
+
+.tiptap code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  background: #f1f1ef;
+  border: 1px solid #e7e7e4;
+  border-radius: 5px;
+  padding: 0.1em 0.35em;
+}
+
+.tiptap pre {
+  background: #1c1c1e;
+  color: #e6e6e6;
+  border-radius: 12px;
+  padding: 1em 1.15em;
+  overflow-x: auto;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.tiptap pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+.tiptap hr {
+  border: none;
+  border-top: 1px solid #e8e8e5;
+  margin: 1.75em 0;
+}
+
+.tiptap ::selection {
+  background: rgba(79, 70, 229, 0.15);
+}
+
+/* Placeholder shown only while the whole document is empty. */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: #b4b4ae;
+}
