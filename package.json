@@ -4,10 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "start": "node --env-file-if-exists=.env dist-server/server/index.js",
+    "preview": "npm run build && npm run start"
   },
   "dependencies": {
     "@radix-ui/react-toolbar": "^1.1.16",

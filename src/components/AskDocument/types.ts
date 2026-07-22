@@ -6,3 +6,8 @@ export interface ChatMessage {
   role: ChatRole
   content: string
 }
+
+export interface ConversationError {
+  message: string
+  canRetry: boolean
+}

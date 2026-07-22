@@ -7,12 +7,13 @@ import { useAskDocumentConversation } from './useAskDocumentConversation'
 
 interface AskDocumentPanelProps {
   isOpen: boolean
+  getDocumentText: () => string
   onClose: () => void
 }
 
-export function AskDocumentPanel({ isOpen, onClose }: AskDocumentPanelProps) {
-  const { messages, isLoading, error, sendMessage, clearConversation } =
-    useAskDocumentConversation()
+export function AskDocumentPanel({ isOpen, getDocumentText, onClose }: AskDocumentPanelProps) {
+  const { messages, isLoading, error, sendMessage, retryLastMessage, clearConversation } =
+    useAskDocumentConversation(getDocumentText)
 
   useEffect(() => {
     if (!isOpen) return
@@ -50,6 +51,7 @@ export function AskDocumentPanel({ isOpen, onClose }: AskDocumentPanelProps) {
           isLoading={isLoading}
           error={error}
           onSelectSuggestion={sendMessage}
+          onRetry={retryLastMessage}
         />
         <ChatInput disabled={isLoading} isActive={isOpen} onSend={sendMessage} />
       </div>

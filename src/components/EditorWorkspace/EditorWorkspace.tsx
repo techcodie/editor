@@ -25,6 +25,8 @@ export function EditorWorkspace() {
     window.requestAnimationFrame(() => askDocumentButtonRef.current?.focus())
   }, [])
 
+  const getDocumentText = useCallback(() => api?.getDocumentText() ?? '', [api])
+
   return (
     <div className="mx-auto flex w-full max-w-[82rem] items-start justify-center gap-4 px-4 py-6 sm:py-10 lg:py-6">
       <div className="min-w-0 w-full max-w-[46rem]">
@@ -55,6 +57,7 @@ export function EditorWorkspace() {
       <div className="shrink-0">
         <AskDocumentPanel
           isOpen={isAskDocumentOpen}
+          getDocumentText={getDocumentText}
           onClose={closeAskDocument}
         />
       </div>

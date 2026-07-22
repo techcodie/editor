@@ -58,6 +58,10 @@ export interface EditorApi {
   insertHorizontalRule(): void
   clearFormatting(): void
 
+  // Document
+  /** Returns readable plain text without mutating editor state. */
+  getDocumentText(): string
+
   // Reactivity — an external-store contract consumed via useSyncExternalStore.
   /** Subscribe to editor changes; returns an unsubscribe function. */
   subscribe(listener: () => void): () => void
@@ -148,6 +152,24 @@ export function createEditorApi(editor: Editor): EditorApi {
     clearFormatting: () => {
       editor.chain().focus().unsetAllMarks().clearNodes().run()
     },
+
+    getDocumentText: () =>
+      editor
+        .getText({
+          blockSeparator: '\n',
+          textSerializers: {
+            heading: ({ node }) =>
+              `${'#'.repeat(Number(node.attrs.level) || 1)} ${node.textContent}`,
+            listItem: ({ node, parent, index }) =>
+              `${parent.type.name === 'orderedList' ? `${Number(parent.attrs.start ?? 1) + index}.` : '-'} ${node.textContent}`,
+            taskItem: ({ node }) => `- [${node.attrs.checked ? 'x' : ' '}] ${node.textContent}`,
+            horizontalRule: () => '---',
+            hardBreak: () => '\n',
+          },
+        })
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim(),
 
     subscribe: (listener) => {
       editor.on('transaction', listener)
