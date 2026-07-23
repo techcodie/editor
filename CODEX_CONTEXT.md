@@ -130,6 +130,11 @@ The two current AI workflows are:
 Both workflows use the shared streaming transport and return server-sent events.
 The Groq API key remains server-only.
 
+Ask Document voice input is a browser-only input method. The native Web Speech
+API converts microphone speech into editable text before the existing Ask
+Document request flow begins. Voice input never submits a question
+automatically and does not change the backend or Groq integration.
+
 ---
 
 ## Important Rules
@@ -196,6 +201,8 @@ directly.
 - Answers questions using the current document.
 - Supports suggested questions, recent conversation context, retry, clear, and
   cancellation.
+- Supports native browser speech-to-text with live transcription, manual stop,
+  editable results, permission and error feedback, and no automatic submission.
 - Streams responses from the backend through Groq.
 
 ### Selection AI
@@ -212,6 +219,19 @@ directly.
 AI request parsing, stream handling, provider errors, and HTTP validation are
 shared where practical without introducing a runtime, registry, or plugin
 system.
+
+### Speech Recognition
+
+- `useSpeechRecognition` isolates all native `SpeechRecognition` and
+  `webkitSpeechRecognition` access from presentation components.
+- Recognition is client-only and does not upload or store audio in this
+  application.
+- Existing typed text is preserved when recognition starts.
+- Interim and final results update the existing Ask Document textarea.
+- Typing, sending, closing the panel, or starting an AI request safely cancels
+  active recognition.
+- Unsupported browsers expose a disabled microphone control with an accessible
+  explanation.
 
 ---
 
@@ -260,9 +280,10 @@ Current architecture shares the editor through composition and props.
 - Lucide Icons
 - Node.js backend
 - Groq API
+- Native Web Speech API
 
 No additional runtime dependencies were added for Ask Document, Selection AI,
-or the UI polish milestone.
+voice input, or the UI polish milestone.
 
 ---
 
@@ -288,6 +309,8 @@ src/
     EditorWorkspace/     Editor composition and layout
     SelectionAI/         Selection toolbar and result preview
     Toolbar/             Formatting controls
+  hooks/
+    useSpeechRecognition.ts  Native browser speech recognition lifecycle
   services/              Shared frontend AI streaming services
   lib/editor-api.ts      Tiptap boundary and editor command API
   styles/editor.css      Editor typography and content styling
@@ -335,6 +358,7 @@ Completed:
 - Selection AI preview, copy, retry, cancellation, and explicit replacement
 - Selection-safe editor API integration
 - Cohesive editor and AI UI polish across desktop and mobile
+- Ask Document speech-to-text input with live, editable transcription
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. No known functional bugs are open.
@@ -364,6 +388,14 @@ These are not missing. Do not implement unless requested.
 - RAG
 - Embeddings
 - Multiple selections
+- Voice conversation
+- AI voice replies
+- Text-to-speech
+- Third-party or server-side speech recognition
+- Backend audio uploads
+- Audio recording storage
+- Wake words
+- Automatic voice submission
 
 ---
 
