@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import {
   ASK_DOCUMENT_HISTORY_LIMIT,
   type AskDocumentHistoryMessage,
+  type AskDocumentKnowledgeSource,
   type AskDocumentRequest,
 } from '../shared/ask-document.js'
 import { sendAiResponse } from './ai-response.js'
@@ -16,6 +17,10 @@ import {
 import { buildDocumentQuestionPrompt, ASK_DOCUMENT_SYSTEM_PROMPT } from './prompts.js'
 
 const MAX_DOCUMENT_CHARS = 80_000
+const MAX_KNOWLEDGE_SOURCE_CHARS = 120_000
+const MAX_TOTAL_CONTEXT_CHARS = 220_000
+const MAX_KNOWLEDGE_SOURCES = 20
+const MAX_SOURCE_NAME_CHARS = 255
 const MAX_QUESTION_CHARS = 2_000
 const MAX_HISTORY_MESSAGE_CHARS = 4_000
 
@@ -38,22 +43,68 @@ function parseHistory(value: unknown): AskDocumentHistoryMessage[] {
   })
 }
 
+function parseKnowledgeSources(value: unknown): AskDocumentKnowledgeSource[] {
+  if (!Array.isArray(value)) {
+    throw new RequestValidationError(400, 'Active knowledge sources are invalid.')
+  }
+  if (value.length > MAX_KNOWLEDGE_SOURCES) {
+    throw new RequestValidationError(413, 'Too many knowledge sources are active.')
+  }
+
+  return value.flatMap<AskDocumentKnowledgeSource>((source) => {
+    if (!isRecord(source)) return []
+
+    const name = typeof source.name === 'string' ? source.name.trim().replace(/\s+/g, ' ') : ''
+    const content = typeof source.content === 'string' ? source.content.trim() : ''
+    if (!name || !content) return []
+    if (name.length > MAX_SOURCE_NAME_CHARS) {
+      throw new RequestValidationError(413, 'A knowledge source name is too long.')
+    }
+    if (content.length > MAX_KNOWLEDGE_SOURCE_CHARS) {
+      throw new RequestValidationError(413, `${name} is too long to analyze safely.`)
+    }
+
+    return [{ name, content }]
+  })
+}
+
 function validateRequest(value: unknown): AskDocumentRequest {
   if (!isRecord(value)) throw new RequestValidationError(400, 'The request is invalid.')
 
-  const document = typeof value.document === 'string' ? value.document.trim() : ''
-  const question = typeof value.question === 'string' ? value.question.trim() : ''
+  const currentDocument =
+    typeof value.currentDocument === 'string' ? value.currentDocument.trim() : ''
+  const activeKnowledgeSources = parseKnowledgeSources(value.activeKnowledgeSources)
+  const userQuestion = typeof value.userQuestion === 'string' ? value.userQuestion.trim() : ''
+  const totalContextCharacters =
+    currentDocument.length +
+    activeKnowledgeSources.reduce((total, source) => total + source.content.length, 0)
 
-  if (!document) throw new RequestValidationError(400, 'Add some content to the document first.')
-  if (!question) throw new RequestValidationError(400, 'Enter a question about the document.')
-  if (document.length > MAX_DOCUMENT_CHARS) {
+  if (!currentDocument && activeKnowledgeSources.length === 0) {
+    throw new RequestValidationError(
+      400,
+      'Add content to the current document or activate a readable knowledge source.',
+    )
+  }
+  if (!userQuestion) throw new RequestValidationError(400, 'Enter a question about the workspace.')
+  if (currentDocument.length > MAX_DOCUMENT_CHARS) {
     throw new RequestValidationError(413, 'The current document is too long to analyze safely.')
   }
-  if (question.length > MAX_QUESTION_CHARS) {
+  if (totalContextCharacters > MAX_TOTAL_CONTEXT_CHARS) {
+    throw new RequestValidationError(
+      413,
+      'The active workspace context is too large. Disable one or more sources and try again.',
+    )
+  }
+  if (userQuestion.length > MAX_QUESTION_CHARS) {
     throw new RequestValidationError(413, 'The question is too long. Please make it shorter.')
   }
 
-  return { document, question, history: parseHistory(value.history) }
+  return {
+    currentDocument,
+    activeKnowledgeSources,
+    conversation: parseHistory(value.conversation),
+    userQuestion,
+  }
 }
 
 export async function handleAskDocument(
@@ -69,10 +120,14 @@ export async function handleAskDocument(
       response,
       [
         { role: 'system', content: ASK_DOCUMENT_SYSTEM_PROMPT },
-        ...body.history,
+        ...body.conversation,
         {
           role: 'user',
-          content: buildDocumentQuestionPrompt(body.document, body.question),
+          content: buildDocumentQuestionPrompt(
+            body.currentDocument,
+            body.activeKnowledgeSources,
+            body.userQuestion,
+          ),
         },
       ],
       {

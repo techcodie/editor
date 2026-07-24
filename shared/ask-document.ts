@@ -7,8 +7,14 @@ export interface AskDocumentHistoryMessage {
   content: string
 }
 
+export interface AskDocumentKnowledgeSource {
+  name: string
+  content: string
+}
+
 export interface AskDocumentRequest {
-  document: string
-  question: string
-  history: AskDocumentHistoryMessage[]
+  currentDocument: string
+  activeKnowledgeSources: AskDocumentKnowledgeSource[]
+  conversation: AskDocumentHistoryMessage[]
+  userQuestion: string
 }

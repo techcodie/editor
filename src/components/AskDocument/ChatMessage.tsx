@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react'
+import { Check, Sparkles } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import type { ChatMessage as ChatMessageType } from './types'
 
@@ -37,6 +37,25 @@ export function ChatMessage({ message }: ChatMessageProps) {
         </div>
       )}
       <div className={cn('min-w-0 max-w-[88%]', isUser && 'text-right')}>
+        {!isUser && message.sourcesUsed && message.sourcesUsed.length > 0 && (
+          <div
+            className="mb-1.5 rounded-md border border-neutral-200 bg-neutral-100/70 px-2.5 py-2 text-left"
+            aria-label="Sources used for this response"
+          >
+            <p className="text-[9px] font-semibold uppercase text-neutral-500">Using Sources</p>
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {message.sourcesUsed.map((sourceName, index) => (
+                <span
+                  key={`${sourceName}-${index}`}
+                  className="inline-flex max-w-full items-center gap-1 rounded-md bg-white px-1.5 py-1 text-[9px] font-medium text-neutral-600 shadow-sm ring-1 ring-inset ring-neutral-200"
+                >
+                  <Check size={10} strokeWidth={2.2} className="shrink-0 text-emerald-600" aria-hidden />
+                  <span className="truncate">{sourceName}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         <div
           className={cn(
             'whitespace-pre-wrap break-words rounded-lg px-3.5 py-2.5 text-left text-sm leading-6',

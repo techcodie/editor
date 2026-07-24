@@ -1,5 +1,7 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { KnowledgeSources } from '../../knowledge'
+import { useKnowledgeSources } from '../../knowledge/hooks/useKnowledgeSources'
+import { buildKnowledgeContext } from '../../knowledge/services/contextBuilder'
 import { cn } from '../../lib/cn'
 import { ChatConversation } from './ChatConversation'
 import { ChatHeader } from './ChatHeader'
@@ -13,8 +15,14 @@ interface AskDocumentPanelProps {
 }
 
 export function AskDocumentPanel({ isOpen, getDocumentText, onClose }: AskDocumentPanelProps) {
+  const { sources, addFiles, removeSource, setSourceActive } = useKnowledgeSources()
+  const getKnowledgeContext = useCallback(
+    () => buildKnowledgeContext(getDocumentText(), sources),
+    [getDocumentText, sources],
+  )
+  const knowledgeContext = buildKnowledgeContext(getDocumentText(), sources)
   const { messages, isLoading, error, sendMessage, retryLastMessage, clearConversation } =
-    useAskDocumentConversation(getDocumentText)
+    useAskDocumentConversation(getKnowledgeContext)
 
   useEffect(() => {
     if (!isOpen) return
@@ -59,7 +67,13 @@ export function AskDocumentPanel({ isOpen, getDocumentText, onClose }: AskDocume
           onSelectSuggestion={sendMessage}
           onRetry={retryLastMessage}
         />
-        <KnowledgeSources />
+        <KnowledgeSources
+          sources={sources}
+          hasLargeContext={knowledgeContext.isLarge}
+          onAddFiles={addFiles}
+          onRemoveSource={removeSource}
+          onSourceActiveChange={setSourceActive}
+        />
         <ChatInput disabled={isLoading} isActive={isOpen} onSend={sendMessage} />
       </div>
     </aside>

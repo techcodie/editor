@@ -5,6 +5,7 @@ export interface ChatMessage {
   timestamp: number
   role: ChatRole
   content: string
+  sourcesUsed?: string[]
 }
 
 export interface ConversationError {

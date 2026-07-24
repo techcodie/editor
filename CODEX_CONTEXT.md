@@ -124,11 +124,17 @@ Ask Document UI / Selection AI UI
 
 The two current AI workflows are:
 
-- Ask Document: document, question, and recent conversation history.
+- Ask Document: current document, explicitly active Knowledge Sources, question,
+  and recent conversation history.
 - Selection AI: selected text, action, and optional current-document context.
 
 Both workflows use the shared streaming transport and return server-sent events.
 The Groq API key remains server-only.
+
+Ask Document builds a structured request through the Knowledge Context Builder.
+The frontend sends document text, ordered active sources, conversation, and the
+question as separate fields. Only the backend prompt builder formats those
+fields for Groq.
 
 Ask Document voice input is a browser-only input method. The native Web Speech
 API converts microphone speech into editable text before the existing Ask
@@ -151,7 +157,31 @@ In-App Preview Workspace
 ```
 
 Knowledge source files and parsed content remain in browser memory. This flow
-does not use the backend, AI services, storage providers, or the Editor API.
+does not use storage providers or the Editor API.
+
+### Knowledge Context Flow
+
+```text
+Current Document + Active Parsed Sources
+                    |
+                    v
+        Knowledge Context Builder
+                    |
+                    v
+        Structured Ask Document Request
+                    |
+                    v
+        Backend Prompt Builder
+                    |
+                    v
+                  Groq
+```
+
+The Current Document is always active. Uploaded sources are included only when
+the user has explicitly left them active and parsing completed successfully.
+Missing, empty, failed, inactive, or removed sources are skipped. Source order
+is preserved, source content is never summarized or truncated, and the exact
+source set used by each response is retained in that response's UI metadata.
 
 ---
 
@@ -216,9 +246,11 @@ directly.
 ### Ask Document
 
 - Opens in a responsive side panel.
-- Answers questions using the current document.
+- Answers questions using the current document and explicitly active Knowledge
+  Sources.
 - Supports suggested questions, recent conversation context, retry, clear, and
   cancellation.
+- Displays the exact sources used above each completed response.
 - Supports native browser speech-to-text with live transcription, manual stop,
   editable results, permission and error feedback, and no automatic submission.
 - Streams responses from the backend through Groq.
@@ -246,8 +278,12 @@ directly.
   in-app preview workspace.
 - Supports parsing progress, page counts for PDFs, validation errors, parsing
   errors, preview keyboard controls, and source removal.
+- Keeps Current Document active and immutable while allowing uploaded, parsed
+  sources to be included or excluded from Ask Document.
+- Warns when active source content is large without summarizing or truncating it.
 - Rejects empty, unsupported, and files larger than 25 MB before parsing.
-- Does not upload, persist, or send source contents to AI.
+- Sends active parsed source text only as part of an explicit Ask Document
+  request; it does not upload or persist sources separately.
 
 AI request parsing, stream handling, provider errors, and HTTP validation are
 shared where practical without introducing a runtime, registry, or plugin
@@ -350,7 +386,7 @@ src/
     components/          Source list, cards, and upload dialog
     hooks/               Local source and preview state
     preview/             Preview workspace and format-specific viewers
-    services/            Local file parsers and PDF document loading
+    services/            Local parsers, PDF loading, and AI context building
     types/               Source contracts, validation, and file helpers
   hooks/
     useSpeechRecognition.ts  Native browser speech recognition lifecycle
@@ -407,11 +443,16 @@ Completed:
 - Local PDF, DOCX, TXT, and Markdown parsing with extracted content and errors
 - Responsive document preview workspace with PDF page rendering, formatted text
   previews, loading states, focus management, and keyboard dismissal
+- Active Knowledge Source controls with Current Document permanently enabled
+- Multi-source Ask Document context built from the current document and ordered
+  active parsed sources
+- Per-response source labels and large-context feedback
 
 Architecture is verified. Ask Document and Selection AI both preserve the
-Editor API boundary. Knowledge Sources remains an isolated client-side parsing,
-presentation, and local-state feature with no AI, backend, or storage
-integration. No known functional bugs are open.
+Editor API boundary. Knowledge Sources remains browser-memory state and uses a
+dedicated context builder to create structured Ask Document requests. Prompt
+formatting remains server-side. No embeddings, retrieval, source persistence,
+or citation generation has been introduced. No known functional bugs are open.
 
 ---
 
@@ -438,7 +479,7 @@ These are not missing. Do not implement unless requested.
 - RAG
 - Embeddings
 - Multiple selections
-- Knowledge source AI context and citations
+- Knowledge source citations
 - Backend knowledge source upload and persistence
 - Knowledge source search
 - Insert knowledge source content into the editor

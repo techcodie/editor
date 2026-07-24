@@ -8,6 +8,7 @@ export interface KnowledgeSource {
   type: KnowledgeSourceType
   size: number
   status: KnowledgeSourceStatus
+  isActive: boolean
   file?: File
   parseStatus: KnowledgeSourceParseStatus
   parsedContent?: string
@@ -22,6 +23,7 @@ export const CURRENT_DOCUMENT_SOURCE: KnowledgeSource = {
   type: 'document',
   size: 0,
   status: 'current',
+  isActive: true,
   parseStatus: 'idle',
 }
 

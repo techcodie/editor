@@ -1,4 +1,4 @@
-import { CheckCircle2, CircleAlert, Eye, FileText, LoaderCircle, Trash2 } from 'lucide-react'
+import { CircleAlert, Eye, FileText, LoaderCircle, Trash2 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import {
   formatKnowledgeSourceSize,
@@ -10,13 +10,15 @@ interface SourceCardProps {
   source: KnowledgeSource
   onPreview?: (source: KnowledgeSource) => void
   onRemove?: (sourceId: string) => void
+  onActiveChange?: (sourceId: string, isActive: boolean) => void
 }
 
-export function SourceCard({ source, onPreview, onRemove }: SourceCardProps) {
+export function SourceCard({ source, onPreview, onRemove, onActiveChange }: SourceCardProps) {
   const isCurrent = source.status === 'current'
   const isReady = source.parseStatus === 'ready'
   const isParsing = source.parseStatus === 'parsing'
   const hasError = source.parseStatus === 'error'
+  const isUsedByAi = isCurrent || (isReady && source.isActive)
 
   const sourceDetails = (
     <>
@@ -53,12 +55,16 @@ export function SourceCard({ source, onPreview, onRemove }: SourceCardProps) {
             </p>
           </div>
           {isCurrent && (
-            <CheckCircle2
-              size={15}
-              strokeWidth={2}
-              className="mt-0.5 shrink-0 text-emerald-600"
-              aria-label="Included"
-            />
+            <span
+              role="switch"
+              aria-checked="true"
+              aria-disabled="true"
+              aria-label="Current Document is always active"
+              title="Current Document is always active"
+              className="mt-0.5 inline-flex h-5 w-8 shrink-0 items-center justify-end rounded-full bg-emerald-600 p-0.5"
+            >
+              <span className="h-4 w-4 rounded-full bg-white shadow-sm" aria-hidden />
+            </span>
           )}
         </div>
         {hasError && (
@@ -95,13 +101,44 @@ export function SourceCard({ source, onPreview, onRemove }: SourceCardProps) {
           <div className="flex items-center gap-1 px-2 pb-2">
             <button
               type="button"
+              role="switch"
+              aria-checked={isUsedByAi}
+              aria-label={`${isUsedByAi ? 'Exclude' : 'Include'} ${source.name} ${
+                isUsedByAi ? 'from' : 'in'
+              } AI context`}
+              title={
+                isParsing
+                  ? 'Available after parsing'
+                  : hasError
+                    ? 'Unavailable because parsing failed'
+                    : source.isActive
+                      ? 'Active in AI context'
+                      : 'Inactive in AI context'
+              }
+              disabled={!isReady}
+              onClick={() => onActiveChange?.(source.id, !source.isActive)}
+              className="group inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30 disabled:cursor-not-allowed disabled:text-neutral-400 disabled:hover:bg-transparent"
+            >
+              <span
+                className={cn(
+                  'inline-flex h-4 w-7 items-center rounded-full p-0.5 transition-colors',
+                  isUsedByAi ? 'justify-end bg-emerald-600' : 'justify-start bg-neutral-300',
+                )}
+                aria-hidden
+              >
+                <span className="h-3 w-3 rounded-full bg-white shadow-sm" />
+              </span>
+              {isParsing ? 'Preparing' : isUsedByAi ? 'Active' : 'Inactive'}
+            </button>
+            <button
+              type="button"
               disabled={!isReady}
               onClick={() => onPreview?.(source)}
               className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30 disabled:text-neutral-400 disabled:hover:bg-transparent"
               aria-label={`Preview ${source.name}`}
             >
               <Eye size={12} strokeWidth={1.9} aria-hidden />
-              {isParsing ? 'Preparing' : 'Preview'}
+              Preview
             </button>
             <button
               type="button"

@@ -1,20 +1,34 @@
 import { useState } from 'react'
-import { BookOpen, Plus } from 'lucide-react'
+import { BookOpen, Plus, TriangleAlert } from 'lucide-react'
 import { SourceCard } from './SourceCard'
 import { UploadDialog } from './UploadDialog'
 import { useDocumentPreview } from '../hooks/useDocumentPreview'
-import { useKnowledgeSources } from '../hooks/useKnowledgeSources'
 import { DocumentPreview } from '../preview/DocumentPreview'
+import { LARGE_CONTEXT_WARNING } from '../services/contextBuilder'
+import type { KnowledgeSource } from '../types/source'
 
-export function KnowledgeSources() {
+interface KnowledgeSourcesProps {
+  sources: KnowledgeSource[]
+  hasLargeContext: boolean
+  onAddFiles: (files: File[]) => void
+  onRemoveSource: (sourceId: string) => void
+  onSourceActiveChange: (sourceId: string, isActive: boolean) => void
+}
+
+export function KnowledgeSources({
+  sources,
+  hasLargeContext,
+  onAddFiles,
+  onRemoveSource,
+  onSourceActiveChange,
+}: KnowledgeSourcesProps) {
   const [isUploadOpen, setIsUploadOpen] = useState(false)
-  const { sources, addFiles, removeSource } = useKnowledgeSources()
   const { previewSource, openPreview, closePreview } = useDocumentPreview()
   const uploadedSources = sources.filter((source) => source.status === 'uploaded')
 
   const handleRemoveSource = (sourceId: string) => {
     if (previewSource?.id === sourceId) closePreview()
-    removeSource(sourceId)
+    onRemoveSource(sourceId)
   }
 
   return (
@@ -43,6 +57,15 @@ export function KnowledgeSources() {
       </header>
 
       <div className="px-3 pb-3">
+        {hasLargeContext && (
+          <div
+            className="mb-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-[10px] leading-4 text-amber-800"
+            role="status"
+          >
+            <TriangleAlert size={13} strokeWidth={1.9} className="mt-0.5 shrink-0" aria-hidden />
+            <span>{LARGE_CONTEXT_WARNING}</span>
+          </div>
+        )}
         <SourceCard source={sources[0]} />
 
         {uploadedSources.length === 0 ? (
@@ -73,6 +96,7 @@ export function KnowledgeSources() {
                 source={source}
                 onPreview={openPreview}
                 onRemove={handleRemoveSource}
+                onActiveChange={onSourceActiveChange}
               />
             ))}
           </div>
@@ -81,7 +105,7 @@ export function KnowledgeSources() {
 
       <UploadDialog
         isOpen={isUploadOpen}
-        onAddFiles={addFiles}
+        onAddFiles={onAddFiles}
         onClose={() => setIsUploadOpen(false)}
       />
       <DocumentPreview source={previewSource} onClose={closePreview} />

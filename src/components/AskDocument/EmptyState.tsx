@@ -14,7 +14,7 @@ export function EmptyState({ disabled, onSelectSuggestion }: EmptyStateProps) {
       </div>
       <h3 className="text-sm font-semibold text-neutral-950">Ask about your document</h3>
       <p className="mt-1.5 max-w-[17rem] text-xs leading-5 text-neutral-500">
-        The assistant only answers using the current document.
+        The assistant answers using the current document and your active sources.
       </p>
       <p className="mb-2.5 mt-7 w-full text-left text-[11px] font-medium text-neutral-500">
         Suggested questions

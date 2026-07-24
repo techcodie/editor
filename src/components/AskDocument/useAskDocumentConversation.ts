@@ -3,6 +3,10 @@ import {
   ASK_DOCUMENT_HISTORY_LIMIT,
   type AskDocumentHistoryMessage,
 } from '../../../shared/ask-document'
+import {
+  buildAskDocumentRequest,
+  type KnowledgeContext,
+} from '../../knowledge/services/contextBuilder'
 import { AskDocumentServiceError, streamAskDocument } from '../../services/ask-document'
 import type { ChatMessage, ChatRole, ConversationError } from './types'
 
@@ -11,12 +15,18 @@ interface PendingRequest {
   history: AskDocumentHistoryMessage[]
 }
 
-function createMessage(role: ChatRole, content: string, id = crypto.randomUUID()): ChatMessage {
+function createMessage(
+  role: ChatRole,
+  content: string,
+  id = crypto.randomUUID(),
+  sourcesUsed?: string[],
+): ChatMessage {
   return {
     id,
     timestamp: Date.now(),
     role,
     content,
+    sourcesUsed,
   }
 }
 
@@ -41,7 +51,7 @@ function getFriendlyError(error: unknown): ConversationError {
   }
 }
 
-export function useAskDocumentConversation(getDocumentText: () => string) {
+export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeContext) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<ConversationError | null>(null)
@@ -52,13 +62,13 @@ export function useAskDocumentConversation(getDocumentText: () => string) {
     async (pendingRequest: PendingRequest) => {
       if (requestRef.current) return
 
-      const document = getDocumentText().trim()
+      const context = getKnowledgeContext()
       lastRequestRef.current = pendingRequest
       setError(null)
 
-      if (!document) {
+      if (!context.currentDocument.trim() && context.activeKnowledgeSources.length === 0) {
         setError({
-          message: 'Add some content to the document before asking a question.',
+          message: 'Add content to the current document or activate a readable knowledge source.',
           canRetry: true,
         })
         return
@@ -71,11 +81,7 @@ export function useAskDocumentConversation(getDocumentText: () => string) {
 
       try {
         await streamAskDocument(
-          {
-            document,
-            question: pendingRequest.question,
-            history: pendingRequest.history,
-          },
+          buildAskDocumentRequest(context, pendingRequest.history, pendingRequest.question),
           (content) => {
             setMessages((current) => {
               const assistantMessage = current.find(
@@ -83,7 +89,15 @@ export function useAskDocumentConversation(getDocumentText: () => string) {
               )
 
               if (!assistantMessage) {
-                return [...current, createMessage('assistant', content, assistantMessageId)]
+                return [
+                  ...current,
+                  createMessage(
+                    'assistant',
+                    content,
+                    assistantMessageId,
+                    context.usedSourceNames,
+                  ),
+                ]
               }
 
               return current.map((message) =>
@@ -110,7 +124,7 @@ export function useAskDocumentConversation(getDocumentText: () => string) {
         }
       }
     },
-    [getDocumentText],
+    [getKnowledgeContext],
   )
 
   const sendMessage = useCallback(

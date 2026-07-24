@@ -21,6 +21,7 @@ export function useKnowledgeSources() {
           type,
           size: file.size,
           status: 'uploaded',
+          isActive: true,
           file,
           parseStatus: 'parsing',
         },
@@ -62,6 +63,7 @@ export function useKnowledgeSources() {
                 ? {
                     ...item,
                     parseStatus: 'error',
+                    isActive: false,
                     errorMessage,
                   }
                 : item,
@@ -77,9 +79,22 @@ export function useKnowledgeSources() {
     )
   }, [])
 
+  const setSourceActive = useCallback((sourceId: string, isActive: boolean) => {
+    setSources((current) =>
+      current.map((source) =>
+        source.id === sourceId &&
+        source.status === 'uploaded' &&
+        source.parseStatus === 'ready'
+          ? { ...source, isActive }
+          : source,
+      ),
+    )
+  }, [])
+
   return {
     sources,
     addFiles,
     removeSource,
+    setSourceActive,
   }
 }
