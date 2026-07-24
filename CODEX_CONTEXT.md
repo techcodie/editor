@@ -135,6 +135,24 @@ API converts microphone speech into editable text before the existing Ask
 Document request flow begins. Voice input never submits a question
 automatically and does not change the backend or Groq integration.
 
+### Knowledge Source Preview Flow
+
+```text
+Local File
+    |
+    v
+Knowledge File Parser
+    |
+    v
+Local Source State
+    |
+    v
+In-App Preview Workspace
+```
+
+Knowledge source files and parsed content remain in browser memory. This flow
+does not use the backend, AI services, storage providers, or the Editor API.
+
 ---
 
 ## Important Rules
@@ -222,9 +240,14 @@ directly.
 - Keeps the Current Document as the permanent first source.
 - Supports local file selection and drag-and-drop validation for PDF, DOCX, TXT,
   and Markdown files.
-- Stores uploaded source metadata in local component state and supports removal.
-- Exposes a disabled preview action until source preview rendering is implemented.
-- Does not parse, upload, persist, or send source contents to AI.
+- Parses supported files locally and stores extracted text and preview metadata
+  in local component state.
+- Renders PDF pages and formatted DOCX, Markdown, and TXT content in a responsive
+  in-app preview workspace.
+- Supports parsing progress, page counts for PDFs, validation errors, parsing
+  errors, preview keyboard controls, and source removal.
+- Rejects empty, unsupported, and files larger than 25 MB before parsing.
+- Does not upload, persist, or send source contents to AI.
 
 AI request parsing, stream handling, provider errors, and HTTP validation are
 shared where practical without introducing a runtime, registry, or plugin
@@ -291,9 +314,13 @@ Current architecture shares the editor through composition and props.
 - Node.js backend
 - Groq API
 - Native Web Speech API
+- PDF.js
+- Mammoth
+- Marked
+- DOMPurify
 
-No additional runtime dependencies were added for Ask Document, Selection AI,
-voice input, Knowledge Sources, or the UI polish milestone.
+PDF.js, Mammoth, Marked, and DOMPurify are isolated to client-side Knowledge
+Source parsing and safe preview rendering.
 
 ---
 
@@ -321,8 +348,10 @@ src/
     Toolbar/             Formatting controls
   knowledge/
     components/          Source list, cards, and upload dialog
-    hooks/               Local knowledge source metadata state
-    types/               Knowledge source contracts and file helpers
+    hooks/               Local source and preview state
+    preview/             Preview workspace and format-specific viewers
+    services/            Local file parsers and PDF document loading
+    types/               Source contracts, validation, and file helpers
   hooks/
     useSpeechRecognition.ts  Native browser speech recognition lifecycle
   services/              Shared frontend AI streaming services
@@ -375,11 +404,14 @@ Completed:
 - Ask Document speech-to-text input with live, editable transcription
 - Knowledge Sources UI with Current Document, file selection, drag-and-drop
   validation, local metadata cards, and source removal
+- Local PDF, DOCX, TXT, and Markdown parsing with extracted content and errors
+- Responsive document preview workspace with PDF page rendering, formatted text
+  previews, loading states, focus management, and keyboard dismissal
 
 Architecture is verified. Ask Document and Selection AI both preserve the
-Editor API boundary. Knowledge Sources remains an isolated presentation and
-local-state feature with no AI, backend, or storage integration. No known
-functional bugs are open.
+Editor API boundary. Knowledge Sources remains an isolated client-side parsing,
+presentation, and local-state feature with no AI, backend, or storage
+integration. No known functional bugs are open.
 
 ---
 
@@ -406,9 +438,6 @@ These are not missing. Do not implement unless requested.
 - RAG
 - Embeddings
 - Multiple selections
-- Knowledge source parsing
-- PDF and DOCX rendering
-- Knowledge source preview
 - Knowledge source AI context and citations
 - Backend knowledge source upload and persistence
 - Knowledge source search

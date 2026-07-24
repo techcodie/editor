@@ -4,6 +4,7 @@ import {
   getKnowledgeSourceType,
   type KnowledgeSource,
 } from '../types/source'
+import { parseKnowledgeSourceFile } from '../services/fileParser'
 
 export function useKnowledgeSources() {
   const [sources, setSources] = useState<KnowledgeSource[]>([CURRENT_DOCUMENT_SOURCE])
@@ -20,12 +21,53 @@ export function useKnowledgeSources() {
           type,
           size: file.size,
           status: 'uploaded',
+          file,
+          parseStatus: 'parsing',
         },
       ]
     })
 
     if (uploadedSources.length > 0) {
       setSources((current) => [...current, ...uploadedSources])
+    }
+
+    for (const source of uploadedSources) {
+      const file = source.file
+      if (!file) continue
+
+      void new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+        .then(() => parseKnowledgeSourceFile(file, source.type))
+        .then((parsed) => {
+          setSources((current) =>
+            current.map((item) =>
+              item.id === source.id
+                ? {
+                    ...item,
+                    parseStatus: 'ready',
+                    parsedContent: parsed.text,
+                    previewHtml: parsed.html,
+                    pageCount: parsed.pageCount,
+                    errorMessage: undefined,
+                  }
+                : item,
+            ),
+          )
+        })
+        .catch((error: unknown) => {
+          const errorMessage =
+            error instanceof Error ? error.message : 'This file could not be prepared for preview.'
+          setSources((current) =>
+            current.map((item) =>
+              item.id === source.id
+                ? {
+                    ...item,
+                    parseStatus: 'error',
+                    errorMessage,
+                  }
+                : item,
+            ),
+          )
+        })
     }
   }, [])
 

@@ -104,6 +104,119 @@ select {
   }
 }
 
+.knowledge-preview-content {
+  color: #40403d;
+  font-size: 0.9375rem;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.knowledge-preview-content > :first-child {
+  margin-top: 0;
+}
+
+.knowledge-preview-content > :last-child {
+  margin-bottom: 0;
+}
+
+.knowledge-preview-content :where(h1, h2, h3, h4, h5, h6) {
+  margin: 1.6em 0 0.55em;
+  color: #171717;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.knowledge-preview-content h1 {
+  font-size: 1.75rem;
+}
+
+.knowledge-preview-content h2 {
+  font-size: 1.35rem;
+}
+
+.knowledge-preview-content h3 {
+  font-size: 1.1rem;
+}
+
+.knowledge-preview-content :where(p, ul, ol, blockquote, pre, table) {
+  margin: 0.8em 0;
+}
+
+.knowledge-preview-content :where(ul, ol) {
+  padding-left: 1.5rem;
+}
+
+.knowledge-preview-content ul {
+  list-style: disc;
+}
+
+.knowledge-preview-content ol {
+  list-style: decimal;
+}
+
+.knowledge-preview-content li {
+  margin: 0.25em 0;
+}
+
+.knowledge-preview-content blockquote {
+  border-left: 3px solid #d4d4d4;
+  padding-left: 1rem;
+  color: #737373;
+}
+
+.knowledge-preview-content code {
+  border-radius: 4px;
+  background: #f1f1f0;
+  padding: 0.1em 0.3em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86em;
+}
+
+.knowledge-preview-content pre {
+  overflow-x: auto;
+  border-radius: 8px;
+  background: #202022;
+  padding: 1rem;
+  color: #ededed;
+}
+
+.knowledge-preview-content pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+.knowledge-preview-content a {
+  color: #4f46e5;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.knowledge-preview-content table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.knowledge-preview-content :where(th, td) {
+  border: 1px solid #e5e5e5;
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+}
+
+.knowledge-preview-content th {
+  background: #f7f7f6;
+  color: #262626;
+  font-weight: 600;
+}
+
+.knowledge-preview-content hr {
+  margin: 1.5rem 0;
+  border: 0;
+  border-top: 1px solid #e5e5e5;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

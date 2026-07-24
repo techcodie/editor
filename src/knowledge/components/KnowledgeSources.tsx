@@ -2,12 +2,20 @@ import { useState } from 'react'
 import { BookOpen, Plus } from 'lucide-react'
 import { SourceCard } from './SourceCard'
 import { UploadDialog } from './UploadDialog'
+import { useDocumentPreview } from '../hooks/useDocumentPreview'
 import { useKnowledgeSources } from '../hooks/useKnowledgeSources'
+import { DocumentPreview } from '../preview/DocumentPreview'
 
 export function KnowledgeSources() {
   const [isUploadOpen, setIsUploadOpen] = useState(false)
   const { sources, addFiles, removeSource } = useKnowledgeSources()
+  const { previewSource, openPreview, closePreview } = useDocumentPreview()
   const uploadedSources = sources.filter((source) => source.status === 'uploaded')
+
+  const handleRemoveSource = (sourceId: string) => {
+    if (previewSource?.id === sourceId) closePreview()
+    removeSource(sourceId)
+  }
 
   return (
     <section
@@ -60,7 +68,12 @@ export function KnowledgeSources() {
         ) : (
           <div className="mt-2 max-h-44 space-y-2 overflow-y-auto pr-0.5">
             {uploadedSources.map((source) => (
-              <SourceCard key={source.id} source={source} onRemove={removeSource} />
+              <SourceCard
+                key={source.id}
+                source={source}
+                onPreview={openPreview}
+                onRemove={handleRemoveSource}
+              />
             ))}
           </div>
         )}
@@ -71,6 +84,7 @@ export function KnowledgeSources() {
         onAddFiles={addFiles}
         onClose={() => setIsUploadOpen(false)}
       />
+      <DocumentPreview source={previewSource} onClose={closePreview} />
     </section>
   )
 }

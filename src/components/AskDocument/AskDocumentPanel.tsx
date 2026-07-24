@@ -20,7 +20,12 @@ export function AskDocumentPanel({ isOpen, getDocumentText, onClose }: AskDocume
     if (!isOpen) return
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (
+        event.key === 'Escape' &&
+        !document.querySelector('[role="dialog"][aria-modal="true"]')
+      ) {
+        onClose()
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)

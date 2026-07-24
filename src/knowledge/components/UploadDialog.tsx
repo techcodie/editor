@@ -3,7 +3,7 @@ import type { ChangeEvent, DragEvent, MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { FileUp, Upload, X } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { getKnowledgeSourceType, KNOWLEDGE_SOURCE_ACCEPT } from '../types/source'
+import { KNOWLEDGE_SOURCE_ACCEPT, validateKnowledgeSourceFile } from '../types/source'
 
 interface UploadDialogProps {
   isOpen: boolean
@@ -68,15 +68,19 @@ export function UploadDialog({ isOpen, onAddFiles, onClose }: UploadDialogProps)
   if (!isOpen) return null
 
   const addSelectedFiles = (selectedFiles: File[]) => {
-    const validFiles = selectedFiles.filter((file) => getKnowledgeSourceType(file) !== null)
-    const invalidCount = selectedFiles.length - validFiles.length
+    const validationResults = selectedFiles.map((file) => ({
+      file,
+      error: validateKnowledgeSourceFile(file),
+    }))
+    const validFiles = validationResults
+      .filter((result) => result.error === null)
+      .map((result) => result.file)
+    const errors = validationResults.flatMap((result) => (result.error ? [result.error] : []))
 
     if (validFiles.length > 0) onAddFiles(validFiles)
 
-    if (invalidCount > 0) {
-      setError(
-        `${invalidCount} ${invalidCount === 1 ? 'file is' : 'files are'} unsupported. Choose PDF, DOCX, TXT, or Markdown files.`,
-      )
+    if (errors.length > 0) {
+      setError(errors.length === 1 ? errors[0] : `${errors[0]} ${errors.length - 1} more were skipped.`)
       return
     }
 
@@ -203,11 +207,13 @@ export function UploadDialog({ isOpen, onAddFiles, onClose }: UploadDialogProps)
             ))}
           </div>
 
-          {error && (
-            <p className="mt-3 text-xs leading-5 text-red-600" role="alert">
-              {error}
-            </p>
-          )}
+          <div className="min-h-5" aria-live="polite">
+            {error && (
+              <p className="mt-3 text-xs leading-5 text-red-600" role="alert">
+                {error}
+              </p>
+            )}
+          </div>
         </div>
 
         <footer className="flex justify-end border-t border-neutral-200 bg-neutral-50/70 px-5 py-3">
