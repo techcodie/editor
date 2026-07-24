@@ -1,6 +1,9 @@
 import { Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '../../lib/cn'
+import type { EditorInsertionFeedback } from '../../editor/hooks/useEditorInsertion'
+import type { AiResponseInsertion } from '../../editor/services/editorInsertion'
+import type { EditorInsertionTarget } from '../../lib/editor-api'
 import { EvidenceList } from './EvidenceList'
 import { ResponseActions } from './ResponseActions'
 import { SourceBadges } from './SourceBadges'
@@ -12,6 +15,14 @@ interface ChatMessageProps {
   previewableSourceIds: ReadonlySet<string>
   onRegenerate: (messageId: string) => void
   onOpenSource: (sourceId: string) => void
+  canInsert: boolean
+  canReplaceSelection: boolean
+  insertionFeedback: EditorInsertionFeedback | null
+  onInsertResponse: (
+    response: AiResponseInsertion,
+    target: Exclude<EditorInsertionTarget, 'selection'>,
+  ) => void
+  onRequestReplacement: (response: AiResponseInsertion) => void
 }
 const TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {
   hour: 'numeric',
@@ -24,6 +35,11 @@ export function ChatMessage({
   previewableSourceIds,
   onRegenerate,
   onOpenSource,
+  canInsert,
+  canReplaceSelection,
+  insertionFeedback,
+  onInsertResponse,
+  onRequestReplacement,
 }: ChatMessageProps) {
   const [isEvidenceVisible, setIsEvidenceVisible] = useState(true)
   if (message.role === 'system') {
@@ -41,6 +57,11 @@ export function ChatMessage({
   const firstPreviewableSource = sources.find((source) =>
     previewableSourceIds.has(source.id),
   )
+  const insertionResponse: AiResponseInsertion = {
+    responseId: message.id,
+    content: message.content,
+    sourceIds: sources.map((source) => source.id),
+  }
 
   return (
     <article
@@ -89,10 +110,16 @@ export function ChatMessage({
         {!isUser && message.metadata && (
           <ResponseActions
             content={message.content}
+            canInsert={canInsert}
+            canReplaceSelection={canReplaceSelection}
             canRegenerate={canRegenerate}
             hasPreviewableSource={Boolean(firstPreviewableSource)}
             previewSourceName={firstPreviewableSource?.name}
             isEvidenceVisible={isEvidenceVisible}
+            insertionFeedback={insertionFeedback}
+            onInsertAtCursor={() => onInsertResponse(insertionResponse, 'cursor')}
+            onReplaceSelection={() => onRequestReplacement(insertionResponse)}
+            onAppendToEnd={() => onInsertResponse(insertionResponse, 'end')}
             onRegenerate={() => onRegenerate(message.id)}
             onToggleEvidence={() => setIsEvidenceVisible((isVisible) => !isVisible)}
             onOpenPreview={() => {

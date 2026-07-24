@@ -3,6 +3,9 @@ import { CircleAlert, RotateCcw } from 'lucide-react'
 import { ChatMessage } from './ChatMessage'
 import { EmptyState } from './EmptyState'
 import { LoadingState } from './LoadingState'
+import type { EditorInsertionFeedback } from '../../editor/hooks/useEditorInsertion'
+import type { AiResponseInsertion } from '../../editor/services/editorInsertion'
+import type { EditorInsertionTarget } from '../../lib/editor-api'
 import type { ChatMessage as ChatMessageType, ConversationError } from './types'
 
 interface ChatConversationProps {
@@ -15,6 +18,14 @@ interface ChatConversationProps {
   previewableSourceIds: ReadonlySet<string>
   onRegenerate: (messageId: string) => void
   onOpenSource: (sourceId: string) => void
+  canInsert: boolean
+  canReplaceSelection: boolean
+  insertionFeedback: EditorInsertionFeedback | null
+  onInsertResponse: (
+    response: AiResponseInsertion,
+    target: Exclude<EditorInsertionTarget, 'selection'>,
+  ) => void
+  onRequestReplacement: (response: AiResponseInsertion) => void
 }
 export function ChatConversation({
   messages,
@@ -26,6 +37,11 @@ export function ChatConversation({
   previewableSourceIds,
   onRegenerate,
   onOpenSource,
+  canInsert,
+  canReplaceSelection,
+  insertionFeedback,
+  onInsertResponse,
+  onRequestReplacement,
 }: ChatConversationProps) {
   const conversationRef = useRef<HTMLDivElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
@@ -73,6 +89,15 @@ export function ChatConversation({
               previewableSourceIds={previewableSourceIds}
               onRegenerate={onRegenerate}
               onOpenSource={onOpenSource}
+              canInsert={canInsert}
+              canReplaceSelection={canReplaceSelection}
+              insertionFeedback={
+                insertionFeedback?.responseId === message.id
+                  ? insertionFeedback
+                  : null
+              }
+              onInsertResponse={onInsertResponse}
+              onRequestReplacement={onRequestReplacement}
             />
           ))}
           {isLoading && messages.at(-1)?.role !== 'assistant' && <LoadingState />}

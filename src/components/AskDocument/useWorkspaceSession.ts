@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
+import { useEditorInsertion } from '../../editor/hooks/useEditorInsertion'
 import { useDocumentPreview } from '../../knowledge/hooks/useDocumentPreview'
 import { useKnowledgeSources } from '../../knowledge/hooks/useKnowledgeSources'
 import {
@@ -6,9 +7,14 @@ import {
   LARGE_CONTEXT_CHARACTER_THRESHOLD,
 } from '../../knowledge/services/contextBuilder'
 import type { KnowledgeSource } from '../../knowledge/types/source'
+import type { EditorApi } from '../../lib/editor-api'
 import { useAskDocumentConversation } from './useAskDocumentConversation'
 
-export function useWorkspaceSession(getDocumentText: () => string) {
+export function useWorkspaceSession(
+  getDocumentText: () => string,
+  editorApi: EditorApi | null,
+  isActive: boolean,
+) {
   const { sources, addFiles, removeSource, setSourceActive } = useKnowledgeSources()
   const { previewSource, previewFocusVersion, openPreview, closePreview } =
     useDocumentPreview(sources)
@@ -34,6 +40,7 @@ export function useWorkspaceSession(getDocumentText: () => string) {
     [getDocumentText, sources, temporarySources],
   )
   const conversation = useAskDocumentConversation(getKnowledgeContext)
+  const insertion = useEditorInsertion(isActive ? editorApi : null)
   const sendConversationMessage = conversation.sendMessage
 
   const hasLargeContext = useMemo(() => {
@@ -115,6 +122,7 @@ export function useWorkspaceSession(getDocumentText: () => string) {
     inputFocusRequest,
     hasLargeContext,
     previewableSourceIds,
+    insertion,
     conversation: {
       ...conversation,
       sendMessage,

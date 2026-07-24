@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
+import { ReplacementDiffDialog } from '../../editor/components/ReplacementDiffDialog'
 import { KnowledgeSources } from '../../knowledge'
 import { DocumentPreview } from '../../knowledge/preview/DocumentPreview'
 import { cn } from '../../lib/cn'
+import type { EditorApi } from '../../lib/editor-api'
 import { ChatConversation } from './ChatConversation'
 import { ChatHeader } from './ChatHeader'
 import { ChatInput } from './ChatInput'
@@ -9,12 +11,18 @@ import { useWorkspaceSession } from './useWorkspaceSession'
 
 interface AskDocumentPanelProps {
   isOpen: boolean
+  editorApi: EditorApi | null
   getDocumentText: () => string
   onClose: () => void
 }
 
-export function AskDocumentPanel({ isOpen, getDocumentText, onClose }: AskDocumentPanelProps) {
-  const session = useWorkspaceSession(getDocumentText)
+export function AskDocumentPanel({
+  isOpen,
+  editorApi,
+  getDocumentText,
+  onClose,
+}: AskDocumentPanelProps) {
+  const session = useWorkspaceSession(getDocumentText, editorApi, isOpen)
   const {
     messages,
     isLoading,
@@ -75,6 +83,11 @@ export function AskDocumentPanel({ isOpen, getDocumentText, onClose }: AskDocume
           previewableSourceIds={session.previewableSourceIds}
           onRegenerate={session.conversation.regenerateMessage}
           onOpenSource={session.openSourceById}
+          canInsert={session.insertion.canInsert}
+          canReplaceSelection={session.insertion.canReplaceSelection}
+          insertionFeedback={session.insertion.feedback}
+          onInsertResponse={session.insertion.insertResponse}
+          onRequestReplacement={session.insertion.requestReplacement}
         />
         <KnowledgeSources
           sources={session.sources}
@@ -99,6 +112,16 @@ export function AskDocumentPanel({ isOpen, getDocumentText, onClose }: AskDocume
         onAskAi={session.askAiAboutSource}
         onClose={session.closePreview}
       />
+      {session.insertion.pendingReplacement && (
+        <ReplacementDiffDialog
+          original={session.insertion.pendingReplacement.original}
+          replacement={
+            session.insertion.pendingReplacement.prepared.response.content
+          }
+          onApply={session.insertion.applyReplacement}
+          onCancel={session.insertion.cancelReplacement}
+        />
+      )}
     </aside>
   )
 }

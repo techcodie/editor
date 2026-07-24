@@ -17,6 +17,21 @@ export interface EditorTextSelection {
   bounds: EditorSelectionBounds
 }
 
+export type EditorInsertionTarget = 'cursor' | 'selection' | 'end'
+
+export interface EditorInsertionProvenance {
+  responseId: string
+  sourceIds: string[]
+  timestamp: number
+}
+
+export interface EditorStructuredInsertion {
+  target: EditorInsertionTarget
+  content: string
+  provenance: EditorInsertionProvenance
+  selection?: EditorTextSelection
+}
+
 /**
  * Framework-agnostic editor command surface.
  *
@@ -75,6 +90,7 @@ export interface EditorApi {
   // Document
   /** Returns readable plain text without mutating editor state. */
   getDocumentText(): string
+  insertStructuredContent(insertion: EditorStructuredInsertion): boolean
 
   // Selection
   getTextSelection(): EditorTextSelection | null
@@ -96,6 +112,43 @@ export interface EditorApi {
  * place `editor.chain()` / `editor.isActive()` / `editor.can()` may appear.
  */
 export function createEditorApi(editor: Editor): EditorApi {
+  const insertStructuredContent = ({
+    target,
+    content,
+    provenance,
+    selection,
+  }: EditorStructuredInsertion): boolean => {
+    if (!content.trim()) return false
+
+    let position: number | { from: number; to: number }
+    if (target === 'selection') {
+      if (!selection) return false
+      const currentText = editor.state.doc.textBetween(selection.from, selection.to, '\n')
+      if (currentText !== selection.text) return false
+      position = { from: selection.from, to: selection.to }
+    } else if (target === 'end') {
+      const isEmptyParagraph =
+        editor.state.doc.childCount === 1 &&
+        editor.state.doc.firstChild?.type.name === 'paragraph' &&
+        editor.state.doc.firstChild.content.size === 0
+      position = isEmptyParagraph
+        ? { from: 0, to: editor.state.doc.content.size }
+        : editor.state.doc.content.size
+    } else {
+      position = editor.state.selection.head
+    }
+
+    return editor
+      .chain()
+      .focus()
+      .command(({ tr }) => {
+        tr.setMeta('aiInsertion', provenance)
+        return true
+      })
+      .insertContentAt(position, content, { updateSelection: true })
+      .run()
+  }
+
   return {
     undo: () => {
       editor.chain().focus().undo().run()
@@ -190,6 +243,7 @@ export function createEditorApi(editor: Editor): EditorApi {
         .replace(/[ \t]+\n/g, '\n')
         .replace(/\n{3,}/g, '\n\n')
         .trim(),
+    insertStructuredContent,
 
     getTextSelection: () => {
       const { from, to, empty } = editor.state.selection

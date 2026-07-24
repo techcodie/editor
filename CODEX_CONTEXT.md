@@ -188,6 +188,29 @@ Temporary preview sources are scoped to the next question. Context ordering is
 Current Document, temporary sources, then active workspace sources. Duplicate
 source IDs are removed before the request is created.
 
+### AI Editor Insertion Flow
+
+```text
+Assistant Response
+        |
+        v
+Structured Content Normalizer
+        |
+        v
+Editor Insertion Service
+        |
+        v
+Editor API
+        |
+        v
+Single Tiptap Transaction
+```
+
+Ask Document UI supplies response content and insertion intent only. The
+insertion service normalizes supported Markdown structure, validates the target,
+and attaches response ID, source IDs, and insertion time as transaction
+provenance. Only the Editor API performs Tiptap operations.
+
 ---
 
 ## Important Rules
@@ -244,6 +267,10 @@ explicit selection replacement, selection clearing, and editor focus. Selection
 AI UI components consume only these API methods and never access Tiptap
 directly.
 
+The Editor API also owns structured insertion at the current cursor, a validated
+selection, or the document end. Each insertion uses one native history
+transaction so one Undo restores the previous document.
+
 ---
 
 ## AI Capabilities
@@ -258,7 +285,10 @@ directly.
 - Stores model, stable source metadata, context size, and response time on each
   assistant message.
 - Displays compact source badges and evidence cards for each completed response.
-- Supports Copy, Regenerate, View Sources, and Open Preview response actions.
+- Supports Insert at Cursor, Replace Selection, Append to End, Copy, Regenerate,
+  View Sources, and Open Preview response actions.
+- Shows a lightweight Original-to-Replacement preview before replacing selected
+  editor content.
 - Supports native browser speech-to-text with live transcription, manual stop,
   editable results, permission and error feedback, and no automatic submission.
 - Streams responses from the backend through Groq.
@@ -301,6 +331,19 @@ directly.
 AI request parsing, stream handling, provider errors, and HTTP validation are
 shared where practical without introducing a runtime, registry, or plugin
 system.
+
+### AI Editor Insertion
+
+- Normalizes assistant Markdown into schema-compatible headings, paragraphs,
+  links, emphasis, lists, task lists, blockquotes, code, and horizontal rules.
+- Converts table rows to readable paragraphs because table nodes are not
+  registered in the current editor schema.
+- Supports cursor insertion, validated selection replacement, and append-to-end
+  through a reusable insertion service and hook.
+- Associates each inserted transaction with response ID, source IDs, and
+  insertion timestamp without exposing provenance in editor content.
+- Preserves native Tiptap history and keeps conversation, Knowledge Sources, and
+  preview state unchanged.
 
 ### Speech Recognition
 
@@ -372,8 +415,9 @@ sources. It is not a global store and does not persist state.
 - Marked
 - DOMPurify
 
-PDF.js, Mammoth, Marked, and DOMPurify are isolated to client-side Knowledge
-Source parsing and safe preview rendering.
+PDF.js and Mammoth are isolated to client-side Knowledge Source parsing and
+preview rendering. Marked and DOMPurify are also reused by the AI insertion
+normalizer to produce sanitized, schema-compatible editor content.
 
 ---
 
@@ -399,6 +443,10 @@ src/
     EditorWorkspace/     Editor composition and layout
     SelectionAI/         Selection toolbar and result preview
     Toolbar/             Formatting controls
+  editor/
+    components/          Replacement review UI
+    hooks/               Editor insertion lifecycle and capabilities
+    services/            Structured response parsing and insertion orchestration
   knowledge/
     components/          Source list, cards, and upload dialog
     hooks/               Local source and preview state
@@ -469,6 +517,10 @@ Completed:
 - Shared preview integration for cited sources with approximate start positioning
 - Ask AI from preview with temporary next-question source chips
 - Lightweight local Workspace Session coordination
+- Structured AI response normalization into supported editor blocks and marks
+- AI response insertion at cursor, validated selection replacement, and document end
+- Accessible replacement preview with native one-step undo
+- Internal insertion provenance for response and source traceability
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -476,7 +528,8 @@ dedicated context builder to create structured Ask Document requests. Prompt
 formatting and response-source metadata remain server-side. Evidence is
 source-level transparency for the exact request context; no embeddings,
 retrieval, semantic claim matching, or source persistence has been introduced.
-No known functional bugs are open.
+AI insertion remains independent of Ask Document presentation and reaches
+Tiptap only through the Editor API. No known functional bugs are open.
 
 ---
 

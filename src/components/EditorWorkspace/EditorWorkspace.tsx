@@ -58,6 +58,7 @@ export function EditorWorkspace() {
       <div className="shrink-0">
         <AskDocumentPanel
           isOpen={isAskDocumentOpen}
+          editorApi={api}
           getDocumentText={getDocumentText}
           onClose={closeAskDocument}
         />
