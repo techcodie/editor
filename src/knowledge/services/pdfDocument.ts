@@ -1,11 +1,13 @@
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 
 let pdfModulePromise: Promise<typeof import('pdfjs-dist')> | null = null
 
 async function getPdfModule() {
-  pdfModulePromise ??= import('pdfjs-dist').then((pdfjs) => {
-    pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+  pdfModulePromise ??= Promise.all([
+    import('pdfjs-dist'),
+    import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
+  ]).then(([pdfjs, worker]) => {
+    pdfjs.GlobalWorkerOptions.workerSrc = worker.default
     return pdfjs
   })
   return pdfModulePromise

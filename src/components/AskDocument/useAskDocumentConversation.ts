@@ -9,6 +9,7 @@ import {
   type KnowledgeContext,
 } from '../../knowledge/services/contextBuilder'
 import { AskDocumentServiceError, streamAskDocument } from '../../services/ask-document'
+import { createFrameStreamBuffer } from '../../services/frame-stream-buffer'
 import type {
   AssistantResponseMetadata,
   ChatMessage,
@@ -91,6 +92,29 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
       const assistantMessageId = replaceMessageId ?? crypto.randomUUID()
       const startedAt = performance.now()
       let responseMetadata: AskDocumentResponseMetadata | null = null
+      const streamBuffer = createFrameStreamBuffer((content) => {
+        const metadata = responseMetadata
+        if (!metadata) return
+
+        setMessages((current) => {
+          const assistantMessage = current.find(
+            (message) => message.id === assistantMessageId,
+          )
+
+          if (!assistantMessage) {
+            return [
+              ...current,
+              createMessage('assistant', content, assistantMessageId, metadata),
+            ]
+          }
+
+          return current.map((message) =>
+            message.id === assistantMessageId
+              ? { ...message, content: message.content + content }
+              : message,
+          )
+        })
+      })
       requestRef.current = request
       setIsLoading(true)
       if (replaceMessageId) {
@@ -102,39 +126,13 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
       try {
         await streamAskDocument(
           buildAskDocumentRequest(context, pendingRequest.history, pendingRequest.question),
-          (content) => {
-            const metadata = responseMetadata
-            if (!metadata) return
-
-            setMessages((current) => {
-              const assistantMessage = current.find(
-                (message) => message.id === assistantMessageId,
-              )
-
-              if (!assistantMessage) {
-                return [
-                  ...current,
-                  createMessage(
-                    'assistant',
-                    content,
-                    assistantMessageId,
-                    metadata,
-                  ),
-                ]
-              }
-
-              return current.map((message) =>
-                message.id === assistantMessageId
-                  ? { ...message, content: message.content + content }
-                  : message,
-              )
-            })
-          },
+          streamBuffer.push,
           (metadata) => {
             responseMetadata = metadata
           },
           request.signal,
         )
+        streamBuffer.flush()
         const responseTime = Math.max(0, Math.round(performance.now() - startedAt))
         setMessages((current) =>
           current.map((message) =>
@@ -155,6 +153,7 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
           request: pendingRequest,
         }
       } catch (reason) {
+        streamBuffer.cancel()
         if (!(reason instanceof DOMException && reason.name === 'AbortError')) {
           setMessages((current) =>
             current.filter((message) => message.id !== assistantMessageId),
@@ -213,6 +212,10 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
     setIsLoading(false)
   }, [])
 
+  const cancelRequest = useCallback(() => {
+    requestRef.current?.abort()
+  }, [])
+
   useEffect(
     () => () => {
       requestRef.current?.abort()
@@ -228,6 +231,7 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
     retryLastMessage,
     regenerateMessage,
     regeneratableMessageId: completedRequestRef.current?.messageId ?? null,
+    cancelRequest,
     clearConversation,
   }
 }

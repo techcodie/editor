@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { SelectionAiAction } from '../../../shared/ai'
 import type { EditorApi, EditorTextSelection } from '../../lib/editor-api'
+import { createFrameStreamBuffer } from '../../services/frame-stream-buffer'
 import { SelectionAiServiceError, streamSelectionAi } from '../../services/selection-ai'
 
 export type SelectionAiStatus = 'loading' | 'success' | 'error'
@@ -27,6 +28,11 @@ export function useSelectionAi(api: EditorApi | null) {
 
       const id = crypto.randomUUID()
       const controller = new AbortController()
+      const streamBuffer = createFrameStreamBuffer((content) => {
+        setOperation((current) =>
+          current?.id === id ? { ...current, result: current.result + content } : current,
+        )
+      })
       requestRef.current = { id, controller }
       setOperation({ id, action, selection, status: 'loading', result: '', error: null })
 
@@ -37,17 +43,15 @@ export function useSelectionAi(api: EditorApi | null) {
             action,
             document: api.getDocumentText() || undefined,
           },
-          (content) => {
-            setOperation((current) =>
-              current?.id === id ? { ...current, result: current.result + content } : current,
-            )
-          },
+          streamBuffer.push,
           controller.signal,
         )
+        streamBuffer.flush()
         setOperation((current) =>
           current?.id === id ? { ...current, status: 'success' } : current,
         )
       } catch (reason) {
+        streamBuffer.cancel()
         if (!(reason instanceof DOMException && reason.name === 'AbortError')) {
           const message =
             reason instanceof SelectionAiServiceError

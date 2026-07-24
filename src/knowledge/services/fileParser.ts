@@ -7,6 +7,8 @@ export interface ParsedKnowledgeSource {
   pageCount?: number
 }
 
+const parsedFileCache = new WeakMap<File, Promise<ParsedKnowledgeSource>>()
+
 export class KnowledgeSourceParseError extends Error {
   constructor(message: string) {
     super(message)
@@ -133,7 +135,7 @@ function getParsingFailureMessage(type: KnowledgeSourceType): string {
   }
 }
 
-export async function parseKnowledgeSourceFile(
+async function parseUncachedKnowledgeSourceFile(
   file: File,
   type: KnowledgeSourceType,
 ): Promise<ParsedKnowledgeSource> {
@@ -154,4 +156,19 @@ export async function parseKnowledgeSourceFile(
     if (error instanceof KnowledgeSourceParseError) throw error
     throw new KnowledgeSourceParseError(getParsingFailureMessage(type))
   }
+}
+
+export function parseKnowledgeSourceFile(
+  file: File,
+  type: KnowledgeSourceType,
+): Promise<ParsedKnowledgeSource> {
+  const cached = parsedFileCache.get(file)
+  if (cached) return cached
+
+  const parsing = parseUncachedKnowledgeSourceFile(file, type)
+  parsedFileCache.set(file, parsing)
+  void parsing.catch(() => {
+    if (parsedFileCache.get(file) === parsing) parsedFileCache.delete(file)
+  })
+  return parsing
 }

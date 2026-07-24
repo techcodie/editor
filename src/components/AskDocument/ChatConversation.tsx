@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { CircleAlert, RotateCcw } from 'lucide-react'
+import { CircleAlert, RotateCcw, Square } from 'lucide-react'
 import { ChatMessage } from './ChatMessage'
 import { EmptyState } from './EmptyState'
 import { LoadingState } from './LoadingState'
@@ -14,6 +14,7 @@ interface ChatConversationProps {
   error: ConversationError | null
   onSelectSuggestion: (prompt: string) => void
   onRetry: () => void
+  onCancelGeneration: () => void
   regeneratableMessageId: string | null
   previewableSourceIds: ReadonlySet<string>
   onRegenerate: (messageId: string) => void
@@ -33,6 +34,7 @@ export function ChatConversation({
   error,
   onSelectSuggestion,
   onRetry,
+  onCancelGeneration,
   regeneratableMessageId,
   previewableSourceIds,
   onRegenerate,
@@ -75,6 +77,7 @@ export function ChatConversation({
       aria-live="polite"
       aria-relevant="additions"
       aria-label="Ask Document conversation"
+      aria-busy={isLoading}
       onScroll={updateScrollPreference}
     >
       {messages.length === 0 && !error ? (
@@ -100,7 +103,26 @@ export function ChatConversation({
               onRequestReplacement={onRequestReplacement}
             />
           ))}
-          {isLoading && messages.at(-1)?.role !== 'assistant' && <LoadingState />}
+          {isLoading && messages.at(-1)?.role !== 'assistant' && (
+            <LoadingState onCancel={onCancelGeneration} />
+          )}
+          {isLoading && messages.at(-1)?.role === 'assistant' && (
+            <div
+              className="flex items-center gap-2 pl-10 text-[10px] text-neutral-500"
+              role="status"
+            >
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" aria-hidden />
+              <span>Generating response</span>
+              <button
+                type="button"
+                onClick={onCancelGeneration}
+                className="ml-auto inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[10px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+              >
+                <Square size={9} fill="currentColor" aria-hidden />
+                Stop
+              </button>
+            </div>
+          )}
           {error && (
             <div
               className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50/80 px-3.5 py-3 text-xs leading-5 text-red-700 shadow-[0_1px_2px_rgba(127,29,29,0.04)]"

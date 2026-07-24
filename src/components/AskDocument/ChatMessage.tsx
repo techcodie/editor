@@ -1,5 +1,5 @@
 import { Sparkles } from 'lucide-react'
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { cn } from '../../lib/cn'
 import type { EditorInsertionFeedback } from '../../editor/hooks/useEditorInsertion'
 import type { AiResponseInsertion } from '../../editor/services/editorInsertion'
@@ -29,7 +29,7 @@ const TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {
   minute: '2-digit',
 })
 
-export function ChatMessage({
+export const ChatMessage = memo(function ChatMessage({
   message,
   canRegenerate,
   previewableSourceIds,
@@ -130,4 +130,4 @@ export function ChatMessage({
       </div>
     </article>
   )
-}
+})

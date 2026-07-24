@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
 import { CircleAlert } from 'lucide-react'
 import { loadPdfDocument } from '../services/pdfDocument'
@@ -14,7 +14,11 @@ interface PDFPageCanvasProps {
   width: number
 }
 
-function PDFPageCanvas({ document, pageNumber, width }: PDFPageCanvasProps) {
+const PDFPageCanvas = memo(function PDFPageCanvas({
+  document,
+  pageNumber,
+  width,
+}: PDFPageCanvasProps) {
   const frameRef = useRef<HTMLElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [shouldRender, setShouldRender] = useState(false)
@@ -81,7 +85,7 @@ function PDFPageCanvas({ document, pageNumber, width }: PDFPageCanvasProps) {
   return (
     <figure
       ref={frameRef}
-      className="relative mx-auto min-h-72 w-full overflow-hidden rounded-md bg-white shadow-[0_1px_3px_rgba(20,20,20,0.12),0_24px_55px_-38px_rgba(20,20,20,0.45)] ring-1 ring-neutral-200"
+      className="relative mx-auto min-h-72 w-full overflow-hidden rounded-md bg-white shadow-[0_1px_3px_rgba(20,20,20,0.12),0_24px_55px_-38px_rgba(20,20,20,0.45)] ring-1 ring-neutral-200 [content-visibility:auto] [contain-intrinsic-size:auto_48rem]"
       aria-label={`Page ${pageNumber}`}
     >
       {!isRendered && !hasError && (
@@ -98,9 +102,9 @@ function PDFPageCanvas({ document, pageNumber, width }: PDFPageCanvasProps) {
       <figcaption className="sr-only">Page {pageNumber}</figcaption>
     </figure>
   )
-}
+})
 
-export function PDFPreview({ file }: PDFPreviewProps) {
+export const PDFPreview = memo(function PDFPreview({ file }: PDFPreviewProps) {
   const pagesRef = useRef<HTMLDivElement>(null)
   const [document, setDocument] = useState<PDFDocumentProxy | null>(null)
   const [availableWidth, setAvailableWidth] = useState(0)
@@ -171,4 +175,4 @@ export function PDFPreview({ file }: PDFPreviewProps) {
       </div>
     </div>
   )
-}
+})

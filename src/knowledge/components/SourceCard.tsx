@@ -1,4 +1,5 @@
 import { CircleAlert, Eye, FileText, LoaderCircle, Trash2 } from 'lucide-react'
+import { memo } from 'react'
 import { cn } from '../../lib/cn'
 import {
   formatKnowledgeSourceSize,
@@ -13,7 +14,12 @@ interface SourceCardProps {
   onActiveChange?: (sourceId: string, isActive: boolean) => void
 }
 
-export function SourceCard({ source, onPreview, onRemove, onActiveChange }: SourceCardProps) {
+export const SourceCard = memo(function SourceCard({
+  source,
+  onPreview,
+  onRemove,
+  onActiveChange,
+}: SourceCardProps) {
   const isCurrent = source.status === 'current'
   const isReady = source.parseStatus === 'ready'
   const isParsing = source.parseStatus === 'parsing'
@@ -154,4 +160,4 @@ export function SourceCard({ source, onPreview, onRemove, onActiveChange }: Sour
       )}
     </article>
   )
-}
+})

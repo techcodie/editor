@@ -117,6 +117,7 @@ export function ChatInput({
           placeholder="Ask something about this document..."
           onChange={(event) => handleValueChange(event.target.value)}
           onKeyDown={handleKeyDown}
+          aria-keyshortcuts="Meta+Enter Control+Enter"
           className="block max-h-36 min-h-[4.5rem] w-full resize-none bg-transparent px-1 py-0.5 text-sm leading-6 text-neutral-800 outline-none placeholder:text-neutral-400 disabled:cursor-not-allowed disabled:opacity-60"
         />
         <div className="mt-1 flex min-h-8 items-center justify-between gap-2 pl-1">

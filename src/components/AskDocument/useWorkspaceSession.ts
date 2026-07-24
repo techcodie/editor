@@ -42,6 +42,7 @@ export function useWorkspaceSession(
   const conversation = useAskDocumentConversation(getKnowledgeContext)
   const insertion = useEditorInsertion(isActive ? editorApi : null)
   const sendConversationMessage = conversation.sendMessage
+  const insertResponse = insertion.insertResponse
 
   const hasLargeContext = useMemo(() => {
     const sourceCharacters = sources.reduce((total, source) => {
@@ -86,6 +87,10 @@ export function useWorkspaceSession(
     setTemporarySourceIds((current) => current.filter((id) => id !== sourceId))
   }, [])
 
+  const focusInput = useCallback(() => {
+    setInputFocusRequest((request) => request + 1)
+  }, [])
+
   const sendMessage = useCallback(
     (content: string) => {
       const didSend = sendConversationMessage(content)
@@ -114,6 +119,32 @@ export function useWorkspaceSession(
     [sources],
   )
 
+  const openFirstPreview = useCallback(() => {
+    const source = sources.find(
+      (item) => item.status === 'uploaded' && item.parseStatus === 'ready',
+    )
+    if (!source) return false
+    openPreview(source)
+    return true
+  }, [openPreview, sources])
+
+  const insertLastResponse = useCallback(() => {
+    const message = conversation.messages.findLast(
+      (item) => item.role === 'assistant' && item.content.trim().length > 0,
+    )
+    if (!message) return false
+
+    void insertResponse(
+      {
+        responseId: message.id,
+        content: message.content,
+        sourceIds: message.metadata?.sources.map((source) => source.id) ?? [],
+      },
+      'cursor',
+    )
+    return true
+  }, [conversation.messages, insertResponse])
+
   return {
     sources,
     temporarySources,
@@ -135,5 +166,8 @@ export function useWorkspaceSession(
     openSourceById,
     askAiAboutSource,
     removeTemporarySource,
+    focusInput,
+    openFirstPreview,
+    insertLastResponse,
   }
 }

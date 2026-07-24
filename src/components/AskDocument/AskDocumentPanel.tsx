@@ -1,7 +1,6 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { ReplacementDiffDialog } from '../../editor/components/ReplacementDiffDialog'
 import { KnowledgeSources } from '../../knowledge'
-import { DocumentPreview } from '../../knowledge/preview/DocumentPreview'
 import { cn } from '../../lib/cn'
 import type { EditorApi } from '../../lib/editor-api'
 import { ChatConversation } from './ChatConversation'
@@ -9,10 +8,27 @@ import { ChatHeader } from './ChatHeader'
 import { ChatInput } from './ChatInput'
 import { useWorkspaceSession } from './useWorkspaceSession'
 
-interface AskDocumentPanelProps {
+const DocumentPreview = lazy(async () => {
+  const module = await import('../../knowledge/preview/DocumentPreview')
+  return { default: module.DocumentPreview }
+})
+
+export type AskDocumentCommand =
+  | 'focus-input'
+  | 'upload-source'
+  | 'open-preview'
+  | 'insert-last-response'
+
+export interface AskDocumentCommandRequest {
+  id: string
+  command: AskDocumentCommand
+}
+
+export interface AskDocumentPanelProps {
   isOpen: boolean
   editorApi: EditorApi | null
   getDocumentText: () => string
+  commandRequest?: AskDocumentCommandRequest | null
   onClose: () => void
 }
 
@@ -20,18 +36,28 @@ export function AskDocumentPanel({
   isOpen,
   editorApi,
   getDocumentText,
+  commandRequest,
   onClose,
 }: AskDocumentPanelProps) {
   const session = useWorkspaceSession(getDocumentText, editorApi, isOpen)
+  const [uploadRequest, setUploadRequest] = useState(0)
+  const [commandNotice, setCommandNotice] = useState<string | null>(null)
+  const handledCommandRef = useRef<string | null>(null)
   const {
     messages,
     isLoading,
     error,
     sendMessage,
     retryLastMessage,
+    cancelRequest,
     clearConversation,
   } = session.conversation
-  const { closePreview } = session
+  const {
+    closePreview,
+    focusInput,
+    insertLastResponse,
+    openFirstPreview,
+  } = session
 
   useEffect(() => {
     if (!isOpen) return
@@ -53,6 +79,49 @@ export function AskDocumentPanel({
     if (!isOpen) closePreview()
   }, [closePreview, isOpen])
 
+  useEffect(() => {
+    if (!isOpen || !commandRequest) return
+    if (handledCommandRef.current === commandRequest.id) return
+    handledCommandRef.current = commandRequest.id
+
+    switch (commandRequest.command) {
+      case 'focus-input':
+        setCommandNotice(null)
+        focusInput()
+        break
+      case 'upload-source':
+        setCommandNotice(null)
+        setUploadRequest((request) => request + 1)
+        break
+      case 'open-preview':
+        setCommandNotice(
+          openFirstPreview()
+            ? null
+            : 'Add a readable knowledge source before opening Preview.',
+        )
+        break
+      case 'insert-last-response':
+        setCommandNotice(
+          insertLastResponse()
+            ? null
+            : 'Ask a question before inserting the latest response.',
+        )
+        break
+    }
+  }, [
+    commandRequest,
+    focusInput,
+    insertLastResponse,
+    isOpen,
+    openFirstPreview,
+  ])
+
+  useEffect(() => {
+    if (!commandNotice) return
+    const timeout = window.setTimeout(() => setCommandNotice(null), 3600)
+    return () => window.clearTimeout(timeout)
+  }, [commandNotice])
+
   return (
     <aside
       id="ask-document-panel"
@@ -73,12 +142,21 @@ export function AskDocumentPanel({
           onClear={clearConversation}
           onClose={onClose}
         />
+        {commandNotice && (
+          <p
+            className="shrink-0 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-[11px] leading-4 text-amber-800"
+            role="status"
+          >
+            {commandNotice}
+          </p>
+        )}
         <ChatConversation
           messages={messages}
           isLoading={isLoading}
           error={error}
           onSelectSuggestion={sendMessage}
           onRetry={retryLastMessage}
+          onCancelGeneration={cancelRequest}
           regeneratableMessageId={session.conversation.regeneratableMessageId}
           previewableSourceIds={session.previewableSourceIds}
           onRegenerate={session.conversation.regenerateMessage}
@@ -96,6 +174,7 @@ export function AskDocumentPanel({
           onRemoveSource={session.removeSource}
           onSourceActiveChange={session.setSourceActive}
           onPreviewSource={session.openPreview}
+          uploadRequest={uploadRequest}
         />
         <ChatInput
           disabled={isLoading}
@@ -106,12 +185,16 @@ export function AskDocumentPanel({
           onSend={sendMessage}
         />
       </div>
-      <DocumentPreview
-        source={session.previewSource}
-        focusVersion={session.previewFocusVersion}
-        onAskAi={session.askAiAboutSource}
-        onClose={session.closePreview}
-      />
+      {session.previewSource && (
+        <Suspense fallback={null}>
+          <DocumentPreview
+            source={session.previewSource}
+            focusVersion={session.previewFocusVersion}
+            onAskAi={session.askAiAboutSource}
+            onClose={session.closePreview}
+          />
+        </Suspense>
+      )}
       {session.insertion.pendingReplacement && (
         <ReplacementDiffDialog
           original={session.insertion.pendingReplacement.original}

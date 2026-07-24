@@ -1,4 +1,5 @@
 import { ExternalLink, FileText } from 'lucide-react'
+import { memo } from 'react'
 import type { AskDocumentSourceMetadata } from '../../../shared/ask-document'
 import { getKnowledgeSourceLabel } from '../../knowledge/types/source'
 
@@ -8,7 +9,7 @@ interface EvidenceListProps {
   onOpenSource: (sourceId: string) => void
 }
 
-export function EvidenceList({
+export const EvidenceList = memo(function EvidenceList({
   sources,
   previewableSourceIds,
   onOpenSource,
@@ -59,4 +60,4 @@ export function EvidenceList({
       </div>
     </section>
   )
-}
+})

@@ -131,6 +131,12 @@ The two current AI workflows are:
 Both workflows use the shared streaming transport and return server-sent events.
 The Groq API key remains server-only.
 
+Frontend stream updates are buffered to animation frames before React state is
+updated. This preserves the existing transport while reducing render pressure
+and producing smoother visible response updates. Ask Document exposes explicit
+generation cancellation and retains content already received when a request is
+stopped.
+
 Ask Document builds a structured request through the Knowledge Context Builder.
 The frontend sends document text, ordered active sources, conversation, and the
 question as separate fields. Only the backend prompt builder formats those
@@ -236,9 +242,9 @@ Bubble Menu must also communicate only through the Editor API.
 
 Slash Menu must also communicate only through the Editor API.
 
-### Future UI
+### Editor UI Components
 
-Any future UI component must use the Editor API.
+Every editor UI component must use the Editor API.
 
 Examples:
 
@@ -249,6 +255,11 @@ Examples:
 - Command Palette
 
 No UI should depend directly on Tiptap.
+
+The current workspace command palette is a local UI coordinator, not a command
+registry. It invokes focused workspace callbacks and uses the Editor API for
+editor focus and AI insertion. It introduces no global state, runtime service,
+or plugin system.
 
 ---
 
@@ -282,6 +293,9 @@ transaction so one Undo restores the previous document.
   Sources.
 - Supports suggested questions, recent conversation context, retry, clear, and
   cancellation.
+- Batches streaming updates to animation frames for smooth response rendering,
+  prevents duplicate sends, and exposes an explicit Stop control that preserves
+  content already received.
 - Stores model, stable source metadata, context size, and response time on each
   assistant message.
 - Displays compact source badges and evidence cards for each completed response.
@@ -312,8 +326,13 @@ transaction so one Undo restores the previous document.
   and Markdown files.
 - Parses supported files locally and stores extracted text and preview metadata
   in local component state.
+- Caches parsing promises by browser `File` object to prevent duplicate parsing
+  while allowing failed attempts to be retried.
 - Renders PDF pages and formatted DOCX, Markdown, and TXT content in a responsive
   in-app preview workspace.
+- Lazy-loads the preview workspace, PDF renderer, PDF.js module, and PDF worker;
+  PDF pages render near the viewport and large preview blocks use browser
+  content containment.
 - Supports parsing progress, page counts for PDFs, validation errors, parsing
   errors, preview keyboard controls, and source removal.
 - Uses one shared preview instance across source cards, response badges, and
@@ -357,6 +376,29 @@ system.
   active recognition.
 - Unsupported browsers expose a disabled microphone control with an accessible
   explanation.
+
+### Production Shell
+
+- Ask Document is lazy-loaded on first use and remains mounted afterward so its
+  browser-memory workspace session is preserved.
+- The document preview and PDF renderer are separate on-demand chunks.
+- Tiptap and ProseMirror are isolated in a stable editor vendor chunk for
+  browser caching and a smaller application entry.
+- Expensive chat messages, evidence lists, source cards, text previews, and PDF
+  pages are memoized around stable props.
+- Application and feature error boundaries keep the editor usable when an
+  isolated UI surface fails.
+- `Cmd/Ctrl + K` opens an accessible command palette with search, arrow
+  navigation, Enter execution, Escape dismissal, a focus trap, and focus
+  restoration.
+- Palette actions include Ask AI, Upload Source, Open Preview, Insert Last
+  Response, Toggle Sidebar, and Focus Editor. State-dependent commands provide
+  friendly feedback when no source or response is available.
+- `Cmd/Ctrl + Enter` sends Ask Document messages. Existing dialog and preview
+  Escape behavior restores focus to the initiating control.
+- Motion respects `prefers-reduced-motion`, dialogs expose accessible names and
+  descriptions, streaming regions expose busy state, and responsive overlays
+  avoid horizontal viewport overflow.
 
 ---
 
@@ -439,8 +481,10 @@ shared/
 src/
   components/
     AskDocument/         Chat UI, evidence, response metadata, and workspace session
+    CommandPalette/      Local workspace command search and keyboard navigation
     DocumentEditor/      Editing surface
     EditorWorkspace/     Editor composition and layout
+    ErrorBoundary/       Application and isolated-feature error containment
     SelectionAI/         Selection toolbar and result preview
     Toolbar/             Formatting controls
   editor/
@@ -455,7 +499,7 @@ src/
     types/               Source contracts, validation, and file helpers
   hooks/
     useSpeechRecognition.ts  Native browser speech recognition lifecycle
-  services/              Shared frontend AI streaming services
+  services/              Shared AI transport and frame-batched stream updates
   lib/editor-api.ts      Tiptap boundary and editor command API
   styles/editor.css      Editor typography and content styling
 ```
@@ -521,6 +565,14 @@ Completed:
 - AI response insertion at cursor, validated selection replacement, and document end
 - Accessible replacement preview with native one-step undo
 - Internal insertion provenance for response and source traceability
+- Frame-batched Ask Document and Selection AI stream rendering
+- Explicit Ask Document generation cancellation with partial-response retention
+- Lazy-loaded Ask Document, preview, PDF renderer, PDF.js, and PDF worker paths
+- Cached knowledge source parsing and viewport-deferred preview rendering
+- Stable editor vendor bundle splitting
+- Accessible workspace command palette with all six milestone actions
+- Application and feature-level error boundaries
+- Keyboard, focus restoration, reduced-motion, and responsive accessibility audit
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -529,7 +581,10 @@ formatting and response-source metadata remain server-side. Evidence is
 source-level transparency for the exact request context; no embeddings,
 retrieval, semantic claim matching, or source persistence has been introduced.
 AI insertion remains independent of Ask Document presentation and reaches
-Tiptap only through the Editor API. No known functional bugs are open.
+Tiptap only through the Editor API. The command palette coordinates existing
+local callbacks and reaches editor behavior only through the Editor API; no
+runtime, command registry, event bus, or global store has been introduced. No
+known functional bugs are open.
 
 ---
 

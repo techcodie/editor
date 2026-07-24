@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { FileInput, FileText, MessageSquareText, Sparkles, X } from 'lucide-react'
 import {
@@ -6,9 +6,13 @@ import {
   getKnowledgeSourceLabel,
   type KnowledgeSource,
 } from '../types/source'
-import { PDFPreview } from './PDFPreview'
 import { PreviewLoading } from './PreviewLoading'
 import { TextPreview } from './TextPreview'
+
+const PDFPreview = lazy(async () => {
+  const module = await import('./PDFPreview')
+  return { default: module.PDFPreview }
+})
 
 interface DocumentPreviewProps {
   source: KnowledgeSource | null
@@ -141,7 +145,9 @@ export function DocumentPreview({
           {source.parseStatus !== 'ready' ? (
             <PreviewLoading />
           ) : source.type === 'pdf' && source.file ? (
-            <PDFPreview file={source.file} />
+            <Suspense fallback={<PreviewLoading />}>
+              <PDFPreview file={source.file} />
+            </Suspense>
           ) : (
             <TextPreview content={source.parsedContent ?? ''} html={source.previewHtml} />
           )}

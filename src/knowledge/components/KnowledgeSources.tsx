@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { BookOpen, Plus, TriangleAlert } from 'lucide-react'
 import { SourceCard } from './SourceCard'
 import { UploadDialog } from './UploadDialog'
@@ -12,18 +12,24 @@ interface KnowledgeSourcesProps {
   onRemoveSource: (sourceId: string) => void
   onSourceActiveChange: (sourceId: string, isActive: boolean) => void
   onPreviewSource: (source: KnowledgeSource) => void
+  uploadRequest?: number
 }
 
-export function KnowledgeSources({
+export const KnowledgeSources = memo(function KnowledgeSources({
   sources,
   hasLargeContext,
   onAddFiles,
   onRemoveSource,
   onSourceActiveChange,
   onPreviewSource,
+  uploadRequest = 0,
 }: KnowledgeSourcesProps) {
   const [isUploadOpen, setIsUploadOpen] = useState(false)
   const uploadedSources = sources.filter((source) => source.status === 'uploaded')
+
+  useEffect(() => {
+    if (uploadRequest > 0) setIsUploadOpen(true)
+  }, [uploadRequest])
 
   return (
     <section
@@ -104,4 +110,4 @@ export function KnowledgeSources({
       />
     </section>
   )
-}
+})

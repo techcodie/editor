@@ -5,6 +5,21 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'editor-vendor',
+              test: /node_modules[\\/](@tiptap|prosemirror-)/,
+              priority: 20,
+            },
+          ],
+        },
+      },
+    },
+  },
   server: {
     host: '127.0.0.1',
     proxy: {
