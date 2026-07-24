@@ -22,6 +22,7 @@ export type WorkspaceCommandId =
 
 interface CommandPaletteProps {
   isOpen: boolean
+  commands?: readonly WorkspaceCommandId[]
   onClose: () => void
   onSelect: (command: WorkspaceCommandId) => void
 }
@@ -70,21 +71,29 @@ const COMMANDS = [
   icon: typeof Search
 }>
 
-export function CommandPalette({ isOpen, onClose, onSelect }: CommandPaletteProps) {
+export function CommandPalette({
+  isOpen,
+  commands,
+  onClose,
+  onSelect,
+}: CommandPaletteProps) {
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const dialogRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const visibleCommands = useMemo(() => {
+    const availableCommands = commands
+      ? COMMANDS.filter((command) => commands.includes(command.id))
+      : COMMANDS
     const normalizedQuery = query.trim().toLocaleLowerCase()
-    if (!normalizedQuery) return COMMANDS
-    return COMMANDS.filter(
+    if (!normalizedQuery) return availableCommands
+    return availableCommands.filter(
       ({ label, description }) =>
         label.toLocaleLowerCase().includes(normalizedQuery) ||
         description.toLocaleLowerCase().includes(normalizedQuery),
     )
-  }, [query])
+  }, [commands, query])
 
   useEffect(() => {
     if (!isOpen) return

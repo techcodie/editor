@@ -15,6 +15,7 @@ import {
   type AiResponseInsertion,
   type PreparedEditorInsertion,
 } from '../services/editorInsertion'
+import type { InternalDocumentEditorEvents } from '../../sdk/events'
 
 export interface EditorInsertionFeedback {
   responseId: string
@@ -28,7 +29,10 @@ export interface PendingReplacement {
   selection: EditorTextSelection
 }
 
-export function useEditorInsertion(api: EditorApi | null) {
+export function useEditorInsertion(
+  api: EditorApi | null,
+  events?: InternalDocumentEditorEvents,
+) {
   const [pendingReplacement, setPendingReplacement] =
     useState<PendingReplacement | null>(null)
   const [feedback, setFeedback] = useState<EditorInsertionFeedback | null>(null)
@@ -89,8 +93,15 @@ export function useEditorInsertion(api: EditorApi | null) {
         result,
         prepared.content.unsupportedBlocks.includes('table'),
       )
+      if (result.success) {
+        events?.emit('insert', {
+          responseId: response.responseId,
+          sourceIds: response.sourceIds,
+          target,
+        })
+      }
     },
-    [api, reportResult],
+    [api, events, reportResult],
   )
 
   const requestReplacement = useCallback(
@@ -139,8 +150,15 @@ export function useEditorInsertion(api: EditorApi | null) {
       result,
       pendingReplacement.prepared.content.unsupportedBlocks.includes('table'),
     )
+    if (result.success) {
+      events?.emit('insert', {
+        responseId: pendingReplacement.prepared.response.responseId,
+        sourceIds: pendingReplacement.prepared.response.sourceIds,
+        target: 'selection',
+      })
+    }
     setPendingReplacement(null)
-  }, [api, pendingReplacement, reportResult])
+  }, [api, events, pendingReplacement, reportResult])
 
   const cancelReplacement = useCallback(() => {
     setPendingReplacement(null)

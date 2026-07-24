@@ -10,6 +10,7 @@ import {
 } from '../../knowledge/services/contextBuilder'
 import { AskDocumentServiceError, streamAskDocument } from '../../services/ask-document'
 import { createFrameStreamBuffer } from '../../services/frame-stream-buffer'
+import type { InternalDocumentEditorEvents } from '../../sdk/events'
 import type {
   AssistantResponseMetadata,
   ChatMessage,
@@ -26,6 +27,12 @@ interface PendingRequest {
 interface CompletedRequest {
   messageId: string
   request: PendingRequest
+}
+
+interface AskDocumentConversationOptions {
+  endpoint: string
+  streaming: boolean
+  events: InternalDocumentEditorEvents
 }
 
 function createMessage(
@@ -64,7 +71,10 @@ function getFriendlyError(error: unknown): ConversationError {
   }
 }
 
-export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeContext) {
+export function useAskDocumentConversation(
+  getKnowledgeContext: () => KnowledgeContext,
+  options: AskDocumentConversationOptions,
+) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<ConversationError | null>(null)
@@ -92,6 +102,7 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
       const assistantMessageId = replaceMessageId ?? crypto.randomUUID()
       const startedAt = performance.now()
       let responseMetadata: AskDocumentResponseMetadata | null = null
+      let responseContent = ''
       const streamBuffer = createFrameStreamBuffer((content) => {
         const metadata = responseMetadata
         if (!metadata) return
@@ -117,6 +128,11 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
       })
       requestRef.current = request
       setIsLoading(true)
+      options.events.emit('aiRequest', {
+        workflow: 'ask-document',
+        requestId: assistantMessageId,
+        prompt: pendingRequest.question,
+      })
       if (replaceMessageId) {
         setMessages((current) =>
           current.filter((message) => message.id !== replaceMessageId),
@@ -126,12 +142,17 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
       try {
         await streamAskDocument(
           buildAskDocumentRequest(context, pendingRequest.history, pendingRequest.question),
-          streamBuffer.push,
+          (content) => {
+            responseContent += content
+            if (options.streaming) streamBuffer.push(content)
+          },
           (metadata) => {
             responseMetadata = metadata
           },
           request.signal,
+          options.endpoint,
         )
+        if (!options.streaming) streamBuffer.push(responseContent)
         streamBuffer.flush()
         const responseTime = Math.max(0, Math.round(performance.now() - startedAt))
         setMessages((current) =>
@@ -152,6 +173,12 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
           messageId: assistantMessageId,
           request: pendingRequest,
         }
+        options.events.emit('aiResponse', {
+          workflow: 'ask-document',
+          responseId: assistantMessageId,
+          content: responseContent,
+          responseTime,
+        })
       } catch (reason) {
         streamBuffer.cancel()
         if (!(reason instanceof DOMException && reason.name === 'AbortError')) {
@@ -159,6 +186,11 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
             current.filter((message) => message.id !== assistantMessageId),
           )
           setError(getFriendlyError(reason))
+          options.events.emit('error', {
+            scope: 'ai',
+            message: getFriendlyError(reason).message,
+            cause: reason,
+          })
         }
       } finally {
         if (requestRef.current === request) {
@@ -167,7 +199,7 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
         }
       }
     },
-    [],
+    [options.endpoint, options.events, options.streaming],
   )
 
   const sendMessage = useCallback(

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { SelectionAiAction } from '../../../shared/ai'
 import type { EditorApi, EditorTextSelection } from '../../lib/editor-api'
 import { createFrameStreamBuffer } from '../../services/frame-stream-buffer'
+import type { InternalDocumentEditorEvents } from '../../sdk/events'
 import { SelectionAiServiceError, streamSelectionAi } from '../../services/selection-ai'
 
 export type SelectionAiStatus = 'loading' | 'success' | 'error'
@@ -15,7 +16,13 @@ export interface SelectionAiOperation {
   error: string | null
 }
 
-export function useSelectionAi(api: EditorApi | null) {
+interface SelectionAiOptions {
+  endpoint: string
+  streaming: boolean
+  events: InternalDocumentEditorEvents
+}
+
+export function useSelectionAi(api: EditorApi | null, options: SelectionAiOptions) {
   const [operation, setOperation] = useState<SelectionAiOperation | null>(null)
   const requestRef = useRef<{ id: string; controller: AbortController } | null>(null)
 
@@ -28,6 +35,7 @@ export function useSelectionAi(api: EditorApi | null) {
 
       const id = crypto.randomUUID()
       const controller = new AbortController()
+      let responseContent = ''
       const streamBuffer = createFrameStreamBuffer((content) => {
         setOperation((current) =>
           current?.id === id ? { ...current, result: current.result + content } : current,
@@ -35,6 +43,12 @@ export function useSelectionAi(api: EditorApi | null) {
       })
       requestRef.current = { id, controller }
       setOperation({ id, action, selection, status: 'loading', result: '', error: null })
+      const startedAt = performance.now()
+      options.events.emit('aiRequest', {
+        workflow: 'selection',
+        requestId: id,
+        action,
+      })
 
       try {
         await streamSelectionAi(
@@ -43,13 +57,24 @@ export function useSelectionAi(api: EditorApi | null) {
             action,
             document: api.getDocumentText() || undefined,
           },
-          streamBuffer.push,
+          (content) => {
+            responseContent += content
+            if (options.streaming) streamBuffer.push(content)
+          },
           controller.signal,
+          options.endpoint,
         )
+        if (!options.streaming) streamBuffer.push(responseContent)
         streamBuffer.flush()
         setOperation((current) =>
           current?.id === id ? { ...current, status: 'success' } : current,
         )
+        options.events.emit('aiResponse', {
+          workflow: 'selection',
+          responseId: id,
+          content: responseContent,
+          responseTime: Math.max(0, Math.round(performance.now() - startedAt)),
+        })
       } catch (reason) {
         streamBuffer.cancel()
         if (!(reason instanceof DOMException && reason.name === 'AbortError')) {
@@ -62,12 +87,17 @@ export function useSelectionAi(api: EditorApi | null) {
               ? { ...current, status: 'error', result: '', error: message }
               : current,
           )
+          options.events.emit('error', {
+            scope: 'ai',
+            message,
+            cause: reason,
+          })
         }
       } finally {
         if (requestRef.current?.id === id) requestRef.current = null
       }
     },
-    [api],
+    [api, options.endpoint, options.events, options.streaming],
   )
 
   const tryAgain = useCallback(() => {

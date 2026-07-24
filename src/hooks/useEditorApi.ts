@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { Editor } from '@tiptap/react'
-import { createEditorApi } from '../lib/editor-api'
+import { createEditorApi } from '../lib/create-editor-api'
 import type { EditorApi } from '../lib/editor-api'
 
 /** Binds a Tiptap editor to the public {@link EditorApi}, or null until ready. */

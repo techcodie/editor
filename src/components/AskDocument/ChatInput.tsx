@@ -11,6 +11,8 @@ interface ChatInputProps {
   isActive: boolean
   focusRequest: number
   temporarySources: KnowledgeSource[]
+  voiceEnabled: boolean
+  keyboardShortcuts: boolean
   onRemoveTemporarySource: (sourceId: string) => void
   onSend: (content: string) => void
 }
@@ -20,6 +22,8 @@ export function ChatInput({
   isActive,
   focusRequest,
   temporarySources,
+  voiceEnabled,
+  keyboardShortcuts,
   onRemoveTemporarySource,
   onSend,
 }: ChatInputProps) {
@@ -67,7 +71,12 @@ export function ChatInput({
   }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+    if (
+      event.key === 'Enter' &&
+      !event.shiftKey &&
+      !event.nativeEvent.isComposing &&
+      (!(event.metaKey || event.ctrlKey) || keyboardShortcuts)
+    ) {
       event.preventDefault()
       submit()
     }
@@ -117,11 +126,13 @@ export function ChatInput({
           placeholder="Ask something about this document..."
           onChange={(event) => handleValueChange(event.target.value)}
           onKeyDown={handleKeyDown}
-          aria-keyshortcuts="Meta+Enter Control+Enter"
+          aria-keyshortcuts={
+            keyboardShortcuts ? 'Meta+Enter Control+Enter' : undefined
+          }
           className="block max-h-36 min-h-[4.5rem] w-full resize-none bg-transparent px-1 py-0.5 text-sm leading-6 text-neutral-800 outline-none placeholder:text-neutral-400 disabled:cursor-not-allowed disabled:opacity-60"
         />
         <div className="mt-1 flex min-h-8 items-center justify-between gap-2 pl-1">
-          <div
+          {voiceEnabled && <div
             id="ask-document-voice-status"
             className={cn(
               'min-w-0 text-[11px] leading-4',
@@ -138,9 +149,9 @@ export function ChatInput({
             )}
             {isProcessingSpeech && 'Finishing transcript...'}
             {speechError?.message}
-          </div>
+          </div>}
           <div className="flex shrink-0 items-center gap-1">
-            <span className="inline-flex" title={voiceLabel}>
+            {voiceEnabled && <span className="inline-flex" title={voiceLabel}>
               <button
                 type="button"
                 aria-label={voiceLabel}
@@ -169,7 +180,7 @@ export function ChatInput({
                   <Mic size={16} strokeWidth={1.9} aria-hidden />
                 )}
               </button>
-            </span>
+            </span>}
             <button
               type="submit"
               aria-label="Send question"

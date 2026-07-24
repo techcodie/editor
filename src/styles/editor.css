@@ -4,10 +4,10 @@
 .tiptap {
   outline: none;
   min-height: 34rem;
-  color: #37352f;
-  font-size: 1.0625rem;
+  color: var(--document-editor-text, #37352f);
+  font-size: var(--document-editor-font-size, 1.0625rem);
   line-height: 1.78;
-  caret-color: #4f46e5;
+  caret-color: var(--document-editor-accent, #4f46e5);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -54,7 +54,7 @@
 }
 
 .tiptap a {
-  color: #4f46e5;
+  color: var(--document-editor-accent, #4f46e5);
   text-decoration: underline;
   text-underline-offset: 2px;
   text-decoration-thickness: 1px;
@@ -117,7 +117,7 @@
   width: 1rem;
   height: 1rem;
   cursor: pointer;
-  accent-color: #4f46e5;
+  accent-color: var(--document-editor-accent, #4f46e5);
 }
 .tiptap ul[data-type='taskList'] li[data-checked='true'] > div {
   color: #9b9b96;
@@ -167,7 +167,7 @@
 }
 
 .tiptap ::selection {
-  background: rgba(79, 70, 229, 0.2);
+  background: var(--document-editor-selection, rgba(79, 70, 229, 0.2));
 }
 
 /* Placeholder shown only while the whole document is empty. */

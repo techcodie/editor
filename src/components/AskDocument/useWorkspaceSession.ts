@@ -8,16 +8,21 @@ import {
 } from '../../knowledge/services/contextBuilder'
 import type { KnowledgeSource } from '../../knowledge/types/source'
 import type { EditorApi } from '../../lib/editor-api'
+import type { InternalDocumentEditorEvents } from '../../sdk/events'
+import type { ResolvedDocumentEditorConfig } from '../../sdk/types'
 import { useAskDocumentConversation } from './useAskDocumentConversation'
 
 export function useWorkspaceSession(
   getDocumentText: () => string,
   editorApi: EditorApi | null,
   isActive: boolean,
+  config: ResolvedDocumentEditorConfig,
+  events: InternalDocumentEditorEvents,
 ) {
-  const { sources, addFiles, removeSource, setSourceActive } = useKnowledgeSources()
+  const { sources, addFiles, removeSource, setSourceActive } =
+    useKnowledgeSources(events)
   const { previewSource, previewFocusVersion, openPreview, closePreview } =
-    useDocumentPreview(sources)
+    useDocumentPreview(sources, events, config.preview)
   const [temporarySourceIds, setTemporarySourceIds] = useState<string[]>([])
   const [inputFocusRequest, setInputFocusRequest] = useState(0)
   const [lastSubmittedContextSize, setLastSubmittedContextSize] = useState(0)
@@ -39,8 +44,15 @@ export function useWorkspaceSession(
     },
     [getDocumentText, sources, temporarySources],
   )
-  const conversation = useAskDocumentConversation(getKnowledgeContext)
-  const insertion = useEditorInsertion(isActive ? editorApi : null)
+  const conversation = useAskDocumentConversation(getKnowledgeContext, {
+    endpoint: config.ai ? config.ai.askDocumentEndpoint : '/api/ask-document',
+    streaming: config.streaming,
+    events,
+  })
+  const insertion = useEditorInsertion(
+    isActive && !config.readonly ? editorApi : null,
+    events,
+  )
   const sendConversationMessage = conversation.sendMessage
   const insertResponse = insertion.insertResponse
 
@@ -108,15 +120,17 @@ export function useWorkspaceSession(
   )
 
   const previewableSourceIds = useMemo(
-    () =>
-      new Set(
+    () => {
+      if (!config.preview) return new Set<string>()
+      return new Set(
         sources
           .filter(
             (source) => source.status === 'uploaded' && source.parseStatus === 'ready',
           )
           .map((source) => source.id),
-      ),
-    [sources],
+      )
+    },
+    [config.preview, sources],
   )
 
   const openFirstPreview = useCallback(() => {

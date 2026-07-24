@@ -4,8 +4,6 @@ import type {
 } from '../../shared/ask-document'
 import { AiStreamError, streamAiRequest } from './ai-stream'
 
-const ENDPOINT = '/api/ask-document'
-
 export { AiStreamError as AskDocumentServiceError }
 
 export async function streamAskDocument(
@@ -13,11 +11,12 @@ export async function streamAskDocument(
   onDelta: (content: string) => void,
   onMetadata: (metadata: AskDocumentResponseMetadata) => void,
   signal: AbortSignal,
+  endpoint = '/api/ask-document',
 ): Promise<void> {
   let receivedMetadata = false
 
   await streamAiRequest(
-    ENDPOINT,
+    endpoint,
     request,
     {
       network: 'Unable to reach the document assistant. Check your connection and try again.',

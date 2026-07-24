@@ -8,6 +8,7 @@ import type { KnowledgeSource } from '../types/source'
 interface KnowledgeSourcesProps {
   sources: KnowledgeSource[]
   hasLargeContext: boolean
+  previewEnabled: boolean
   onAddFiles: (files: File[]) => void
   onRemoveSource: (sourceId: string) => void
   onSourceActiveChange: (sourceId: string, isActive: boolean) => void
@@ -18,6 +19,7 @@ interface KnowledgeSourcesProps {
 export const KnowledgeSources = memo(function KnowledgeSources({
   sources,
   hasLargeContext,
+  previewEnabled,
   onAddFiles,
   onRemoveSource,
   onSourceActiveChange,
@@ -94,7 +96,7 @@ export const KnowledgeSources = memo(function KnowledgeSources({
               <SourceCard
                 key={source.id}
                 source={source}
-                onPreview={onPreviewSource}
+                onPreview={previewEnabled ? onPreviewSource : undefined}
                 onRemove={onRemoveSource}
                 onActiveChange={onSourceActiveChange}
               />

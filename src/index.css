@@ -1,52 +1,105 @@
-@import 'tailwindcss';
+@layer theme, base, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
 @import './styles/editor.css';
 
-:root {
+.document-editor-sdk {
   color-scheme: light;
-}
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
-    sans-serif;
+  min-height: 100%;
+  isolation: isolate;
+  background: var(--document-editor-background);
+  color: var(--document-editor-text);
+  font-family: var(--document-editor-font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  background: #f6f6f4;
 }
 
-button,
-textarea,
-select {
-  font: inherit;
+@layer base {
+  .document-editor-sdk,
+  .document-editor-sdk *,
+  .document-editor-sdk *::before,
+  .document-editor-sdk *::after {
+    box-sizing: border-box;
+  }
+
+  .document-editor-sdk button,
+  .document-editor-sdk input,
+  .document-editor-sdk textarea,
+  .document-editor-sdk select {
+    margin: 0;
+    border: 0 solid;
+    color: inherit;
+    font: inherit;
+  }
+
+  .document-editor-sdk button,
+  .document-editor-sdk [role='button'] {
+    cursor: pointer;
+  }
+
+  .document-editor-sdk button:disabled {
+    cursor: default;
+  }
+}
+
+.document-editor-workspace {
+  gap: var(--document-editor-panel-gap);
+  padding-block: var(--document-editor-workspace-spacing);
+}
+
+.document-editor-sdk .bg-white {
+  background-color: var(--document-editor-surface);
+}
+
+.document-editor-sdk :where(.border-neutral-200, .border-neutral-300) {
+  border-color: var(--document-editor-border);
+}
+
+.document-editor-sdk :where(.text-neutral-900, .text-neutral-950) {
+  color: var(--document-editor-text);
+}
+
+.document-editor-sdk :where(.text-neutral-400, .text-neutral-500) {
+  color: var(--document-editor-muted-text);
+}
+
+.document-editor-sdk .rounded {
+  border-radius: var(--document-editor-radius-sm);
+}
+
+.document-editor-sdk .rounded-md {
+  border-radius: var(--document-editor-radius-md);
+}
+
+.document-editor-sdk .rounded-lg {
+  border-radius: var(--document-editor-radius-lg);
+}
+
+.document-editor-sdk [class*='duration-'] {
+  transition-duration: var(--document-editor-animation-duration);
 }
 
 /* Subtle, unobtrusive scrollbars on pointer devices; native elsewhere. */
 @media (pointer: fine) {
-  * {
+  .document-editor-sdk * {
     scrollbar-width: thin;
     scrollbar-color: rgba(23, 23, 23, 0.2) transparent;
   }
-  *::-webkit-scrollbar {
+  .document-editor-sdk *::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-  *::-webkit-scrollbar-thumb {
+  .document-editor-sdk *::-webkit-scrollbar-thumb {
     background-color: rgba(23, 23, 23, 0.18);
     background-clip: content-box;
     border: 2px solid transparent;
     border-radius: 9999px;
   }
-  *::-webkit-scrollbar-thumb:hover {
+  .document-editor-sdk *::-webkit-scrollbar-thumb:hover {
     background-color: rgba(23, 23, 23, 0.3);
   }
-  *::-webkit-scrollbar-corner {
+  .document-editor-sdk *::-webkit-scrollbar-corner {
     background: transparent;
   }
 }
@@ -238,12 +291,21 @@ select {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .document-editor-sdk *,
+  .document-editor-sdk *::before,
+  .document-editor-sdk *::after {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.document-editor-sdk[data-animations='disabled'] *,
+.document-editor-sdk[data-animations='disabled'] *::before,
+.document-editor-sdk[data-animations='disabled'] *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }

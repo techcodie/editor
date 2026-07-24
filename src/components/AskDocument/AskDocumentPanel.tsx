@@ -3,6 +3,8 @@ import { ReplacementDiffDialog } from '../../editor/components/ReplacementDiffDi
 import { KnowledgeSources } from '../../knowledge'
 import { cn } from '../../lib/cn'
 import type { EditorApi } from '../../lib/editor-api'
+import type { InternalDocumentEditorEvents } from '../../sdk/events'
+import type { ResolvedDocumentEditorConfig } from '../../sdk/types'
 import { ChatConversation } from './ChatConversation'
 import { ChatHeader } from './ChatHeader'
 import { ChatInput } from './ChatInput'
@@ -29,6 +31,8 @@ export interface AskDocumentPanelProps {
   editorApi: EditorApi | null
   getDocumentText: () => string
   commandRequest?: AskDocumentCommandRequest | null
+  config: ResolvedDocumentEditorConfig
+  events: InternalDocumentEditorEvents
   onClose: () => void
 }
 
@@ -37,9 +41,17 @@ export function AskDocumentPanel({
   editorApi,
   getDocumentText,
   commandRequest,
+  config,
+  events,
   onClose,
 }: AskDocumentPanelProps) {
-  const session = useWorkspaceSession(getDocumentText, editorApi, isOpen)
+  const session = useWorkspaceSession(
+    getDocumentText,
+    editorApi,
+    isOpen,
+    config,
+    events,
+  )
   const [uploadRequest, setUploadRequest] = useState(0)
   const [commandNotice, setCommandNotice] = useState<string | null>(null)
   const handledCommandRef = useRef<string | null>(null)
@@ -129,8 +141,8 @@ export function AskDocumentPanel({
       aria-hidden={!isOpen}
       inert={!isOpen}
       className={cn(
-        'fixed inset-y-0 right-0 z-40 flex w-full max-w-none flex-col overflow-hidden border-l border-neutral-200 bg-white shadow-[-20px_0_50px_-28px_rgba(23,23,23,0.3)] transition-[transform,opacity,width] duration-300 ease-out sm:max-w-[24rem]',
-        'lg:sticky lg:top-6 lg:z-20 lg:h-[calc(100vh-3rem)] lg:max-w-none lg:rounded-lg lg:border lg:shadow-[0_1px_2px_rgba(20,20,20,0.04),0_18px_48px_-28px_rgba(20,20,20,0.32)]',
+        'fixed inset-y-0 right-0 z-40 flex w-full max-w-none flex-col overflow-hidden border-l border-neutral-200 bg-white shadow-[var(--document-editor-shadow-overlay)] transition-[transform,opacity,width] duration-300 ease-out sm:max-w-[24rem]',
+        'lg:sticky lg:top-6 lg:z-20 lg:h-[calc(100vh-3rem)] lg:max-w-none lg:rounded-lg lg:border lg:shadow-[var(--document-editor-shadow-surface)]',
         isOpen
           ? 'translate-x-0 opacity-100 lg:w-[23.5rem]'
           : 'pointer-events-none translate-x-full opacity-0 lg:w-0 lg:translate-x-0 lg:border-transparent',
@@ -167,25 +179,30 @@ export function AskDocumentPanel({
           onInsertResponse={session.insertion.insertResponse}
           onRequestReplacement={session.insertion.requestReplacement}
         />
-        <KnowledgeSources
-          sources={session.sources}
-          hasLargeContext={session.hasLargeContext}
-          onAddFiles={session.addFiles}
-          onRemoveSource={session.removeSource}
-          onSourceActiveChange={session.setSourceActive}
-          onPreviewSource={session.openPreview}
-          uploadRequest={uploadRequest}
-        />
+        {config.knowledgeSources && (
+          <KnowledgeSources
+            sources={session.sources}
+            hasLargeContext={session.hasLargeContext}
+            previewEnabled={config.preview}
+            onAddFiles={session.addFiles}
+            onRemoveSource={session.removeSource}
+            onSourceActiveChange={session.setSourceActive}
+            onPreviewSource={session.openPreview}
+            uploadRequest={uploadRequest}
+          />
+        )}
         <ChatInput
           disabled={isLoading}
           isActive={isOpen}
           focusRequest={session.inputFocusRequest}
           temporarySources={session.temporarySources}
+          voiceEnabled={config.voice}
+          keyboardShortcuts={config.keyboardShortcuts}
           onRemoveTemporarySource={session.removeTemporarySource}
           onSend={sendMessage}
         />
       </div>
-      {session.previewSource && (
+      {config.preview && session.previewSource && (
         <Suspense fallback={null}>
           <DocumentPreview
             source={session.previewSource}

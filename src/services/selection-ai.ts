@@ -1,17 +1,16 @@
 import type { SelectionAiRequest } from '../../shared/ai'
 import { AiStreamError, streamAiRequest } from './ai-stream'
 
-const ENDPOINT = '/api/selection-ai'
-
 export { AiStreamError as SelectionAiServiceError }
 
 export function streamSelectionAi(
   request: SelectionAiRequest,
   onDelta: (content: string) => void,
   signal: AbortSignal,
+  endpoint = '/api/selection-ai',
 ): Promise<void> {
   return streamAiRequest(
-    ENDPOINT,
+    endpoint,
     request,
     {
       network: 'Unable to reach Selection AI. Check your connection and try again.',

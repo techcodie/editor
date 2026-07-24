@@ -1,19 +1,70 @@
 {
-  "name": "document-editor",
-  "private": true,
-  "version": "0.0.0",
+  "name": "@techcodie/editor",
+  "version": "1.0.0",
+  "description": "Embeddable React document editor SDK with AI and knowledge-source workflows.",
+  "license": "MIT",
   "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist-sdk/*.js",
+    "dist-sdk/*.js.map",
+    "dist-sdk/styles.css",
+    "dist-sdk/types/src/index.d.ts",
+    "dist-sdk/types/src/index.d.ts.map",
+    "dist-sdk/types/src/sdk/DocumentEditor.d.ts",
+    "dist-sdk/types/src/sdk/DocumentEditor.d.ts.map",
+    "dist-sdk/types/src/sdk/config.d.ts",
+    "dist-sdk/types/src/sdk/config.d.ts.map",
+    "dist-sdk/types/src/sdk/controller.d.ts",
+    "dist-sdk/types/src/sdk/controller.d.ts.map",
+    "dist-sdk/types/src/sdk/types.d.ts",
+    "dist-sdk/types/src/sdk/types.d.ts.map",
+    "dist-sdk/types/src/lib/editor-api.d.ts",
+    "dist-sdk/types/src/lib/editor-api.d.ts.map",
+    "dist-sdk/types/shared/ai.d.ts",
+    "dist-sdk/types/shared/ai.d.ts.map",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "docs"
+  ],
+  "main": "./dist-sdk/index.js",
+  "module": "./dist-sdk/index.js",
+  "types": "./dist-sdk/types/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist-sdk/types/src/index.d.ts",
+      "import": "./dist-sdk/index.js"
+    },
+    "./styles.css": "./dist-sdk/styles.css",
+    "./package.json": "./package.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/techcodie/editor.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --pretty false",
+    "build": "npm run build:app && npm run build:sdk && npm run build:example",
+    "build:app": "tsc -b && vite build",
+    "build:sdk": "vite build --config vite.sdk.config.ts && tsc -p tsconfig.sdk.json",
+    "build:example": "tsc -p examples/react/tsconfig.json && vite build --config examples/react/vite.config.ts",
     "lint": "oxlint",
+    "pack:check": "npm pack --dry-run --json",
+    "verify:sdk": "node scripts/verify-sdk.mjs",
     "start": "node --env-file-if-exists=.env dist-server/server/index.js",
-    "preview": "npm run build && npm run start"
+    "preview": "npm run build:app && npm run start",
+    "prepublishOnly": "npm run typecheck && npm run lint && npm run build:sdk && npm run verify:sdk"
   },
   "dependencies": {
     "@radix-ui/react-toolbar": "^1.1.16",
     "@radix-ui/react-tooltip": "^1.2.13",
-    "@tailwindcss/vite": "^4.3.3",
     "@tiptap/extension-highlight": "^3.28.0",
     "@tiptap/extension-list": "^3.28.0",
     "@tiptap/extension-placeholder": "^3.28.0",
@@ -24,17 +75,22 @@
     "lucide-react": "^1.25.0",
     "mammoth": "^1.12.0",
     "marked": "^18.0.7",
-    "pdfjs-dist": "^5.6.205",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "tailwindcss": "^4.3.3"
+    "pdfjs-dist": "^5.6.205"
+  },
+  "peerDependencies": {
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
+    "@tailwindcss/vite": "^4.3.3",
     "oxlint": "^1.71.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.1.1"
   }

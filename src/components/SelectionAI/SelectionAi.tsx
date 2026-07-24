@@ -1,20 +1,32 @@
 import { useEffect, useReducer, useSyncExternalStore } from 'react'
 import type { EditorApi } from '../../lib/editor-api'
+import type { InternalDocumentEditorEvents } from '../../sdk/events'
 import { SelectionPreview } from './SelectionPreview'
 import { SelectionToolbar } from './SelectionToolbar'
 import { useSelectionAi } from './useSelectionAi'
 
 interface SelectionAiProps {
   api: EditorApi | null
+  endpoint: string
+  streaming: boolean
+  events: InternalDocumentEditorEvents
 }
 
 const NOOP_SUBSCRIBE = () => () => {}
 const NULL_SNAPSHOT = () => null
 
-export function SelectionAi({ api }: SelectionAiProps) {
+export function SelectionAi({
+  api,
+  endpoint,
+  streaming,
+  events,
+}: SelectionAiProps) {
   useSyncExternalStore(api?.subscribe ?? NOOP_SUBSCRIBE, api?.getSnapshot ?? NULL_SNAPSHOT)
   const [, refreshPosition] = useReducer((value) => value + 1, 0)
-  const { operation, runAction, tryAgain, cancel, replaceSelection } = useSelectionAi(api)
+  const { operation, runAction, tryAgain, cancel, replaceSelection } = useSelectionAi(
+    api,
+    { endpoint, streaming, events },
+  )
   const selection = api?.getTextSelection() ?? null
   const operationBounds =
     operation &&

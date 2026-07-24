@@ -4,9 +4,13 @@ import type { Editor } from '@tiptap/react'
 export interface DocumentEditorOptions {
   /** Text shown while the document is empty. */
   placeholder: string
+  /** Initial HTML, text, or ProseMirror-compatible JSON. */
+  content?: string | Record<string, unknown>
+  /** Whether direct editing is enabled. */
+  editable?: boolean
 }
 
-/** Public props for the `DocumentEditor` surface. */
+/** Internal props for the Tiptap editing surface. */
 export interface DocumentEditorProps {
   /** The editor instance to render. Null while it initializes. */
   editor: Editor | null

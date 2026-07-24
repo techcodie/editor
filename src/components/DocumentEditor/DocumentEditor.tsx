@@ -5,7 +5,7 @@ import type { DocumentEditorProps } from '../../types/editor'
 
 const CONTAINER_CLASS =
   'w-full rounded-lg border border-neutral-200 bg-white px-5 py-9 ' +
-  'shadow-[0_1px_2px_rgba(20,20,20,0.04),0_18px_48px_-28px_rgba(20,20,20,0.32)] ' +
+  'shadow-[var(--document-editor-shadow-surface)] ' +
   'transition-[border-color,box-shadow] duration-200 ' +
   'focus-within:border-neutral-300 ' +
   'focus-within:shadow-[0_1px_2px_rgba(20,20,20,0.05),0_20px_52px_-28px_rgba(20,20,20,0.4),0_0_0_3px_rgba(99,102,241,0.06)] ' +

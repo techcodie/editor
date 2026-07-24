@@ -91,6 +91,9 @@ Host Application
 DocumentEditor SDK
         |
         v
+Public Configuration / Events / Plugins
+        |
+        v
 Editor Workspace
         |
  +------+--------+
@@ -106,6 +109,45 @@ Tiptap
         v
 ProseMirror
 ```
+
+### Public SDK Surface
+
+Version 1.0 exposes one package root, `@techcodie/editor`, with:
+
+- `DocumentEditor` for React composition.
+- `createEditor(config)` for creating an instance-scoped controller.
+- Configuration validation and default-theme helpers.
+- Framework-neutral Editor API types.
+- Typed configuration, event, plugin, theme, AI, and knowledge-source contracts.
+- Selection AI action constants and validation.
+
+Package export maps allow only the root API, `styles.css`, and package metadata.
+Internal components, Tiptap adapters, services, hooks, and knowledge parsers are
+not importable package subpaths. The published SDK is ESM with declarations,
+declaration maps, JavaScript source maps, preserved module boundaries for tree
+shaking, and externalized runtime dependencies.
+
+### Configuration and Events
+
+`DocumentEditorConfig` supports initial content, placeholder, theme, readonly
+mode, toolbar, voice, AI endpoints, Knowledge Sources, preview, streaming,
+animations, keyboard shortcuts, command palette, callbacks, and plugins.
+Configuration is resolved once per controller instance. Runtime validation
+provides prefixed warnings, ignores unknown options, and safely falls back for
+invalid nested values.
+
+Each controller owns a typed event target. Public callbacks and `events.on`
+cover editor readiness and changes, selection changes, AI request and response
+lifecycle, insertions, Knowledge Source add/remove/activation, preview open and
+close, and errors. Events expose public data contracts only.
+
+### Plugin Architecture
+
+Version 1.0 includes lightweight, instance-scoped plugins. A plugin has a stable
+name and a `setup` function receiving resolved configuration, typed events, a
+lazy Editor API getter, and scoped warnings. Setup may return cleanup logic.
+Plugins cannot access private controller internals and do not introduce a global
+registry, dependency injection, UI, runtime service, or global state.
 
 ### Current AI Request Flow
 
@@ -382,8 +424,9 @@ system.
 - Ask Document is lazy-loaded on first use and remains mounted afterward so its
   browser-memory workspace session is preserved.
 - The document preview and PDF renderer are separate on-demand chunks.
-- Tiptap and ProseMirror are isolated in a stable editor vendor chunk for
-  browser caching and a smaller application entry.
+- The application isolates Tiptap and ProseMirror in a stable editor vendor
+  chunk. The SDK externalizes runtime dependencies and preserves ESM module
+  boundaries for consumer deduplication and tree shaking.
 - Expensive chat messages, evidence lists, source cards, text previews, and PDF
   pages are memoized around stable props.
 - Application and feature error boundaries keep the editor usable when an
@@ -412,12 +455,14 @@ Do not create:
 
 - Command registry
 - Runtime services
-- Plugin system
-- Event bus
 - Dependency injection
 - Global stores
 
 until explicitly requested.
+
+The v1.0 typed event target and plugin setup lifecycle are public SDK contracts,
+not the future Runtime. They are local to each controller and must remain
+lightweight until a Runtime milestone is explicitly requested.
 
 ---
 
@@ -500,8 +545,15 @@ src/
   hooks/
     useSpeechRecognition.ts  Native browser speech recognition lifecycle
   services/              Shared AI transport and frame-batched stream updates
-  lib/editor-api.ts      Tiptap boundary and editor command API
+  lib/editor-api.ts      Public framework-neutral editor command contract
+  lib/create-editor-api.ts  Internal Tiptap-to-Editor-API adapter
+  sdk/                   Public configuration, events, plugins, theme, and controller
+  index.ts               Intentional public SDK exports
+  sdk-entry.ts           ESM library and stylesheet build entry
   styles/editor.css      Editor typography and content styling
+
+docs/                    API, configuration, guides, plugins, and migration notes
+examples/react/          React consumer example built against the SDK artifact
 ```
 
 ---
@@ -528,6 +580,8 @@ Avoid:
 ---
 
 ## Current Project Status
+
+**Version 1.0 Complete**
 
 Completed:
 
@@ -573,6 +627,19 @@ Completed:
 - Accessible workspace command palette with all six milestone actions
 - Application and feature-level error boundaries
 - Keyboard, focus restoration, reduced-motion, and responsive accessibility audit
+- Intentional `@techcodie/editor` public API and package export map
+- Strongly typed, runtime-validated SDK configuration
+- Typed instance-scoped callbacks and event subscriptions
+- Lightweight plugin setup and cleanup lifecycle
+- Theme tokens for colors, typography, spacing, radius, icons, motion, and shadows
+- Readonly and feature-level SDK configuration integration
+- Pure ESM packaging with declarations, source maps, dependency externalization,
+  and tree-shakeable preserved modules
+- Comprehensive installation, API, configuration, event, feature, plugin,
+  migration, troubleshooting, and best-practice documentation
+- React example covering AI, voice, Knowledge Sources, theming, callbacks, and
+  plugins
+- Version 1.0 license, release notes, package metadata, and publish allowlist
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -583,8 +650,20 @@ retrieval, semantic claim matching, or source persistence has been introduced.
 AI insertion remains independent of Ask Document presentation and reaches
 Tiptap only through the Editor API. The command palette coordinates existing
 local callbacks and reaches editor behavior only through the Editor API; no
-runtime, command registry, event bus, or global store has been introduced. No
+runtime, command registry, dependency injection, or global store has been
+introduced. The public event and plugin contracts remain controller-local. No
 known functional bugs are open.
+
+### Version 1.0 Release Notes
+
+- The existing editor, AI, voice, Knowledge Source, evidence, preview, insertion,
+  accessibility, and performance capabilities are now available through the
+  embeddable `DocumentEditor` SDK.
+- Host applications can configure features and theme tokens, subscribe through
+  callbacks or typed events, and attach lightweight plugins without importing
+  implementation modules.
+- The release artifact is ready for package publication as
+  `@techcodie/editor@1.0.0`.
 
 ---
 
@@ -592,8 +671,13 @@ known functional bugs are open.
 
 These are not missing. Do not implement unless requested.
 
+### Version 1.1+
+
 - Runtime
 - Command registry
+- Provider-oriented AI, voice, upload, and storage plugin contracts
+- Additional public theme icon slots
+- Headless and non-React adapters
 - Upload providers
 - Storage providers
 - Collaboration

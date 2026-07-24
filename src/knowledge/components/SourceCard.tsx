@@ -25,6 +25,7 @@ export const SourceCard = memo(function SourceCard({
   const isParsing = source.parseStatus === 'parsing'
   const hasError = source.parseStatus === 'error'
   const isUsedByAi = isCurrent || (isReady && source.isActive)
+  const canPreview = isReady && Boolean(onPreview)
 
   const sourceDetails = (
     <>
@@ -97,15 +98,15 @@ export const SourceCard = memo(function SourceCard({
         <>
           <button
             type="button"
-            disabled={!isReady}
+            disabled={!canPreview}
             onClick={() => onPreview?.(source)}
             className="flex w-full items-start gap-2.5 rounded-t-lg px-3 pb-1 pt-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500/35 disabled:cursor-default"
-            aria-label={isReady ? `Open preview for ${source.name}` : undefined}
+            aria-label={canPreview ? `Open preview for ${source.name}` : undefined}
           >
             {sourceDetails}
           </button>
           <div className="flex items-center gap-1 px-2 pb-2">
-            <button
+            {onPreview && <button
               type="button"
               role="switch"
               aria-checked={isUsedByAi}
@@ -135,7 +136,7 @@ export const SourceCard = memo(function SourceCard({
                 <span className="h-3 w-3 rounded-full bg-white shadow-sm" />
               </span>
               {isParsing ? 'Preparing' : isUsedByAi ? 'Active' : 'Inactive'}
-            </button>
+            </button>}
             <button
               type="button"
               disabled={!isReady}

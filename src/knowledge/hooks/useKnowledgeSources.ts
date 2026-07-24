@@ -1,13 +1,20 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   CURRENT_DOCUMENT_SOURCE,
   getKnowledgeSourceType,
   type KnowledgeSource,
 } from '../types/source'
 import { parseKnowledgeSourceFile } from '../services/fileParser'
+import type { InternalDocumentEditorEvents } from '../../sdk/events'
+import { toKnowledgeSourceEventData } from '../../sdk/knowledge-events'
 
-export function useKnowledgeSources() {
+export function useKnowledgeSources(events: InternalDocumentEditorEvents) {
   const [sources, setSources] = useState<KnowledgeSource[]>([CURRENT_DOCUMENT_SOURCE])
+  const sourcesRef = useRef(sources)
+
+  useEffect(() => {
+    sourcesRef.current = sources
+  }, [sources])
 
   const addFiles = useCallback((files: File[]) => {
     const uploadedSources = files.flatMap<KnowledgeSource>((file) => {
@@ -30,6 +37,11 @@ export function useKnowledgeSources() {
 
     if (uploadedSources.length > 0) {
       setSources((current) => [...current, ...uploadedSources])
+      for (const source of uploadedSources) {
+        events.emit('knowledgeSourceAdded', {
+          source: toKnowledgeSourceEventData(source),
+        })
+      }
     }
 
     for (const source of uploadedSources) {
@@ -69,17 +81,29 @@ export function useKnowledgeSources() {
                 : item,
             ),
           )
+          events.emit('error', {
+            scope: 'knowledge',
+            message: errorMessage,
+            cause: error,
+          })
         })
     }
-  }, [])
+  }, [events])
 
   const removeSource = useCallback((sourceId: string) => {
+    const source = sourcesRef.current.find((item) => item.id === sourceId)
     setSources((current) =>
       current.filter((source) => source.status === 'current' || source.id !== sourceId),
     )
-  }, [])
+    if (source?.status === 'uploaded') {
+      events.emit('knowledgeSourceRemoved', {
+        source: toKnowledgeSourceEventData(source),
+      })
+    }
+  }, [events])
 
   const setSourceActive = useCallback((sourceId: string, isActive: boolean) => {
+    const source = sourcesRef.current.find((item) => item.id === sourceId)
     setSources((current) =>
       current.map((source) =>
         source.id === sourceId &&
@@ -89,7 +113,13 @@ export function useKnowledgeSources() {
           : source,
       ),
     )
-  }, [])
+    if (source?.status === 'uploaded' && source.parseStatus === 'ready') {
+      events.emit('knowledgeSourceActivated', {
+        source: toKnowledgeSourceEventData({ ...source, isActive }),
+        isActive,
+      })
+    }
+  }, [events])
 
   return {
     sources,
