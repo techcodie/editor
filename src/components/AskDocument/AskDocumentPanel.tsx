@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { KnowledgeSources } from '../../knowledge'
 import { cn } from '../../lib/cn'
 import { ChatConversation } from './ChatConversation'
 import { ChatHeader } from './ChatHeader'
@@ -53,6 +54,7 @@ export function AskDocumentPanel({ isOpen, getDocumentText, onClose }: AskDocume
           onSelectSuggestion={sendMessage}
           onRetry={retryLastMessage}
         />
+        <KnowledgeSources />
         <ChatInput disabled={isLoading} isActive={isOpen} onSend={sendMessage} />
       </div>
     </aside>

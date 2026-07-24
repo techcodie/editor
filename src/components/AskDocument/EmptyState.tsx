@@ -7,7 +7,7 @@ interface EmptyStateProps {
 }
 export function EmptyState({ disabled, onSelectSuggestion }: EmptyStateProps) {
   return (
-    <div className="flex min-h-full flex-col items-center justify-center px-1 py-12 text-center">
+    <div className="flex min-h-full flex-col items-center px-1 py-8 text-center [justify-content:safe_center]">
       <div className="relative mb-4 flex h-12 w-12 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-800 shadow-[0_1px_2px_rgba(20,20,20,0.04),0_10px_24px_-16px_rgba(20,20,20,0.3)]">
         <FileQuestion size={22} strokeWidth={1.8} aria-hidden />
         <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-[#fafaf9] bg-emerald-500" />

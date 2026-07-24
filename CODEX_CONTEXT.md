@@ -216,6 +216,16 @@ directly.
 - Verifies that the captured selection is still valid before replacement.
 - Translate currently targets English because prompt customization is deferred.
 
+### Knowledge Sources
+
+- Appears inside Ask Document without changing its conversation workflow.
+- Keeps the Current Document as the permanent first source.
+- Supports local file selection and drag-and-drop validation for PDF, DOCX, TXT,
+  and Markdown files.
+- Stores uploaded source metadata in local component state and supports removal.
+- Exposes a disabled preview action until source preview rendering is implemented.
+- Does not parse, upload, persist, or send source contents to AI.
+
 AI request parsing, stream handling, provider errors, and HTTP validation are
 shared where practical without introducing a runtime, registry, or plugin
 system.
@@ -283,7 +293,7 @@ Current architecture shares the editor through composition and props.
 - Native Web Speech API
 
 No additional runtime dependencies were added for Ask Document, Selection AI,
-voice input, or the UI polish milestone.
+voice input, Knowledge Sources, or the UI polish milestone.
 
 ---
 
@@ -309,6 +319,10 @@ src/
     EditorWorkspace/     Editor composition and layout
     SelectionAI/         Selection toolbar and result preview
     Toolbar/             Formatting controls
+  knowledge/
+    components/          Source list, cards, and upload dialog
+    hooks/               Local knowledge source metadata state
+    types/               Knowledge source contracts and file helpers
   hooks/
     useSpeechRecognition.ts  Native browser speech recognition lifecycle
   services/              Shared frontend AI streaming services
@@ -359,9 +373,13 @@ Completed:
 - Selection-safe editor API integration
 - Cohesive editor and AI UI polish across desktop and mobile
 - Ask Document speech-to-text input with live, editable transcription
+- Knowledge Sources UI with Current Document, file selection, drag-and-drop
+  validation, local metadata cards, and source removal
 
 Architecture is verified. Ask Document and Selection AI both preserve the
-Editor API boundary. No known functional bugs are open.
+Editor API boundary. Knowledge Sources remains an isolated presentation and
+local-state feature with no AI, backend, or storage integration. No known
+functional bugs are open.
 
 ---
 
@@ -388,6 +406,13 @@ These are not missing. Do not implement unless requested.
 - RAG
 - Embeddings
 - Multiple selections
+- Knowledge source parsing
+- PDF and DOCX rendering
+- Knowledge source preview
+- Knowledge source AI context and citations
+- Backend knowledge source upload and persistence
+- Knowledge source search
+- Insert knowledge source content into the editor
 - Voice conversation
 - AI voice replies
 - Text-to-speech
