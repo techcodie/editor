@@ -134,7 +134,8 @@ The Groq API key remains server-only.
 Ask Document builds a structured request through the Knowledge Context Builder.
 The frontend sends document text, ordered active sources, conversation, and the
 question as separate fields. Only the backend prompt builder formats those
-fields for Groq.
+fields for Groq. The backend emits response metadata before content, including
+the configured model, stable source descriptors, and context size.
 
 Ask Document voice input is a browser-only input method. The native Web Speech
 API converts microphone speech into editable text before the existing Ask
@@ -182,6 +183,10 @@ the user has explicitly left them active and parsing completed successfully.
 Missing, empty, failed, inactive, or removed sources are skipped. Source order
 is preserved, source content is never summarized or truncated, and the exact
 source set used by each response is retained in that response's UI metadata.
+
+Temporary preview sources are scoped to the next question. Context ordering is
+Current Document, temporary sources, then active workspace sources. Duplicate
+source IDs are removed before the request is created.
 
 ---
 
@@ -250,7 +255,10 @@ directly.
   Sources.
 - Supports suggested questions, recent conversation context, retry, clear, and
   cancellation.
-- Displays the exact sources used above each completed response.
+- Stores model, stable source metadata, context size, and response time on each
+  assistant message.
+- Displays compact source badges and evidence cards for each completed response.
+- Supports Copy, Regenerate, View Sources, and Open Preview response actions.
 - Supports native browser speech-to-text with live transcription, manual stop,
   editable results, permission and error feedback, and no automatic submission.
 - Streams responses from the backend through Groq.
@@ -278,6 +286,11 @@ directly.
   in-app preview workspace.
 - Supports parsing progress, page counts for PDFs, validation errors, parsing
   errors, preview keyboard controls, and source removal.
+- Uses one shared preview instance across source cards, response badges, and
+  evidence actions.
+- Provides an Ask AI preview action that focuses chat and adds a temporary
+  next-question source chip without changing permanent active-source state.
+- Reserves disabled preview actions for future Summarize and Insert capabilities.
 - Keeps Current Document active and immutable while allowing uploaded, parsed
   sources to be included or excluded from Ask Document.
 - Warns when active source content is large without summarizing or truncating it.
@@ -335,6 +348,10 @@ No React Context for editor state.
 
 Current architecture shares the editor through composition and props.
 
+Ask Document uses a lightweight local Workspace Session composition hook to
+coordinate Knowledge Sources, conversation, preview state, and temporary
+sources. It is not a global store and does not persist state.
+
 ---
 
 ## Tech Stack
@@ -377,7 +394,7 @@ shared/
 
 src/
   components/
-    AskDocument/         Document chat UI
+    AskDocument/         Chat UI, evidence, response metadata, and workspace session
     DocumentEditor/      Editing surface
     EditorWorkspace/     Editor composition and layout
     SelectionAI/         Selection toolbar and result preview
@@ -447,12 +464,19 @@ Completed:
 - Multi-source Ask Document context built from the current document and ordered
   active parsed sources
 - Per-response source labels and large-context feedback
+- Stable source and model metadata persisted on assistant messages
+- Compact source badges, evidence cards, and response actions
+- Shared preview integration for cited sources with approximate start positioning
+- Ask AI from preview with temporary next-question source chips
+- Lightweight local Workspace Session coordination
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
 dedicated context builder to create structured Ask Document requests. Prompt
-formatting remains server-side. No embeddings, retrieval, source persistence,
-or citation generation has been introduced. No known functional bugs are open.
+formatting and response-source metadata remain server-side. Evidence is
+source-level transparency for the exact request context; no embeddings,
+retrieval, semantic claim matching, or source persistence has been introduced.
+No known functional bugs are open.
 
 ---
 
@@ -479,7 +503,8 @@ These are not missing. Do not implement unless requested.
 - RAG
 - Embeddings
 - Multiple selections
-- Knowledge source citations
+- Claim-level and passage-level citations
+- Exact evidence-section highlighting
 - Backend knowledge source upload and persistence
 - Knowledge source search
 - Insert knowledge source content into the editor

@@ -1,4 +1,5 @@
 import type { AiErrorResponse, AiStreamEvent } from '../../shared/ai'
+import type { AskDocumentResponseMetadata } from '../../shared/ask-document'
 
 interface AiStreamMessages {
   network: string
@@ -28,6 +29,13 @@ function parseEvent(frame: string): AiStreamEvent | null {
     if (!event || typeof event !== 'object' || !('type' in event)) return null
 
     if (event.type === 'done') return { type: 'done' }
+    if (
+      event.type === 'metadata' &&
+      'metadata' in event &&
+      isResponseMetadata(event.metadata)
+    ) {
+      return { type: 'metadata', metadata: event.metadata }
+    }
     if (event.type === 'delta' && 'content' in event && typeof event.content === 'string') {
       return { type: 'delta', content: event.content }
     }
@@ -39,6 +47,38 @@ function parseEvent(frame: string): AiStreamEvent | null {
   }
 
   return null
+}
+
+function isResponseMetadata(value: unknown): value is AskDocumentResponseMetadata {
+  if (!value || typeof value !== 'object') return false
+  const metadata = value as Record<string, unknown>
+  if (
+    typeof metadata.model !== 'string' ||
+    !metadata.model.trim() ||
+    typeof metadata.contextSize !== 'number' ||
+    !Number.isFinite(metadata.contextSize) ||
+    metadata.contextSize < 0 ||
+    !Array.isArray(metadata.sources)
+  ) {
+    return false
+  }
+
+  return metadata.sources.every((source) => {
+    if (!source || typeof source !== 'object') return false
+    const item = source as Record<string, unknown>
+    return (
+      typeof item.id === 'string' &&
+      item.id.length > 0 &&
+      typeof item.name === 'string' &&
+      item.name.length > 0 &&
+      typeof item.type === 'string' &&
+      ['document', 'pdf', 'docx', 'txt', 'markdown'].includes(item.type) &&
+      (item.pageCount === undefined ||
+        (typeof item.pageCount === 'number' &&
+          Number.isInteger(item.pageCount) &&
+          item.pageCount > 0))
+    )
+  })
 }
 
 async function getErrorMessage(response: Response, fallback: string): Promise<string> {
@@ -58,6 +98,7 @@ export async function streamAiRequest<TRequest>(
   messages: AiStreamMessages,
   onDelta: (content: string) => void,
   signal: AbortSignal,
+  onMetadata?: (metadata: AskDocumentResponseMetadata) => void,
 ): Promise<void> {
   let response: Response
 
@@ -103,6 +144,8 @@ export async function streamAiRequest<TRequest>(
         }
       } else if (event.type === 'error') {
         throw new AiStreamError(event.message)
+      } else if (event.type === 'metadata') {
+        onMetadata?.(event.metadata)
       } else {
         completed = true
       }

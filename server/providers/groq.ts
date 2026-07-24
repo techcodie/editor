@@ -1,6 +1,10 @@
 const DEFAULT_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const DEFAULT_MODEL = 'llama-3.1-8b-instant'
 
+export function getGroqModel(): string {
+  return process.env.GROQ_MODEL?.trim() || DEFAULT_MODEL
+}
+
 export interface GroqChatMessage {
   role: 'system' | 'user' | 'assistant'
   content: string
@@ -60,7 +64,7 @@ export async function* streamGroqCompletion(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: process.env.GROQ_MODEL?.trim() || DEFAULT_MODEL,
+        model: getGroqModel(),
         messages,
         stream: true,
         temperature: 0.1,

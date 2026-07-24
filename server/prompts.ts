@@ -15,6 +15,8 @@ export function buildDocumentQuestionPrompt(
   const sourceSections = knowledgeSources.map(
     (source) => `====================================
 KNOWLEDGE SOURCE
+ID: ${source.id}
+TYPE: ${source.type}
 ${source.name}
 
 ${source.content}`,

@@ -1,4 +1,9 @@
-export type KnowledgeSourceType = 'document' | 'pdf' | 'docx' | 'txt' | 'markdown'
+import {
+  CURRENT_DOCUMENT_SOURCE_ID,
+  type AskDocumentSourceType,
+} from '../../../shared/ask-document'
+
+export type KnowledgeSourceType = AskDocumentSourceType
 export type KnowledgeSourceStatus = 'current' | 'uploaded'
 export type KnowledgeSourceParseStatus = 'idle' | 'parsing' | 'ready' | 'error'
 
@@ -18,7 +23,7 @@ export interface KnowledgeSource {
 }
 
 export const CURRENT_DOCUMENT_SOURCE: KnowledgeSource = {
-  id: 'current-document',
+  id: CURRENT_DOCUMENT_SOURCE_ID,
   name: 'Current Document',
   type: 'document',
   size: 0,

@@ -1,5 +1,8 @@
+import type { AskDocumentResponseMetadata } from './ask-document.js'
+
 export type AiStreamEvent =
   | { type: 'delta'; content: string }
+  | { type: 'metadata'; metadata: AskDocumentResponseMetadata }
   | { type: 'done' }
   | { type: 'error'; message: string }
 

@@ -12,27 +12,49 @@ export const LARGE_CONTEXT_WARNING =
 export interface KnowledgeContext {
   currentDocument: string
   activeKnowledgeSources: AskDocumentKnowledgeSource[]
-  usedSourceNames: string[]
   totalCharacters: number
   isLarge: boolean
 }
 
 export function buildKnowledgeContext(
   currentDocument: string,
-  sources: KnowledgeSource[],
+  workspaceSources: KnowledgeSource[],
+  temporarySources: KnowledgeSource[] = [],
 ): KnowledgeContext {
-  const activeKnowledgeSources = sources.flatMap<AskDocumentKnowledgeSource>((source) => {
-    if (
-      source.status !== 'uploaded' ||
-      !source.isActive ||
-      source.parseStatus !== 'ready'
-    ) {
-      return []
-    }
+  const seenSourceIds = new Set<string>()
+  const collectSources = (
+    sources: KnowledgeSource[],
+    requireActive: boolean,
+  ): AskDocumentKnowledgeSource[] =>
+    sources.flatMap<AskDocumentKnowledgeSource>((source) => {
+      if (
+        seenSourceIds.has(source.id) ||
+        source.status !== 'uploaded' ||
+        (requireActive && !source.isActive) ||
+        source.parseStatus !== 'ready'
+      ) {
+        return []
+      }
 
-    const content = source.parsedContent?.trim()
-    return content ? [{ name: source.name, content }] : []
-  })
+      const content = source.parsedContent?.trim()
+      if (!content) return []
+
+      seenSourceIds.add(source.id)
+      return [
+        {
+          id: source.id,
+          name: source.name,
+          type: source.type,
+          pageCount: source.pageCount,
+          content,
+        },
+      ]
+    })
+
+  const activeKnowledgeSources = [
+    ...collectSources(temporarySources, false),
+    ...collectSources(workspaceSources, true),
+  ]
   const totalCharacters =
     currentDocument.length +
     activeKnowledgeSources.reduce((total, source) => total + source.content.length, 0)
@@ -40,7 +62,6 @@ export function buildKnowledgeContext(
   return {
     currentDocument,
     activeKnowledgeSources,
-    usedSourceNames: ['Current Document', ...activeKnowledgeSources.map((source) => source.name)],
     totalCharacters,
     isLarge: totalCharacters > LARGE_CONTEXT_CHARACTER_THRESHOLD,
   }

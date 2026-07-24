@@ -1,12 +1,11 @@
-import { useCallback, useEffect } from 'react'
+import { useEffect } from 'react'
 import { KnowledgeSources } from '../../knowledge'
-import { useKnowledgeSources } from '../../knowledge/hooks/useKnowledgeSources'
-import { buildKnowledgeContext } from '../../knowledge/services/contextBuilder'
+import { DocumentPreview } from '../../knowledge/preview/DocumentPreview'
 import { cn } from '../../lib/cn'
 import { ChatConversation } from './ChatConversation'
 import { ChatHeader } from './ChatHeader'
 import { ChatInput } from './ChatInput'
-import { useAskDocumentConversation } from './useAskDocumentConversation'
+import { useWorkspaceSession } from './useWorkspaceSession'
 
 interface AskDocumentPanelProps {
   isOpen: boolean
@@ -15,14 +14,16 @@ interface AskDocumentPanelProps {
 }
 
 export function AskDocumentPanel({ isOpen, getDocumentText, onClose }: AskDocumentPanelProps) {
-  const { sources, addFiles, removeSource, setSourceActive } = useKnowledgeSources()
-  const getKnowledgeContext = useCallback(
-    () => buildKnowledgeContext(getDocumentText(), sources),
-    [getDocumentText, sources],
-  )
-  const knowledgeContext = buildKnowledgeContext(getDocumentText(), sources)
-  const { messages, isLoading, error, sendMessage, retryLastMessage, clearConversation } =
-    useAskDocumentConversation(getKnowledgeContext)
+  const session = useWorkspaceSession(getDocumentText)
+  const {
+    messages,
+    isLoading,
+    error,
+    sendMessage,
+    retryLastMessage,
+    clearConversation,
+  } = session.conversation
+  const { closePreview } = session
 
   useEffect(() => {
     if (!isOpen) return
@@ -30,7 +31,7 @@ export function AskDocumentPanel({ isOpen, getDocumentText, onClose }: AskDocume
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.key === 'Escape' &&
-        !document.querySelector('[role="dialog"][aria-modal="true"]')
+        !document.querySelector('[role="dialog"]')
       ) {
         onClose()
       }
@@ -39,6 +40,10 @@ export function AskDocumentPanel({ isOpen, getDocumentText, onClose }: AskDocume
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
+
+  useEffect(() => {
+    if (!isOpen) closePreview()
+  }, [closePreview, isOpen])
 
   return (
     <aside
@@ -66,16 +71,34 @@ export function AskDocumentPanel({ isOpen, getDocumentText, onClose }: AskDocume
           error={error}
           onSelectSuggestion={sendMessage}
           onRetry={retryLastMessage}
+          regeneratableMessageId={session.conversation.regeneratableMessageId}
+          previewableSourceIds={session.previewableSourceIds}
+          onRegenerate={session.conversation.regenerateMessage}
+          onOpenSource={session.openSourceById}
         />
         <KnowledgeSources
-          sources={sources}
-          hasLargeContext={knowledgeContext.isLarge}
-          onAddFiles={addFiles}
-          onRemoveSource={removeSource}
-          onSourceActiveChange={setSourceActive}
+          sources={session.sources}
+          hasLargeContext={session.hasLargeContext}
+          onAddFiles={session.addFiles}
+          onRemoveSource={session.removeSource}
+          onSourceActiveChange={session.setSourceActive}
+          onPreviewSource={session.openPreview}
         />
-        <ChatInput disabled={isLoading} isActive={isOpen} onSend={sendMessage} />
+        <ChatInput
+          disabled={isLoading}
+          isActive={isOpen}
+          focusRequest={session.inputFocusRequest}
+          temporarySources={session.temporarySources}
+          onRemoveTemporarySource={session.removeTemporarySource}
+          onSend={sendMessage}
+        />
       </div>
+      <DocumentPreview
+        source={session.previewSource}
+        focusVersion={session.previewFocusVersion}
+        onAskAi={session.askAiAboutSource}
+        onClose={session.closePreview}
+      />
     </aside>
   )
 }

@@ -1,16 +1,22 @@
-import type { AskDocumentRequest } from '../../shared/ask-document'
+import type {
+  AskDocumentRequest,
+  AskDocumentResponseMetadata,
+} from '../../shared/ask-document'
 import { AiStreamError, streamAiRequest } from './ai-stream'
 
 const ENDPOINT = '/api/ask-document'
 
 export { AiStreamError as AskDocumentServiceError }
 
-export function streamAskDocument(
+export async function streamAskDocument(
   request: AskDocumentRequest,
   onDelta: (content: string) => void,
+  onMetadata: (metadata: AskDocumentResponseMetadata) => void,
   signal: AbortSignal,
 ): Promise<void> {
-  return streamAiRequest(
+  let receivedMetadata = false
+
+  await streamAiRequest(
     ENDPOINT,
     request,
     {
@@ -21,5 +27,15 @@ export function streamAskDocument(
     },
     onDelta,
     signal,
+    (metadata) => {
+      receivedMetadata = true
+      onMetadata(metadata)
+    },
   )
+
+  if (!receivedMetadata) {
+    throw new AiStreamError(
+      'The document assistant returned incomplete response details.',
+    )
+  }
 }

@@ -2,31 +2,43 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ASK_DOCUMENT_HISTORY_LIMIT,
   type AskDocumentHistoryMessage,
+  type AskDocumentResponseMetadata,
 } from '../../../shared/ask-document'
 import {
   buildAskDocumentRequest,
   type KnowledgeContext,
 } from '../../knowledge/services/contextBuilder'
 import { AskDocumentServiceError, streamAskDocument } from '../../services/ask-document'
-import type { ChatMessage, ChatRole, ConversationError } from './types'
+import type {
+  AssistantResponseMetadata,
+  ChatMessage,
+  ChatRole,
+  ConversationError,
+} from './types'
 
 interface PendingRequest {
   question: string
   history: AskDocumentHistoryMessage[]
+  context: KnowledgeContext
+}
+
+interface CompletedRequest {
+  messageId: string
+  request: PendingRequest
 }
 
 function createMessage(
   role: ChatRole,
   content: string,
-  id = crypto.randomUUID(),
-  sourcesUsed?: string[],
+  id: string = crypto.randomUUID(),
+  metadata?: AssistantResponseMetadata,
 ): ChatMessage {
   return {
     id,
     timestamp: Date.now(),
     role,
     content,
-    sourcesUsed,
+    metadata,
   }
 }
 
@@ -56,14 +68,15 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<ConversationError | null>(null)
   const requestRef = useRef<AbortController | null>(null)
-  const lastRequestRef = useRef<PendingRequest | null>(null)
+  const failedRequestRef = useRef<PendingRequest | null>(null)
+  const completedRequestRef = useRef<CompletedRequest | null>(null)
 
   const runRequest = useCallback(
-    async (pendingRequest: PendingRequest) => {
+    async (pendingRequest: PendingRequest, replaceMessageId?: string) => {
       if (requestRef.current) return
 
-      const context = getKnowledgeContext()
-      lastRequestRef.current = pendingRequest
+      const { context } = pendingRequest
+      failedRequestRef.current = pendingRequest
       setError(null)
 
       if (!context.currentDocument.trim() && context.activeKnowledgeSources.length === 0) {
@@ -75,14 +88,24 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
       }
 
       const request = new AbortController()
-      const assistantMessageId = crypto.randomUUID()
+      const assistantMessageId = replaceMessageId ?? crypto.randomUUID()
+      const startedAt = performance.now()
+      let responseMetadata: AskDocumentResponseMetadata | null = null
       requestRef.current = request
       setIsLoading(true)
+      if (replaceMessageId) {
+        setMessages((current) =>
+          current.filter((message) => message.id !== replaceMessageId),
+        )
+      }
 
       try {
         await streamAskDocument(
           buildAskDocumentRequest(context, pendingRequest.history, pendingRequest.question),
           (content) => {
+            const metadata = responseMetadata
+            if (!metadata) return
+
             setMessages((current) => {
               const assistantMessage = current.find(
                 (message) => message.id === assistantMessageId,
@@ -95,7 +118,7 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
                     'assistant',
                     content,
                     assistantMessageId,
-                    context.usedSourceNames,
+                    metadata,
                   ),
                 ]
               }
@@ -107,9 +130,30 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
               )
             })
           },
+          (metadata) => {
+            responseMetadata = metadata
+          },
           request.signal,
         )
-        lastRequestRef.current = null
+        const responseTime = Math.max(0, Math.round(performance.now() - startedAt))
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === assistantMessageId && message.metadata
+              ? {
+                  ...message,
+                  metadata: {
+                    ...message.metadata,
+                    responseTime,
+                  },
+                }
+              : message,
+          ),
+        )
+        failedRequestRef.current = null
+        completedRequestRef.current = {
+          messageId: assistantMessageId,
+          request: pendingRequest,
+        }
       } catch (reason) {
         if (!(reason instanceof DOMException && reason.name === 'AbortError')) {
           setMessages((current) =>
@@ -124,33 +168,46 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
         }
       }
     },
-    [getKnowledgeContext],
+    [],
   )
 
   const sendMessage = useCallback(
     (content: string) => {
       const question = content.trim()
-      if (!question || requestRef.current) return
+      if (!question || requestRef.current) return false
 
       const pendingRequest: PendingRequest = {
         question,
         history: getRecentHistory(messages),
+        context: getKnowledgeContext(),
       }
       setMessages((current) => [...current, createMessage('user', question)])
       void runRequest(pendingRequest)
+      return true
     },
-    [messages, runRequest],
+    [getKnowledgeContext, messages, runRequest],
   )
 
   const retryLastMessage = useCallback(() => {
-    const pendingRequest = lastRequestRef.current
+    const pendingRequest = failedRequestRef.current
     if (pendingRequest) void runRequest(pendingRequest)
   }, [runRequest])
+
+  const regenerateMessage = useCallback(
+    (messageId: string) => {
+      const completedRequest = completedRequestRef.current
+      if (completedRequest?.messageId === messageId) {
+        void runRequest(completedRequest.request, messageId)
+      }
+    },
+    [runRequest],
+  )
 
   const clearConversation = useCallback(() => {
     requestRef.current?.abort()
     requestRef.current = null
-    lastRequestRef.current = null
+    failedRequestRef.current = null
+    completedRequestRef.current = null
     setMessages([])
     setError(null)
     setIsLoading(false)
@@ -169,6 +226,8 @@ export function useAskDocumentConversation(getKnowledgeContext: () => KnowledgeC
     error,
     sendMessage,
     retryLastMessage,
+    regenerateMessage,
+    regeneratableMessageId: completedRequestRef.current?.messageId ?? null,
     clearConversation,
   }
 }

@@ -1,9 +1,12 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import {
   ASK_DOCUMENT_HISTORY_LIMIT,
+  CURRENT_DOCUMENT_SOURCE_ID,
   type AskDocumentHistoryMessage,
   type AskDocumentKnowledgeSource,
   type AskDocumentRequest,
+  type AskDocumentSourceMetadata,
+  type AskDocumentSourceType,
 } from '../shared/ask-document.js'
 import { sendAiResponse } from './ai-response.js'
 import {
@@ -15,14 +18,24 @@ import {
   requireJson,
 } from './http.js'
 import { buildDocumentQuestionPrompt, ASK_DOCUMENT_SYSTEM_PROMPT } from './prompts.js'
+import { getGroqModel } from './providers/groq.js'
 
 const MAX_DOCUMENT_CHARS = 80_000
 const MAX_KNOWLEDGE_SOURCE_CHARS = 120_000
 const MAX_TOTAL_CONTEXT_CHARS = 220_000
 const MAX_KNOWLEDGE_SOURCES = 20
 const MAX_SOURCE_NAME_CHARS = 255
+const MAX_SOURCE_ID_CHARS = 128
 const MAX_QUESTION_CHARS = 2_000
 const MAX_HISTORY_MESSAGE_CHARS = 4_000
+const SOURCE_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/
+const SOURCE_TYPES = new Set<AskDocumentSourceType>([
+  'document',
+  'pdf',
+  'docx',
+  'txt',
+  'markdown',
+])
 
 function parseHistory(value: unknown): AskDocumentHistoryMessage[] {
   if (!Array.isArray(value)) throw new RequestValidationError(400, 'Conversation history is invalid.')
@@ -50,13 +63,37 @@ function parseKnowledgeSources(value: unknown): AskDocumentKnowledgeSource[] {
   if (value.length > MAX_KNOWLEDGE_SOURCES) {
     throw new RequestValidationError(413, 'Too many knowledge sources are active.')
   }
+  const seenSourceIds = new Set([CURRENT_DOCUMENT_SOURCE_ID])
 
   return value.flatMap<AskDocumentKnowledgeSource>((source) => {
     if (!isRecord(source)) return []
 
+    const id = typeof source.id === 'string' ? source.id.trim() : ''
     const name = typeof source.name === 'string' ? source.name.trim().replace(/\s+/g, ' ') : ''
+    const type = source.type
     const content = typeof source.content === 'string' ? source.content.trim() : ''
-    if (!name || !content) return []
+    const pageCount =
+      typeof source.pageCount === 'number' &&
+      Number.isInteger(source.pageCount) &&
+      source.pageCount > 0
+        ? source.pageCount
+        : undefined
+    if (
+      !id ||
+      seenSourceIds.has(id) ||
+      !name ||
+      !content ||
+      typeof type !== 'string' ||
+      !SOURCE_TYPES.has(type as AskDocumentSourceType)
+    ) {
+      return []
+    }
+    if (id.length > MAX_SOURCE_ID_CHARS) {
+      throw new RequestValidationError(413, 'A knowledge source identifier is too long.')
+    }
+    if (!SOURCE_ID_PATTERN.test(id)) {
+      throw new RequestValidationError(400, 'A knowledge source identifier is invalid.')
+    }
     if (name.length > MAX_SOURCE_NAME_CHARS) {
       throw new RequestValidationError(413, 'A knowledge source name is too long.')
     }
@@ -64,8 +101,27 @@ function parseKnowledgeSources(value: unknown): AskDocumentKnowledgeSource[] {
       throw new RequestValidationError(413, `${name} is too long to analyze safely.`)
     }
 
-    return [{ name, content }]
+    seenSourceIds.add(id)
+    return [{ id, name, type: type as AskDocumentSourceType, pageCount, content }]
   })
+}
+
+function getResponseSources(
+  activeKnowledgeSources: AskDocumentKnowledgeSource[],
+): AskDocumentSourceMetadata[] {
+  return [
+    {
+      id: CURRENT_DOCUMENT_SOURCE_ID,
+      name: 'Current Document',
+      type: 'document',
+    },
+    ...activeKnowledgeSources.map(({ id, name, type, pageCount }) => ({
+      id,
+      name,
+      type,
+      pageCount,
+    })),
+  ]
 }
 
 function validateRequest(value: unknown): AskDocumentRequest {
@@ -138,6 +194,13 @@ export async function handleAskDocument(
         unexpected: 'The document assistant encountered an unexpected error.',
       },
       abortController.signal,
+      {
+        model: getGroqModel(),
+        sources: getResponseSources(body.activeKnowledgeSources),
+        contextSize:
+          body.currentDocument.length +
+          body.activeKnowledgeSources.reduce((total, source) => total + source.content.length, 0),
+      },
     )
   } catch (error) {
     if (!abortController.signal.aborted) {

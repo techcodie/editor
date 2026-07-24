@@ -2,8 +2,6 @@ import { useState } from 'react'
 import { BookOpen, Plus, TriangleAlert } from 'lucide-react'
 import { SourceCard } from './SourceCard'
 import { UploadDialog } from './UploadDialog'
-import { useDocumentPreview } from '../hooks/useDocumentPreview'
-import { DocumentPreview } from '../preview/DocumentPreview'
 import { LARGE_CONTEXT_WARNING } from '../services/contextBuilder'
 import type { KnowledgeSource } from '../types/source'
 
@@ -13,6 +11,7 @@ interface KnowledgeSourcesProps {
   onAddFiles: (files: File[]) => void
   onRemoveSource: (sourceId: string) => void
   onSourceActiveChange: (sourceId: string, isActive: boolean) => void
+  onPreviewSource: (source: KnowledgeSource) => void
 }
 
 export function KnowledgeSources({
@@ -21,15 +20,10 @@ export function KnowledgeSources({
   onAddFiles,
   onRemoveSource,
   onSourceActiveChange,
+  onPreviewSource,
 }: KnowledgeSourcesProps) {
   const [isUploadOpen, setIsUploadOpen] = useState(false)
-  const { previewSource, openPreview, closePreview } = useDocumentPreview()
   const uploadedSources = sources.filter((source) => source.status === 'uploaded')
-
-  const handleRemoveSource = (sourceId: string) => {
-    if (previewSource?.id === sourceId) closePreview()
-    onRemoveSource(sourceId)
-  }
 
   return (
     <section
@@ -94,8 +88,8 @@ export function KnowledgeSources({
               <SourceCard
                 key={source.id}
                 source={source}
-                onPreview={openPreview}
-                onRemove={handleRemoveSource}
+                onPreview={onPreviewSource}
+                onRemove={onRemoveSource}
                 onActiveChange={onSourceActiveChange}
               />
             ))}
@@ -108,7 +102,6 @@ export function KnowledgeSources({
         onAddFiles={onAddFiles}
         onClose={() => setIsUploadOpen(false)}
       />
-      <DocumentPreview source={previewSource} onClose={closePreview} />
     </section>
   )
 }

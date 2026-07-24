@@ -1,16 +1,31 @@
-import { Check, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
+import { useState } from 'react'
 import { cn } from '../../lib/cn'
+import { EvidenceList } from './EvidenceList'
+import { ResponseActions } from './ResponseActions'
+import { SourceBadges } from './SourceBadges'
 import type { ChatMessage as ChatMessageType } from './types'
 
 interface ChatMessageProps {
   message: ChatMessageType
+  canRegenerate: boolean
+  previewableSourceIds: ReadonlySet<string>
+  onRegenerate: (messageId: string) => void
+  onOpenSource: (sourceId: string) => void
 }
 const TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {
   hour: 'numeric',
   minute: '2-digit',
 })
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({
+  message,
+  canRegenerate,
+  previewableSourceIds,
+  onRegenerate,
+  onOpenSource,
+}: ChatMessageProps) {
+  const [isEvidenceVisible, setIsEvidenceVisible] = useState(true)
   if (message.role === 'system') {
     return (
       <div className="my-1 flex items-center gap-2 text-[10px] font-medium text-neutral-400" role="status">
@@ -22,6 +37,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
   }
 
   const isUser = message.role === 'user'
+  const sources = message.metadata?.sources ?? []
+  const firstPreviewableSource = sources.find((source) =>
+    previewableSourceIds.has(source.id),
+  )
 
   return (
     <article
@@ -37,24 +56,12 @@ export function ChatMessage({ message }: ChatMessageProps) {
         </div>
       )}
       <div className={cn('min-w-0 max-w-[88%]', isUser && 'text-right')}>
-        {!isUser && message.sourcesUsed && message.sourcesUsed.length > 0 && (
-          <div
-            className="mb-1.5 rounded-md border border-neutral-200 bg-neutral-100/70 px-2.5 py-2 text-left"
-            aria-label="Sources used for this response"
-          >
-            <p className="text-[9px] font-semibold uppercase text-neutral-500">Using Sources</p>
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {message.sourcesUsed.map((sourceName, index) => (
-                <span
-                  key={`${sourceName}-${index}`}
-                  className="inline-flex max-w-full items-center gap-1 rounded-md bg-white px-1.5 py-1 text-[9px] font-medium text-neutral-600 shadow-sm ring-1 ring-inset ring-neutral-200"
-                >
-                  <Check size={10} strokeWidth={2.2} className="shrink-0 text-emerald-600" aria-hidden />
-                  <span className="truncate">{sourceName}</span>
-                </span>
-              ))}
-            </div>
-          </div>
+        {!isUser && sources.length > 0 && (
+          <SourceBadges
+            sources={sources}
+            previewableSourceIds={previewableSourceIds}
+            onOpenSource={onOpenSource}
+          />
         )}
         <div
           className={cn(
@@ -66,12 +73,33 @@ export function ChatMessage({ message }: ChatMessageProps) {
         >
           {message.content}
         </div>
+        {!isUser && isEvidenceVisible && sources.length > 0 && (
+          <EvidenceList
+            sources={sources}
+            previewableSourceIds={previewableSourceIds}
+            onOpenSource={onOpenSource}
+          />
+        )}
         <time
           dateTime={new Date(message.timestamp).toISOString()}
           className="mt-1.5 inline-block px-0.5 text-[10px] text-neutral-400"
         >
           {TIME_FORMATTER.format(message.timestamp)}
         </time>
+        {!isUser && message.metadata && (
+          <ResponseActions
+            content={message.content}
+            canRegenerate={canRegenerate}
+            hasPreviewableSource={Boolean(firstPreviewableSource)}
+            previewSourceName={firstPreviewableSource?.name}
+            isEvidenceVisible={isEvidenceVisible}
+            onRegenerate={() => onRegenerate(message.id)}
+            onToggleEvidence={() => setIsEvidenceVisible((isVisible) => !isVisible)}
+            onOpenPreview={() => {
+              if (firstPreviewableSource) onOpenSource(firstPreviewableSource.id)
+            }}
+          />
+        )}
       </div>
     </article>
   )

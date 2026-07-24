@@ -11,6 +11,10 @@ interface ChatConversationProps {
   error: ConversationError | null
   onSelectSuggestion: (prompt: string) => void
   onRetry: () => void
+  regeneratableMessageId: string | null
+  previewableSourceIds: ReadonlySet<string>
+  onRegenerate: (messageId: string) => void
+  onOpenSource: (sourceId: string) => void
 }
 export function ChatConversation({
   messages,
@@ -18,6 +22,10 @@ export function ChatConversation({
   error,
   onSelectSuggestion,
   onRetry,
+  regeneratableMessageId,
+  previewableSourceIds,
+  onRegenerate,
+  onOpenSource,
 }: ChatConversationProps) {
   const conversationRef = useRef<HTMLDivElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
@@ -58,7 +66,14 @@ export function ChatConversation({
       ) : (
         <div className="space-y-5">
           {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
+            <ChatMessage
+              key={message.id}
+              message={message}
+              canRegenerate={message.id === regeneratableMessageId && !isLoading}
+              previewableSourceIds={previewableSourceIds}
+              onRegenerate={onRegenerate}
+              onOpenSource={onOpenSource}
+            />
           ))}
           {isLoading && messages.at(-1)?.role !== 'assistant' && <LoadingState />}
           {error && (

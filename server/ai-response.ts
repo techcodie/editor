@@ -1,5 +1,6 @@
 import type { ServerResponse } from 'node:http'
 import type { AiStreamEvent } from '../shared/ai.js'
+import type { AskDocumentResponseMetadata } from '../shared/ask-document.js'
 import {
   GroqProviderError,
   streamGroqCompletion,
@@ -40,6 +41,7 @@ export async function sendAiResponse(
   messages: GroqChatMessage[],
   errorMessages: AiResponseMessages,
   signal: AbortSignal,
+  metadata?: AskDocumentResponseMetadata,
 ): Promise<void> {
   try {
     const stream = streamGroqCompletion(messages, signal)
@@ -55,6 +57,7 @@ export async function sendAiResponse(
       'X-Accel-Buffering': 'no',
       'X-Content-Type-Options': 'nosniff',
     })
+    if (metadata) sendEvent(response, { type: 'metadata', metadata })
     sendEvent(response, { type: 'delta', content: first.value })
 
     for await (const content of stream) {

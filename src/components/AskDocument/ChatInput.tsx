@@ -3,14 +3,26 @@ import type { FormEvent, KeyboardEvent } from 'react'
 import { ArrowUp, Loader2, Mic, MicOff, Square } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
+import type { KnowledgeSource } from '../../knowledge/types/source'
+import { TemporarySourceChips } from './TemporarySourceChips'
 
 interface ChatInputProps {
   disabled?: boolean
   isActive: boolean
+  focusRequest: number
+  temporarySources: KnowledgeSource[]
+  onRemoveTemporarySource: (sourceId: string) => void
   onSend: (content: string) => void
 }
 
-export function ChatInput({ disabled, isActive, onSend }: ChatInputProps) {
+export function ChatInput({
+  disabled,
+  isActive,
+  focusRequest,
+  temporarySources,
+  onRemoveTemporarySource,
+  onSend,
+}: ChatInputProps) {
   const [value, setValue] = useState('')
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const focusInput = useCallback(() => {
@@ -35,7 +47,7 @@ export function ChatInput({ disabled, isActive, onSend }: ChatInputProps) {
 
   useEffect(() => {
     if (isActive) inputRef.current?.focus()
-  }, [isActive])
+  }, [focusRequest, isActive])
 
   useEffect(() => {
     if (!isActive || disabled) cancelListening()
@@ -89,6 +101,10 @@ export function ChatInput({ disabled, isActive, onSend }: ChatInputProps) {
   return (
     <form className="shrink-0 border-t border-neutral-200 bg-white p-3" onSubmit={handleSubmit}>
       <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-2.5 shadow-[0_1px_2px_rgba(20,20,20,0.04)] transition-[border-color,background-color,box-shadow] duration-200 hover:border-neutral-300 focus-within:border-neutral-300 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(99,102,241,0.08),0_8px_20px_-16px_rgba(20,20,20,0.3)]">
+        <TemporarySourceChips
+          sources={temporarySources}
+          onRemove={onRemoveTemporarySource}
+        />
         <label htmlFor="ask-document-input" className="sr-only">
           Ask something about this document
         </label>
