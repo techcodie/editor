@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react'
+import { memo, type MouseEvent } from 'react'
 import { EditorContent } from '@tiptap/react'
 import { cn } from '../../lib/cn'
 import type { DocumentEditorProps } from '../../types/editor'
@@ -11,7 +11,7 @@ const CONTAINER_CLASS =
   'focus-within:shadow-[0_1px_2px_rgba(20,20,20,0.05),0_20px_52px_-28px_rgba(20,20,20,0.4),0_0_0_3px_rgba(99,102,241,0.06)] ' +
   'sm:px-12 sm:py-14 md:px-16 md:py-16'
 
-export function DocumentEditor({
+function DocumentEditorComponent({
   editor,
   className,
   onSurfaceClick,
@@ -39,3 +39,5 @@ export function DocumentEditor({
     </div>
   )
 }
+
+export const DocumentEditor = memo(DocumentEditorComponent)

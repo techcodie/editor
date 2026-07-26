@@ -42,6 +42,14 @@ export interface EditorAssetInsertion {
   rotation: number
 }
 
+export type EditorCommentInteractionType = 'open' | 'preview' | 'leave'
+
+export interface EditorCommentInteraction {
+  type: EditorCommentInteractionType
+  commentId: string
+  bounds: EditorSelectionBounds
+}
+
 /**
  * Framework-neutral editor command surface used by SDK UI and host applications.
  */
@@ -89,6 +97,15 @@ export interface EditorApi {
   getDocumentText(): string
   insertStructuredContent(insertion: EditorStructuredInsertion): boolean
   insertAsset(asset: EditorAssetInsertion): boolean
+
+  addCommentAnchor(selection: EditorTextSelection, commentId: string): boolean
+  removeCommentAnchor(commentId: string): boolean
+  focusCommentAnchor(commentId: string): boolean
+  getActiveCommentId(): string | null
+  setReviewMode(enabled: boolean): void
+  subscribeCommentInteractions(
+    listener: (interaction: EditorCommentInteraction) => void,
+  ): () => void
 
   getTextSelection(): EditorTextSelection | null
   replaceTextSelection(selection: EditorTextSelection, replacement: string): boolean

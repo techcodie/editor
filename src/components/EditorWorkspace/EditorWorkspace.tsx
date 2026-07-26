@@ -3,6 +3,14 @@ import { Command, LoaderCircle, MessageSquareText, MousePointer2, X } from 'luci
 import { AssetToolbarControl } from '../../assets/components/AssetToolbarControl'
 import { useAssetInsertion } from '../../assets/hooks/useAssetInsertion'
 import type { Asset } from '../../assets/types/asset'
+import { CommentHighlightPreview } from '../../review/components/CommentHighlightPreview'
+import { CommentToolbar } from '../../review/components/CommentToolbar'
+import { ReviewToolbarControl } from '../../review/components/ReviewToolbarControl'
+import { SelectionCommentComposer } from '../../review/components/SelectionCommentComposer'
+import { useComments } from '../../review/hooks/useComments'
+import { useSelectionComment } from '../../review/hooks/useSelectionComment'
+import type { Comment } from '../../review/types/comment'
+import type { CommentHighlightPreviewState } from '../../review/types/review'
 import { useDocumentEditor } from '../../hooks/useDocumentEditor'
 import { useEditorApi } from '../../hooks/useEditorApi'
 import { cn } from '../../lib/cn'
@@ -27,6 +35,11 @@ const AskDocumentPanel = lazy(async () => {
 const AssetLibrary = lazy(async () => {
   const module = await import('../../assets/components/AssetLibrary')
   return { default: module.AssetLibrary }
+})
+
+const ReviewSidebar = lazy(async () => {
+  const module = await import('../../review/components/ReviewSidebar')
+  return { default: module.ReviewSidebar }
 })
 
 /**
@@ -56,6 +69,11 @@ export function EditorWorkspace({
   const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false)
   const [isAssetLibraryLoaded, setIsAssetLibraryLoaded] = useState(false)
   const [recentAssetIds, setRecentAssetIds] = useState<string[]>([])
+  const [isReviewMode, setIsReviewMode] = useState(false)
+  const [isReviewLoaded, setIsReviewLoaded] = useState(false)
+  const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
+  const [commentHighlightPreview, setCommentHighlightPreview] =
+    useState<CommentHighlightPreviewState | null>(null)
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [askDocumentCommand, setAskDocumentCommand] =
     useState<AskDocumentCommandRequest | null>(null)
@@ -86,6 +104,38 @@ export function EditorWorkspace({
     cancelPlacement,
     insertPendingAsset,
   } = useAssetInsertion({ api, onInserted: recordRecentAsset })
+  const {
+    comments,
+    commentsById,
+    currentAuthor,
+    addComment,
+    addReply,
+    editComment,
+    setResolved,
+    deleteComment,
+    jumpToComment,
+  } = useComments(api)
+
+  const handleCommentCreated = useCallback((comment: Comment) => {
+    setSelectedCommentId(comment.id)
+    setCommentHighlightPreview(null)
+  }, [])
+  const {
+    selection: reviewSelection,
+    pendingComment,
+    openComposer,
+    closeComposer,
+    saveComment,
+  } = useSelectionComment({
+    api,
+    enabled: isReviewMode,
+    keyboardShortcuts: config.keyboardShortcuts,
+    onCreate: addComment,
+    onCreated: handleCommentCreated,
+  })
+  const previewedComment = commentHighlightPreview
+    ? commentsById.get(commentHighlightPreview.commentId) ?? null
+    : null
 
   useEffect(() => {
     onApiChange(api)
@@ -116,8 +166,40 @@ export function EditorWorkspace({
     return api.subscribe(notifyChanges)
   }, [api, events])
 
+  useEffect(() => {
+    if (!api) return
+    api.setReviewMode(isReviewMode)
+    return () => api.setReviewMode(false)
+  }, [api, isReviewMode])
+
+  useEffect(() => {
+    if (!api || !isReviewMode) return
+    return api.subscribeCommentInteractions((interaction) => {
+      if (interaction.type === 'leave') {
+        setCommentHighlightPreview((current) =>
+          current?.commentId === interaction.commentId ? null : current,
+        )
+        return
+      }
+      if (interaction.type === 'preview') {
+        setCommentHighlightPreview({
+          commentId: interaction.commentId,
+          bounds: interaction.bounds,
+        })
+        return
+      }
+
+      setCommentHighlightPreview(null)
+      setSelectedCommentId(interaction.commentId)
+      setIsReviewLoaded(true)
+      setIsReviewMode(true)
+    })
+  }, [api, isReviewMode])
+
   const openAskDocument = useCallback(() => {
     setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setCommentHighlightPreview(null)
     setIsAskDocumentLoaded(true)
     setIsAskDocumentOpen(true)
   }, [])
@@ -129,9 +211,28 @@ export function EditorWorkspace({
 
   const openAssetLibrary = useCallback(() => {
     setIsAskDocumentOpen(false)
+    setIsReviewMode(false)
+    setCommentHighlightPreview(null)
     setIsAssetLibraryLoaded(true)
     setIsAssetLibraryOpen(true)
   }, [])
+
+  const openReviewMode = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    cancelPlacement()
+    setIsReviewLoaded(true)
+    setIsReviewMode(true)
+  }, [cancelPlacement])
+
+  const closeReviewMode = useCallback(() => {
+    setIsReviewMode(false)
+    setCommentHighlightPreview(null)
+    closeComposer()
+    window.requestAnimationFrame(() => {
+      document.getElementById('review-mode-trigger')?.focus()
+    })
+  }, [closeComposer])
 
   const closeAssetLibrary = useCallback(() => {
     setIsAssetLibraryOpen(false)
@@ -239,13 +340,22 @@ export function EditorWorkspace({
               api={api}
               className="min-w-0"
               trailingContent={
-                <AssetToolbarControl
-                  isOpen={isAssetLibraryOpen}
-                  onToggle={() => {
-                    if (isAssetLibraryOpen) closeAssetLibrary()
-                    else openAssetLibrary()
-                  }}
-                />
+                <>
+                  <AssetToolbarControl
+                    isOpen={isAssetLibraryOpen}
+                    onToggle={() => {
+                      if (isAssetLibraryOpen) closeAssetLibrary()
+                      else openAssetLibrary()
+                    }}
+                  />
+                  <ReviewToolbarControl
+                    isActive={isReviewMode}
+                    onToggle={() => {
+                      if (isReviewMode) closeReviewMode()
+                      else openReviewMode()
+                    }}
+                  />
+                </>
               }
             />
           )}
@@ -320,6 +430,35 @@ export function EditorWorkspace({
         </div>
       </div>
       <div className="shrink-0">
+        {isReviewLoaded && (
+          <ErrorBoundary compact title="Review needs a retry">
+            <Suspense
+              fallback={
+                <div
+                  className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[25rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[24rem] lg:rounded-lg lg:border"
+                  role="status"
+                  aria-label="Loading review sidebar"
+                >
+                  <LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden />
+                </div>
+              }
+            >
+              <ReviewSidebar
+                isOpen={isReviewMode}
+                comments={comments}
+                selectedCommentId={selectedCommentId}
+                currentAuthorId={currentAuthor.id}
+                onClose={closeReviewMode}
+                onSelectComment={setSelectedCommentId}
+                onReply={addReply}
+                onResolve={setResolved}
+                onEdit={editComment}
+                onDelete={deleteComment}
+                onJump={jumpToComment}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        )}
         {isAssetLibraryLoaded && (
           <ErrorBoundary compact title="Asset library needs a retry">
             <Suspense
@@ -377,7 +516,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
       </div>
-      {config.ai && !config.readonly && (
+      {config.ai && !config.readonly && !isReviewMode && (
         <ErrorBoundary compact title="Selection AI needs a retry">
           <SelectionAi
             api={api}
@@ -386,6 +525,26 @@ export function EditorWorkspace({
             events={events}
           />
         </ErrorBoundary>
+      )}
+      {isReviewMode && !config.readonly && reviewSelection && !pendingComment && (
+        <CommentToolbar
+          bounds={reviewSelection.bounds}
+          onComment={openComposer}
+        />
+      )}
+      {isReviewMode && pendingComment && (
+        <SelectionCommentComposer
+          bounds={pendingComment.selection.bounds}
+          quote={pendingComment.selection.text}
+          onSubmit={saveComment}
+          onCancel={closeComposer}
+        />
+      )}
+      {isReviewMode && previewedComment && commentHighlightPreview && (
+        <CommentHighlightPreview
+          comment={previewedComment}
+          bounds={commentHighlightPreview.bounds}
+        />
       )}
       {config.commandPalette && (
         <CommandPalette

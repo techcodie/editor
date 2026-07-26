@@ -170,6 +170,26 @@
   background: var(--document-editor-selection, rgba(79, 70, 229, 0.2));
 }
 
+/* Review comments remain in document content while visibility follows Review Mode. */
+.tiptap [data-review-comment] {
+  border-radius: 2px;
+  background: transparent;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.tiptap[data-review-mode='enabled'] [data-review-comment] {
+  cursor: pointer;
+  background: color-mix(in srgb, #fbbf24 24%, transparent);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, #d97706 58%, transparent);
+}
+
+.tiptap[data-review-mode='enabled'] [data-review-comment]:hover {
+  background: color-mix(in srgb, #fbbf24 36%, transparent);
+  box-shadow: inset 0 -2px 0 #d97706;
+}
+
 /* Placeholder shown only while the whole document is empty. */
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);

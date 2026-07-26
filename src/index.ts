@@ -30,6 +30,8 @@ export type {
 export type {
   EditorApi,
   EditorAssetInsertion,
+  EditorCommentInteraction,
+  EditorCommentInteractionType,
   EditorInsertionProvenance,
   EditorInsertionTarget,
   EditorSelectionBounds,

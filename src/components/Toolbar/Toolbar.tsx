@@ -76,7 +76,7 @@ export function Toolbar({
         {trailingContent && (
           <>
             <ToolbarDivider />
-            <ToolbarGroup label="Assets">{trailingContent}</ToolbarGroup>
+            <ToolbarGroup label="Workspace tools">{trailingContent}</ToolbarGroup>
           </>
         )}
       </ToolbarPrimitive.Root>

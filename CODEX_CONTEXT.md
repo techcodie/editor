@@ -288,6 +288,34 @@ The internal asset node extension renders the inserted document node and owns
 native document movement, selection, resizing, and rotation. Asset instances
 remain part of editor content rather than browser-overlay state.
 
+### Enterprise Review Flow
+
+```text
+Review Toolbar Control
+        |
+        v
+Review Mode / Text Selection
+        |
+        v
+Comment Thread Registry
+        |
+        v
+Review Sidebar
+        |
+        v
+Editor API
+        |
+        v
+Commented Text Mark
+```
+
+Review Phase 1 is an instance-local layer composed above the editor. Comment
+components and hooks communicate with the editor only through the Editor API.
+The internal `reviewComment` mark stores a stable comment ID on the selected
+document range; thread content remains browser-memory state owned by the
+workspace. Review mode controls highlight visibility and comment interaction
+listeners without changing normal editor behavior.
+
 ---
 
 ## Important Rules
@@ -355,6 +383,12 @@ transaction so one Undo restores the previous document.
 
 The Editor API also owns generic asset insertion. Asset Library components send
 framework-neutral asset payloads and never access Tiptap directly.
+
+The Editor API also owns review comment anchoring, anchor removal, range focus,
+active-comment lookup, review-mode visibility, and comment highlight
+interactions. Review UI never imports or calls Tiptap. Clearing formatting
+preserves review anchors so document styling commands do not silently remove
+discussions.
 
 ---
 
@@ -451,6 +485,24 @@ system.
 - Unsupported browsers expose a disabled microphone control with an accessible
   explanation.
 
+### Enterprise Review
+
+- Review Mode is toggled from the workspace toolbar and opens a responsive
+  right-side review panel.
+- Selecting non-empty editor text exposes a lightweight comment action and an
+  accessible composer with keyboard submission and Escape cancellation.
+- Saved comment ranges remain highlighted while Review Mode is active; hover
+  shows a compact preview and click opens the corresponding discussion.
+- Discussions support replies, resolving, reopening, editing and deleting the
+  current user's comment, and jumping back to the anchored selection.
+- The sidebar supports Active, Resolved, Mine, and All views; newest and oldest
+  sorting; author, text, status, and date search; and previous/next navigation.
+- Comment threads are memoized and review state updates do not recreate the
+  editor instance.
+- Comments and replies are currently session-local. No persistence, mentions,
+  notifications, collaboration, approval workflow, or Track Changes behavior
+  is included in Phase 1.
+
 ### Production Shell
 
 - Ask Document is lazy-loaded on first use and remains mounted afterward so its
@@ -513,6 +565,10 @@ Current architecture shares the editor through composition and props.
 Ask Document uses a lightweight local Workspace Session composition hook to
 coordinate Knowledge Sources, conversation, preview state, and temporary
 sources. It is not a global store and does not persist state.
+
+Enterprise Review uses a local comment hook composed by the editor workspace.
+It does not introduce React Context, a global registry, or persistent comment
+storage.
 
 ---
 
@@ -581,6 +637,12 @@ src/
     preview/             Preview workspace and format-specific viewers
     services/            Local parsers, PDF loading, and AI context building
     types/               Source contracts, validation, and file helpers
+  review/
+    components/          Review sidebar, navigation, threads, composers, and highlights
+    editor/              Internal comment anchor mark
+    hooks/               Local comment and selection-comment lifecycles
+    services/            Comment model operations, filtering, and display helpers
+    types/               Comment, reply, anchor, and review UI contracts
   hooks/
     useSpeechRecognition.ts  Native browser speech recognition lifecycle
   services/              Shared AI transport and frame-batched stream updates
@@ -620,7 +682,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Asset Library Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Review System Phase 1 Complete**
 
 Completed:
 
@@ -686,6 +748,12 @@ Completed:
 - Memoized dynamic SVG stamp renderer with ten visual styles and composed icons
 - Explicit click-to-place asset insertion through the Editor API
 - Selectable, document-native asset nodes with movement, resizing, and rotation
+- Enterprise Review Mode with anchored text comments and visible highlights
+- Responsive Review Sidebar with active, resolved, mine, and all views
+- Comment replies, edit, delete, resolve, reopen, jump, search, sort, and
+  previous/next navigation
+- Accessible selection composer, highlight preview, keyboard shortcut, focus
+  management, and mobile review layout
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -699,7 +767,11 @@ local callbacks and reaches editor behavior only through the Editor API; no
 runtime, command registry, dependency injection, or global store has been
 introduced. The public event and plugin contracts remain controller-local. No
 global asset store, asset persistence, custom creator, or static stamp image
-catalog has been introduced. No known functional bugs are open.
+catalog has been introduced. Review comments are local workspace state and
+reach Tiptap only through the Editor API. The internal comment mark is the
+future integration point for Track Changes, but no suggestion, approval, or
+change-tracking behavior has been introduced. No known functional bugs are
+open.
 
 ### Version 1.0 Release Notes
 
@@ -728,8 +800,12 @@ These are not missing. Do not implement unless requested.
 - Upload providers
 - Storage providers
 - Collaboration
-- Comments
 - Track changes
+- Persisted and server-backed comment threads
+- Realtime comment collaboration
+- Comment mentions and notifications
+- Review approval and suggestion workflows
+- Comment author and permission providers
 - Export
 - Search
 - Persistence

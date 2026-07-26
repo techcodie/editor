@@ -1,0 +1,43 @@
+import { ChevronDown, ChevronUp } from 'lucide-react'
+
+interface ReviewNavigatorProps {
+  currentIndex: number
+  total: number
+  onPrevious: () => void
+  onNext: () => void
+}
+
+export function ReviewNavigator({
+  currentIndex,
+  total,
+  onPrevious,
+  onNext,
+}: ReviewNavigatorProps) {
+  return (
+    <div className="flex items-center gap-1" aria-label="Comment navigation">
+      <span className="mr-1 min-w-12 text-right text-[10px] tabular-nums text-neutral-400">
+        {total === 0 ? '0 of 0' : `${Math.max(currentIndex + 1, 0)} of ${total}`}
+      </span>
+      <button
+        type="button"
+        onClick={onPrevious}
+        disabled={total === 0 || currentIndex <= 0}
+        aria-label="Previous comment"
+        title="Previous comment"
+        className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 disabled:pointer-events-none disabled:opacity-30"
+      >
+        <ChevronUp size={15} strokeWidth={2} aria-hidden />
+      </button>
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={total === 0 || currentIndex >= total - 1}
+        aria-label="Next comment"
+        title="Next comment"
+        className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 disabled:pointer-events-none disabled:opacity-30"
+      >
+        <ChevronDown size={15} strokeWidth={2} aria-hidden />
+      </button>
+    </div>
+  )
+}
