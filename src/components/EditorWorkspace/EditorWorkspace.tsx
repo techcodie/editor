@@ -1,5 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { Command, LoaderCircle, MessageSquareText } from 'lucide-react'
+import { Command, LoaderCircle, MessageSquareText, MousePointer2, X } from 'lucide-react'
+import { AssetToolbarControl } from '../../assets/components/AssetToolbarControl'
+import { useAssetInsertion } from '../../assets/hooks/useAssetInsertion'
+import type { Asset } from '../../assets/types/asset'
 import { useDocumentEditor } from '../../hooks/useDocumentEditor'
 import { useEditorApi } from '../../hooks/useEditorApi'
 import { cn } from '../../lib/cn'
@@ -19,6 +22,11 @@ import type { AskDocumentCommandRequest } from '../AskDocument/AskDocumentPanel'
 const AskDocumentPanel = lazy(async () => {
   const module = await import('../AskDocument/AskDocumentPanel')
   return { default: module.AskDocumentPanel }
+})
+
+const AssetLibrary = lazy(async () => {
+  const module = await import('../../assets/components/AssetLibrary')
+  return { default: module.AssetLibrary }
 })
 
 /**
@@ -45,6 +53,9 @@ export function EditorWorkspace({
   const api = useEditorApi(editor)
   const [isAskDocumentOpen, setIsAskDocumentOpen] = useState(false)
   const [isAskDocumentLoaded, setIsAskDocumentLoaded] = useState(false)
+  const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false)
+  const [isAssetLibraryLoaded, setIsAssetLibraryLoaded] = useState(false)
+  const [recentAssetIds, setRecentAssetIds] = useState<string[]>([])
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [askDocumentCommand, setAskDocumentCommand] =
     useState<AskDocumentCommandRequest | null>(null)
@@ -62,6 +73,19 @@ export function EditorWorkspace({
       : []),
     'focus-editor',
   ]
+
+  const recordRecentAsset = useCallback((asset: Asset) => {
+    setRecentAssetIds((current) => [
+      asset.id,
+      ...current.filter((id) => id !== asset.id),
+    ].slice(0, 8))
+  }, [])
+  const {
+    pendingAsset,
+    beginPlacement,
+    cancelPlacement,
+    insertPendingAsset,
+  } = useAssetInsertion({ api, onInserted: recordRecentAsset })
 
   useEffect(() => {
     onApiChange(api)
@@ -93,6 +117,7 @@ export function EditorWorkspace({
   }, [api, events])
 
   const openAskDocument = useCallback(() => {
+    setIsAssetLibraryOpen(false)
     setIsAskDocumentLoaded(true)
     setIsAskDocumentOpen(true)
   }, [])
@@ -101,6 +126,41 @@ export function EditorWorkspace({
     setIsAskDocumentOpen(false)
     window.requestAnimationFrame(() => askDocumentButtonRef.current?.focus())
   }, [])
+
+  const openAssetLibrary = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryLoaded(true)
+    setIsAssetLibraryOpen(true)
+  }, [])
+
+  const closeAssetLibrary = useCallback(() => {
+    setIsAssetLibraryOpen(false)
+    window.requestAnimationFrame(() => {
+      document.getElementById('asset-library-trigger')?.focus()
+    })
+  }, [])
+
+  const selectAsset = useCallback(
+    (asset: Asset) => {
+      beginPlacement(asset)
+      setIsAssetLibraryOpen(false)
+    },
+    [beginPlacement],
+  )
+
+  const placePendingAsset = useCallback(() => {
+    if (!pendingAsset) return
+    window.requestAnimationFrame(insertPendingAsset)
+  }, [insertPendingAsset, pendingAsset])
+
+  useEffect(() => {
+    if (!pendingAsset) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') cancelPlacement()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [cancelPlacement, pendingAsset])
 
   const getDocumentText = useCallback(() => api?.getDocumentText() ?? '', [api])
 
@@ -174,7 +234,21 @@ export function EditorWorkspace({
     <div className="document-editor-workspace mx-auto flex w-full max-w-[84rem] items-start justify-center px-3 py-4 sm:px-6 sm:py-7 lg:px-8 lg:py-6">
       <div className="min-w-0 w-full max-w-[48rem]">
         <div className="sticky top-3 z-30 flex items-start gap-2.5 sm:top-4">
-          {config.toolbar && !config.readonly && <Toolbar api={api} className="min-w-0" />}
+          {config.toolbar && !config.readonly && (
+            <Toolbar
+              api={api}
+              className="min-w-0"
+              trailingContent={
+                <AssetToolbarControl
+                  isOpen={isAssetLibraryOpen}
+                  onToggle={() => {
+                    if (isAssetLibraryOpen) closeAssetLibrary()
+                    else openAssetLibrary()
+                  }}
+                />
+              }
+            />
+          )}
           {config.commandPalette && (
             <button
               type="button"
@@ -223,11 +297,51 @@ export function EditorWorkspace({
             </button>
           )}
         </div>
-        <div className="pt-3.5 sm:pt-4">
-          <DocumentEditor editor={editor} />
+        <div className="relative pt-3.5 sm:pt-4">
+          {pendingAsset && (
+            <div className="absolute left-1/2 top-6 z-20 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-[var(--document-editor-shadow-overlay)]" role="status">
+              <MousePointer2 size={14} strokeWidth={1.9} className="shrink-0" aria-hidden />
+              <span className="truncate">Placing {pendingAsset.title}</span>
+              <button
+                type="button"
+                onClick={cancelPlacement}
+                aria-label="Cancel asset placement"
+                className="ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded text-neutral-300 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                <X size={12} strokeWidth={2.2} aria-hidden />
+              </button>
+            </div>
+          )}
+          <DocumentEditor
+            editor={editor}
+            placementActive={Boolean(pendingAsset)}
+            onSurfaceClick={placePendingAsset}
+          />
         </div>
       </div>
       <div className="shrink-0">
+        {isAssetLibraryLoaded && (
+          <ErrorBoundary compact title="Asset library needs a retry">
+            <Suspense
+              fallback={
+                <div
+                  className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[38rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[27rem] lg:rounded-lg lg:border xl:w-[30rem]"
+                  role="status"
+                  aria-label="Loading asset library"
+                >
+                  <LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden />
+                </div>
+              }
+            >
+              <AssetLibrary
+                isOpen={isAssetLibraryOpen}
+                recentAssetIds={recentAssetIds}
+                onClose={closeAssetLibrary}
+                onSelectAsset={selectAsset}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        )}
         {isAskDocumentLoaded && (
           <ErrorBoundary
             compact

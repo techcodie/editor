@@ -5,6 +5,7 @@ import { Highlight } from '@tiptap/extension-highlight'
 import { TaskList, TaskItem } from '@tiptap/extension-list'
 import type { Extensions } from '@tiptap/core'
 import type { DocumentEditorOptions } from '../types/editor'
+import { AssetNode } from '../assets/editor/AssetNode'
 
 /** Node types that support text alignment. */
 const ALIGNABLE_NODES = ['heading', 'paragraph'] as const
@@ -30,5 +31,6 @@ export function createEditorExtensions({ placeholder }: DocumentEditorOptions): 
     Highlight,
     TaskList,
     TaskItem.configure({ nested: true }),
+    AssetNode,
   ]
 }

@@ -259,6 +259,35 @@ insertion service normalizes supported Markdown structure, validates the target,
 and attaches response ID, source IDs, and insertion time as transaction
 provenance. Only the Editor API performs Tiptap operations.
 
+### Enterprise Asset Insertion Flow
+
+```text
+Toolbar Asset Control
+        |
+        v
+Enterprise Asset Library
+        |
+        v
+Asset Registry / Renderer
+        |
+        v
+Editor API
+        |
+        v
+Selectable Editor Asset Node
+```
+
+The Enterprise Asset Library is a generic, registry-driven side panel. Phase 1
+ships stamps as its first asset type, but library UI, search, favorites, recent
+items, placement state, and editor insertion are modeled as assets rather than
+stamp-specific commands. Stamp presets configure one reusable, memoized SVG
+renderer; they do not include static image files.
+
+Asset Library UI communicates with the editor only through `EditorApi.insertAsset`.
+The internal asset node extension renders the inserted document node and owns
+native document movement, selection, resizing, and rotation. Asset instances
+remain part of editor content rather than browser-overlay state.
+
 ---
 
 ## Important Rules
@@ -323,6 +352,9 @@ directly.
 The Editor API also owns structured insertion at the current cursor, a validated
 selection, or the document end. Each insertion uses one native history
 transaction so one Undo restores the previous document.
+
+The Editor API also owns generic asset insertion. Asset Library components send
+framework-neutral asset payloads and never access Tiptap directly.
 
 ---
 
@@ -524,6 +556,13 @@ shared/
   ask-document.ts        Ask Document contracts
 
 src/
+  assets/
+    categories/stamps/    Registry presets and reusable SVG stamp renderer
+    components/           Generic asset side panel, search, grid, cards, and preview
+    editor/               Internal selectable asset node and node view
+    hooks/                Click-to-place asset insertion lifecycle
+    services/             Asset registry and renderer-to-editor mapping
+    types/                Generic asset and stamp configuration contracts
   components/
     AskDocument/         Chat UI, evidence, response metadata, and workspace session
     CommandPalette/      Local workspace command search and keyboard navigation
@@ -581,7 +620,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete**
+**Version 1.0 Complete; Enterprise Asset Library Phase 1 Complete**
 
 Completed:
 
@@ -640,6 +679,13 @@ Completed:
 - React example covering AI, voice, Knowledge Sources, theming, callbacks, and
   plugins
 - Version 1.0 license, release notes, package metadata, and publish allowlist
+- Enterprise Asset Library with search, favorites, recent assets, and ten
+  category views
+- Forty reusable workflow, finance, legal, engineering, healthcare, HR,
+  logistics, security, date, and signature stamp presets
+- Memoized dynamic SVG stamp renderer with ten visual styles and composed icons
+- Explicit click-to-place asset insertion through the Editor API
+- Selectable, document-native asset nodes with movement, resizing, and rotation
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -652,7 +698,8 @@ Tiptap only through the Editor API. The command palette coordinates existing
 local callbacks and reaches editor behavior only through the Editor API; no
 runtime, command registry, dependency injection, or global store has been
 introduced. The public event and plugin contracts remain controller-local. No
-known functional bugs are open.
+global asset store, asset persistence, custom creator, or static stamp image
+catalog has been introduced. No known functional bugs are open.
 
 ### Version 1.0 Release Notes
 
@@ -708,6 +755,13 @@ These are not missing. Do not implement unless requested.
 - Audio recording storage
 - Wake words
 - Automatic voice submission
+- Additional asset renderers for icons, logos, QR codes, signatures, badges,
+  shapes, and watermarks
+- Dynamic asset fields for date, company, user, department, and version
+- Custom asset and stamp creator
+- Asset persistence and shared favorites
+- QR code and signature authoring tools
+- Asset export workflows
 
 ---
 

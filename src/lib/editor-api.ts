@@ -30,6 +30,18 @@ export interface EditorStructuredInsertion {
   selection?: EditorTextSelection
 }
 
+export interface EditorAssetInsertion {
+  assetId: string
+  type: string
+  category: string
+  title: string
+  renderer: string
+  renderData: Record<string, unknown>
+  width: number
+  height: number
+  rotation: number
+}
+
 /**
  * Framework-neutral editor command surface used by SDK UI and host applications.
  */
@@ -76,6 +88,7 @@ export interface EditorApi {
 
   getDocumentText(): string
   insertStructuredContent(insertion: EditorStructuredInsertion): boolean
+  insertAsset(asset: EditorAssetInsertion): boolean
 
   getTextSelection(): EditorTextSelection | null
   replaceTextSelection(selection: EditorTextSelection, replacement: string): boolean

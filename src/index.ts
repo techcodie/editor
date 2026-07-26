@@ -29,6 +29,7 @@ export type {
 } from './sdk/types'
 export type {
   EditorApi,
+  EditorAssetInsertion,
   EditorInsertionProvenance,
   EditorInsertionTarget,
   EditorSelectionBounds,

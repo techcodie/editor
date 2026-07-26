@@ -1,5 +1,9 @@
 import type { Editor } from '@tiptap/react'
-import type { EditorApi, EditorStructuredInsertion } from './editor-api'
+import type {
+  EditorApi,
+  EditorAssetInsertion,
+  EditorStructuredInsertion,
+} from './editor-api'
 
 /**
  * Binds a Tiptap editor to the {@link EditorApi} contract.
@@ -42,6 +46,22 @@ export function createEditorApi(editor: Editor): EditorApi {
         return true
       })
       .insertContentAt(position, content, { updateSelection: true })
+      .run()
+  }
+
+  const insertAsset = (asset: EditorAssetInsertion): boolean => {
+    if (!asset.assetId || !asset.title || !asset.renderer) return false
+
+    return editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: 'enterpriseAsset',
+        attrs: {
+          ...asset,
+          instanceId: crypto.randomUUID(),
+        },
+      })
       .run()
   }
 
@@ -140,6 +160,7 @@ export function createEditorApi(editor: Editor): EditorApi {
         .replace(/\n{3,}/g, '\n\n')
         .trim(),
     insertStructuredContent,
+    insertAsset,
 
     getTextSelection: () => {
       const { from, to, empty } = editor.state.selection

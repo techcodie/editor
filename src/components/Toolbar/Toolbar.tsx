@@ -1,4 +1,4 @@
-import { Fragment, useSyncExternalStore } from 'react'
+import { Fragment, type ReactNode, useSyncExternalStore } from 'react'
 import * as ToolbarPrimitive from '@radix-ui/react-toolbar'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { cn } from '../../lib/cn'
@@ -20,6 +20,8 @@ export interface ToolbarProps {
   /** Size applied to every button. */
   size?: ToolbarButtonSize
   className?: string
+  /** Feature controls composed into the end of the toolbar. */
+  trailingContent?: ReactNode
 }
 
 const TOOLBAR_CLASS =
@@ -30,7 +32,13 @@ const TOOLBAR_CLASS =
   'flex-nowrap overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ' +
   'sm:flex-wrap sm:overflow-visible'
 
-export function Toolbar({ api, sticky = false, size = 'md', className }: ToolbarProps) {
+export function Toolbar({
+  api,
+  sticky = false,
+  size = 'md',
+  className,
+  trailingContent,
+}: ToolbarProps) {
   // Re-render on every editor change so active/disabled states stay in sync —
   // without the toolbar ever importing Tiptap.
   useSyncExternalStore(api?.subscribe ?? NOOP_SUBSCRIBE, api?.getSnapshot ?? NULL_SNAPSHOT)
@@ -65,6 +73,12 @@ export function Toolbar({ api, sticky = false, size = 'md', className }: Toolbar
             </ToolbarGroup>
           </Fragment>
         ))}
+        {trailingContent && (
+          <>
+            <ToolbarDivider />
+            <ToolbarGroup label="Assets">{trailingContent}</ToolbarGroup>
+          </>
+        )}
       </ToolbarPrimitive.Root>
     </Tooltip.Provider>
   )

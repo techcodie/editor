@@ -16,4 +16,8 @@ export interface DocumentEditorProps {
   editor: Editor | null
   /** Additional classes merged onto the editor container. */
   className?: string
+  /** Called after a click positions the editor selection. */
+  onSurfaceClick?: () => void
+  /** Exposes pending placement to the editing surface. */
+  placementActive?: boolean
 }
