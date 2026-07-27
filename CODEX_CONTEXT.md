@@ -415,13 +415,54 @@ cursor-page calculation, manual-break mapping, pagination subscriptions, and
 temporary readonly preview mode. The print preview is lazy-loaded and renders
 content only for the current page and its immediate neighbors.
 
+### Enterprise Watermark Flow
+
+```text
+Watermark Toolbar Control
+        |
+        v
+Instance-Local Watermark State
+        |
+        v
+Watermark Engine
+        |
+        v
+Shared Page Overlay Renderer
+        |
+        v
+Editor Pages / Print Preview
+```
+
+Watermark Phase 1 adds a visual page-overlay layer without changing editor
+content. Text, PNG, SVG, and company-logo watermarks share one model, assignment
+engine, and memoized renderer. Position, rotation, opacity, scale, image fit,
+placement locking, and document/current/range/even/odd page assignment remain
+instance-local workspace state.
+
+Watermark controls do not import or call Tiptap. The shared `WatermarkLayer` is
+non-interactive, hidden from assistive technology, and rendered below editable
+content. The editor surface and print preview reuse the same page-aware overlay
+renderer so placement remains consistent without duplicating decorations or
+causing editor transactions.
+
+### Page Overlay Architecture
+
+Page overlays are composed by the workspace from framework-neutral page
+geometry. Each overlay receives page number, top position, width, and height;
+the assignment engine decides whether a watermark applies to that page. Overlay
+DOM uses no pointer events and page-level rendering containment, preserving
+selection, editing, keyboard navigation, and responsive document scrolling.
+Uploaded watermark images remain browser-memory data URLs and are not inserted
+into the editor document.
+
 ### Future Print Architecture
 
-The current layout model and preview establish paper metrics and a read-only
-page representation for a future print adapter. Native browser printing,
-PDF/DOCX export, persisted layout metadata, section-aware pagination, columns,
-watermarks, and print-provider integration remain deferred. Phase 1 does not
-call `window.print`, generate files, or introduce a print service.
+The current layout, watermark model, and preview establish paper metrics and a
+read-only page representation for a future print adapter. Native browser
+printing, watermark embedding in generated files, PDF/DOCX export, persisted
+layout metadata, section-aware pagination, columns, and print-provider
+integration remain deferred. Phase 1 does not call `window.print`, generate
+files, or introduce a print service.
 
 ### Future Annotation Engine
 
@@ -683,7 +724,23 @@ system.
   150%, and Fit Width zoom, mini-page navigation, Page Up/Page Down controls,
   Escape dismissal, focus restoration, and nearby-page rendering.
 - Page layout and manual breaks are session-local. Printing, export, persisted
-  layout metadata, sections, columns, watermarks, and image layout are not
+  layout metadata, sections, columns, and image layout are not included in Page
+  Layout Phase 1. Watermarks are provided by the separate overlay layer below.
+
+### Enterprise Watermarks
+
+- Supports text, PNG, SVG, and company-logo watermark overlays without changing
+  document content.
+- Provides CONFIDENTIAL, DRAFT, SAMPLE, COPY, INTERNAL, and custom text options
+  with font, color, opacity, position, rotation, and placement locking controls.
+- Supports fit/fill image sizing and live scale controls for uploaded PNG and
+  SVG assets up to 5 MB.
+- Applies watermarks to the entire document, current page, custom page ranges,
+  even pages, or odd pages through the shared page-assignment engine.
+- Reuses one memoized, non-interactive overlay renderer across editable pages
+  and print preview, preserving editor selection and interaction.
+- Watermark configuration and uploaded image data remain session-local. Print
+  and PDF embedding, dynamic fields, QR codes, and generated watermarks are not
   included in Phase 1.
 
 ### Production Shell
@@ -831,6 +888,11 @@ src/
     hooks/               Instance-local layout and pagination composition
     services/            Paper metrics and pure visual pagination
     types/               Page layout, page, break, and preview zoom contracts
+  watermark/
+    components/          Panel, editor, preview, assignment, and page overlay UI
+    hooks/               Instance-local watermark composition
+    services/            Watermark defaults, assignment, and render styles
+    types/               Watermark configuration and image contracts
   comparison/
     components/          Workspace, toolbar, summary, viewers, sidebar, and navigation
     hooks/               Instance-local comparison lifecycle and decisions
@@ -887,7 +949,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Page Layout Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Watermark Phase 1 Complete**
 
 Completed:
 
@@ -982,6 +1044,12 @@ Completed:
 - Responsive Page Layout controls, live page indicators, and current-page state
 - Lazy readonly print preview with zoom, mini pages, keyboard navigation, focus
   restoration, and nearby-page rendering
+- Text, PNG, SVG, and company-logo watermark overlays
+- Watermark presets, custom text, font, color, opacity, position, rotation,
+  image sizing, scale, and placement locking
+- Entire-document, current-page, page-range, even-page, and odd-page assignment
+- Shared memoized watermark rendering across editor pages and print preview
+- Responsive watermark controls with keyboard dismissal and focus restoration
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -1006,6 +1074,11 @@ pagination contracts while the Editor API alone measures and adjusts the Tiptap
 surface. Pagination remains visual and session-local, so document content and
 existing editor, AI, asset, review, suggestion, and comparison behavior are
 unchanged. No print or export dependency has been added.
+Watermarks extend that page-layout boundary through a separate non-interactive
+overlay. The shared renderer consumes only watermark and page contracts, never
+the editor instance, and uploaded images remain local browser-memory data. No
+watermark dependency, persistence layer, or print embedding behavior has been
+added.
 
 ### Version 1.0 Release Notes
 
@@ -1050,7 +1123,10 @@ These are not missing. Do not implement unless requested.
 - Persisted page-layout settings and manual page breaks
 - Section breaks and section-specific layout
 - Multi-column page layout
-- Watermarks and page-level image layout
+- Persisted watermark settings and uploaded watermark assets
+- Watermark embedding in print, PDF, and DOCX output
+- Dynamic watermark fields, QR codes, security hashes, and generated watermarks
+- Page-level background image layout
 - Track-change author and permission providers
 - AI-assisted review and compliance policy checks
 - Export
@@ -1079,7 +1155,7 @@ These are not missing. Do not implement unless requested.
 - Wake words
 - Automatic voice submission
 - Additional asset renderers for icons, logos, QR codes, signatures, badges,
-  shapes, and watermarks
+  and shapes
 - Dynamic asset fields for date, company, user, department, and version
 - Custom asset and stamp creator
 - Asset persistence and shared favorites

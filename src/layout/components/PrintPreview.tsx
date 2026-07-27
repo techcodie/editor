@@ -11,6 +11,8 @@ import { paginateText } from '../services/paginationEngine'
 import { paperLabel, resolvePageMetrics } from '../services/pageMetrics'
 import type { PageLayout, PrintZoom } from '../types/layout'
 import type { PaginationSnapshot } from '../types/page'
+import { WatermarkLayer } from '../../watermark/components/WatermarkLayer'
+import type { Watermark } from '../../watermark/types/watermark'
 import { PageNavigator } from './PageNavigator'
 
 interface PrintPreviewProps {
@@ -19,6 +21,7 @@ interface PrintPreviewProps {
   layout: PageLayout
   pagination: PaginationSnapshot
   zoom: PrintZoom
+  watermark: Watermark | null
   onZoomChange: (zoom: PrintZoom) => void
   onClose: () => void
 }
@@ -37,6 +40,7 @@ export function PrintPreview({
   layout,
   pagination,
   zoom,
+  watermark,
   onZoomChange,
   onClose,
 }: PrintPreviewProps) {
@@ -220,8 +224,18 @@ export function PrintPreview({
                 >
                   {shouldRender && (
                     <>
+                      <WatermarkLayer
+                        watermark={watermark}
+                        pages={[{
+                          number: pageNumber,
+                          top: 0,
+                          width: pageWidth,
+                          height: pageHeight,
+                        }]}
+                        currentPage={pagination.currentPage}
+                      />
                       <header
-                        className="absolute left-0 right-0 truncate text-[10px] text-neutral-400"
+                        className="absolute left-0 right-0 z-10 truncate text-[10px] text-neutral-400"
                         style={{
                           top: 12 * scale,
                           paddingInline: metrics.marginLeft * scale,
@@ -234,7 +248,7 @@ export function PrintPreview({
                         )}
                       </header>
                       <div
-                        className="whitespace-pre-wrap font-serif text-neutral-800"
+                        className="relative z-10 whitespace-pre-wrap font-serif text-neutral-800"
                         style={{
                           paddingTop: metrics.marginTop * scale,
                           paddingRight: metrics.marginRight * scale,
@@ -247,7 +261,7 @@ export function PrintPreview({
                         {content}
                       </div>
                       <footer
-                        className="absolute bottom-0 left-0 right-0 truncate text-[10px] text-neutral-400"
+                        className="absolute bottom-0 left-0 right-0 z-10 truncate text-[10px] text-neutral-400"
                         style={{
                           bottom: 12 * scale,
                           paddingInline: metrics.marginLeft * scale,

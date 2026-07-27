@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Command, FilePenLine, LoaderCircle, MessageSquareText, MousePointer2, X } from 'lucide-react'
 import { AssetToolbarControl } from '../../assets/components/AssetToolbarControl'
 import { useAssetInsertion } from '../../assets/hooks/useAssetInsertion'
@@ -22,6 +22,12 @@ import type { CommentHighlightPreviewState } from '../../review/types/review'
 import { SuggestionPreview } from '../../review/trackChanges/components/SuggestionPreview'
 import { SuggestionToolbar } from '../../review/trackChanges/components/SuggestionToolbar'
 import { useTrackChanges } from '../../review/trackChanges/hooks/useTrackChanges'
+import { WatermarkLayer } from '../../watermark/components/WatermarkLayer'
+import {
+  WatermarkPanel,
+  WatermarkToolbarControl,
+} from '../../watermark/components/WatermarkPanel'
+import { useWatermark } from '../../watermark/hooks/useWatermark'
 import { useDocumentEditor } from '../../hooks/useDocumentEditor'
 import { useEditorApi } from '../../hooks/useEditorApi'
 import { cn } from '../../lib/cn'
@@ -198,6 +204,23 @@ export function EditorWorkspace({
     insertPageBreak,
     removePageBreak,
   } = usePagination(api, pageLayout)
+  const {
+    watermark,
+    isPanelOpen: isWatermarkOpen,
+    addWatermark,
+    updateWatermark,
+    removeWatermark,
+    setIsPanelOpen: setIsWatermarkOpen,
+  } = useWatermark()
+  const watermarkPages = useMemo(
+    () => pagination.pages.map((page) => ({
+      number: page.number,
+      top: page.top,
+      width: pagination.pageWidth,
+      height: page.height,
+    })),
+    [pagination.pageWidth, pagination.pages],
+  )
   const acceptTrackChange = useCallback(
     (changeId: string) => decideTrackChange(changeId, 'accept'),
     [decideTrackChange],
@@ -308,6 +331,7 @@ export function EditorWorkspace({
   const openAskDocument = useCallback(() => {
     setIsComparisonOpen(false)
     setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
     setIsAssetLibraryOpen(false)
     setIsReviewMode(false)
     setIsSuggestionMode(false)
@@ -316,7 +340,7 @@ export function EditorWorkspace({
     setSuggestionPreview(null)
     setIsAskDocumentLoaded(true)
     setIsAskDocumentOpen(true)
-  }, [setIsPageLayoutOpen])
+  }, [setIsPageLayoutOpen, setIsWatermarkOpen])
 
   const closeAskDocument = useCallback(() => {
     setIsAskDocumentOpen(false)
@@ -326,6 +350,7 @@ export function EditorWorkspace({
   const openAssetLibrary = useCallback(() => {
     setIsComparisonOpen(false)
     setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
     setIsAskDocumentOpen(false)
     setIsReviewMode(false)
     setIsSuggestionMode(false)
@@ -334,11 +359,12 @@ export function EditorWorkspace({
     setSuggestionPreview(null)
     setIsAssetLibraryLoaded(true)
     setIsAssetLibraryOpen(true)
-  }, [setIsPageLayoutOpen])
+  }, [setIsPageLayoutOpen, setIsWatermarkOpen])
 
   const openReviewMode = useCallback(() => {
     setIsComparisonOpen(false)
     setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
     setIsSuggestionMode(false)
@@ -347,7 +373,7 @@ export function EditorWorkspace({
     cancelPlacement()
     setIsReviewLoaded(true)
     setIsReviewMode(true)
-  }, [cancelPlacement, setIsPageLayoutOpen])
+  }, [cancelPlacement, setIsPageLayoutOpen, setIsWatermarkOpen])
 
   const closeReviewMode = useCallback(() => {
     setIsReviewMode(false)
@@ -361,6 +387,7 @@ export function EditorWorkspace({
   const openSuggestionMode = useCallback(() => {
     setIsComparisonOpen(false)
     setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
     setIsReviewMode(false)
@@ -370,7 +397,7 @@ export function EditorWorkspace({
     setIsSuggestionLoaded(true)
     setIsSuggestionMode(true)
     setIsSuggestionSidebarOpen(true)
-  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen])
+  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
 
   const closeSuggestionMode = useCallback(() => {
     setIsSuggestionMode(false)
@@ -390,11 +417,12 @@ export function EditorWorkspace({
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
     closeComposer()
     cancelPlacement()
     setComparisonInitialDocument(api?.getDocumentText() ?? '')
     setIsComparisonOpen(true)
-  }, [api, cancelPlacement, closeComposer, setIsPageLayoutOpen])
+  }, [api, cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
 
   const closeComparison = useCallback(() => {
     setIsComparisonOpen(false)
@@ -410,12 +438,13 @@ export function EditorWorkspace({
     setIsSuggestionMode(false)
     setIsSuggestionSidebarOpen(false)
     setIsComparisonOpen(false)
+    setIsWatermarkOpen(false)
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     closeComposer()
     setIsPageLayoutOpen(true)
-  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen])
+  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
 
   const closePageLayout = useCallback(() => {
     setIsPageLayoutOpen(false)
@@ -423,6 +452,28 @@ export function EditorWorkspace({
       document.getElementById('page-layout-trigger')?.focus()
     })
   }, [setIsPageLayoutOpen])
+
+  const openWatermark = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    cancelPlacement()
+    closeComposer()
+    setIsWatermarkOpen(true)
+  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+
+  const closeWatermark = useCallback(() => {
+    setIsWatermarkOpen(false)
+    window.requestAnimationFrame(() => {
+      document.getElementById('watermark-trigger')?.focus()
+    })
+  }, [setIsWatermarkOpen])
 
   const hideSuggestionSidebar = useCallback(() => {
     setIsSuggestionSidebarOpen(false)
@@ -597,6 +648,14 @@ export function EditorWorkspace({
                       else openPageLayout()
                     }}
                   />
+                  <WatermarkToolbarControl
+                    isOpen={isWatermarkOpen}
+                    hasWatermark={Boolean(watermark)}
+                    onToggle={() => {
+                      if (isWatermarkOpen) closeWatermark()
+                      else openWatermark()
+                    }}
+                  />
                 </>
               }
             />
@@ -669,11 +728,18 @@ export function EditorWorkspace({
             placementActive={Boolean(pendingAsset)}
             onSurfaceClick={placePendingAsset}
             pageOverlay={
-              <PageIndicator
-                layout={pageLayout}
-                pagination={pagination}
-                onRemoveBreak={removePageBreak}
-              />
+              <>
+                <WatermarkLayer
+                  watermark={watermark}
+                  pages={watermarkPages}
+                  currentPage={pagination.currentPage}
+                />
+                <PageIndicator
+                  layout={pageLayout}
+                  pagination={pagination}
+                  onRemoveBreak={removePageBreak}
+                />
+              </>
             }
           />
         </div>
@@ -687,6 +753,16 @@ export function EditorWorkspace({
           onInsertBreak={insertPageBreak}
           onOpenPreview={() => setIsPrintPreviewOpen(true)}
           onClose={closePageLayout}
+        />
+        <WatermarkPanel
+          isOpen={isWatermarkOpen}
+          watermark={watermark}
+          pageCount={pagination.pages.length}
+          currentPage={pagination.currentPage}
+          onAdd={addWatermark}
+          onChange={updateWatermark}
+          onRemove={removeWatermark}
+          onClose={closeWatermark}
         />
         {isSuggestionLoaded && (
           <ErrorBoundary compact title="Suggestions need a retry">
@@ -892,6 +968,7 @@ export function EditorWorkspace({
               layout={pageLayout}
               pagination={pagination}
               zoom={printZoom}
+              watermark={watermark}
               onZoomChange={setPrintZoom}
               onClose={() => setIsPrintPreviewOpen(false)}
             />

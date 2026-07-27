@@ -292,6 +292,8 @@
 }
 
 .document-page-surface[data-page-layout='enabled'] .tiptap {
+  position: relative;
+  z-index: 6;
   min-height: calc(
     var(--page-height) - var(--page-margin-top) - var(--page-margin-bottom)
   );
