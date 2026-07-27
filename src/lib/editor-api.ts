@@ -1,3 +1,6 @@
+import type { PageLayout } from '../layout/types/layout'
+import type { PaginationSnapshot } from '../layout/types/page'
+
 export type HeadingLevel = 1 | 2 | 3
 export type TextAlignment = 'left' | 'center' | 'right' | 'justify'
 
@@ -140,6 +143,13 @@ export interface EditorApi {
   subscribeTrackChangeInteractions(
     listener: (interaction: EditorTrackChangeInteraction) => void,
   ): () => void
+
+  setPageLayout(layout: PageLayout | null): void
+  getPaginationSnapshot(): PaginationSnapshot
+  subscribePagination(listener: (snapshot: PaginationSnapshot) => void): () => void
+  insertPageBreak(): boolean
+  removePageBreak(pageBreakId: string): boolean
+  setPrintPreviewMode(enabled: boolean): void
 
   getTextSelection(): EditorTextSelection | null
   replaceTextSelection(selection: EditorTextSelection, replacement: string): boolean

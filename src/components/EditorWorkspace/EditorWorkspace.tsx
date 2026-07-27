@@ -4,6 +4,13 @@ import { AssetToolbarControl } from '../../assets/components/AssetToolbarControl
 import { useAssetInsertion } from '../../assets/hooks/useAssetInsertion'
 import type { Asset } from '../../assets/types/asset'
 import { ComparisonToolbarControl } from '../../comparison/components/ComparisonToolbar'
+import { PageIndicator } from '../../layout/components/PageIndicator'
+import {
+  PageLayoutPanel,
+  PageLayoutToolbarControl,
+} from '../../layout/components/PageLayoutPanel'
+import { usePageLayout } from '../../layout/hooks/usePageLayout'
+import { usePagination } from '../../layout/hooks/usePagination'
 import { CommentHighlightPreview } from '../../review/components/CommentHighlightPreview'
 import { CommentToolbar } from '../../review/components/CommentToolbar'
 import { ReviewToolbarControl } from '../../review/components/ReviewToolbarControl'
@@ -54,6 +61,11 @@ const SuggestionSidebar = lazy(async () => {
 const ComparisonWorkspace = lazy(async () => {
   const module = await import('../../comparison/components/ComparisonWorkspace')
   return { default: module.ComparisonWorkspace }
+})
+
+const PrintPreview = lazy(async () => {
+  const module = await import('../../layout/components/PrintPreview')
+  return { default: module.PrintPreview }
 })
 
 /**
@@ -171,6 +183,21 @@ export function EditorWorkspace({
   const pendingTrackChangeCount = changes.filter(
     (change) => change.status === 'pending',
   ).length
+  const {
+    layout: pageLayout,
+    isPanelOpen: isPageLayoutOpen,
+    isPrintPreviewOpen,
+    printZoom,
+    setLayout: setPageLayout,
+    setIsPanelOpen: setIsPageLayoutOpen,
+    setIsPrintPreviewOpen,
+    setPrintZoom,
+  } = usePageLayout()
+  const {
+    snapshot: pagination,
+    insertPageBreak,
+    removePageBreak,
+  } = usePagination(api, pageLayout)
   const acceptTrackChange = useCallback(
     (changeId: string) => decideTrackChange(changeId, 'accept'),
     [decideTrackChange],
@@ -280,6 +307,7 @@ export function EditorWorkspace({
 
   const openAskDocument = useCallback(() => {
     setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
     setIsAssetLibraryOpen(false)
     setIsReviewMode(false)
     setIsSuggestionMode(false)
@@ -288,7 +316,7 @@ export function EditorWorkspace({
     setSuggestionPreview(null)
     setIsAskDocumentLoaded(true)
     setIsAskDocumentOpen(true)
-  }, [])
+  }, [setIsPageLayoutOpen])
 
   const closeAskDocument = useCallback(() => {
     setIsAskDocumentOpen(false)
@@ -297,6 +325,7 @@ export function EditorWorkspace({
 
   const openAssetLibrary = useCallback(() => {
     setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
     setIsAskDocumentOpen(false)
     setIsReviewMode(false)
     setIsSuggestionMode(false)
@@ -305,10 +334,11 @@ export function EditorWorkspace({
     setSuggestionPreview(null)
     setIsAssetLibraryLoaded(true)
     setIsAssetLibraryOpen(true)
-  }, [])
+  }, [setIsPageLayoutOpen])
 
   const openReviewMode = useCallback(() => {
     setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
     setIsSuggestionMode(false)
@@ -317,7 +347,7 @@ export function EditorWorkspace({
     cancelPlacement()
     setIsReviewLoaded(true)
     setIsReviewMode(true)
-  }, [cancelPlacement])
+  }, [cancelPlacement, setIsPageLayoutOpen])
 
   const closeReviewMode = useCallback(() => {
     setIsReviewMode(false)
@@ -330,6 +360,7 @@ export function EditorWorkspace({
 
   const openSuggestionMode = useCallback(() => {
     setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
     setIsReviewMode(false)
@@ -339,7 +370,7 @@ export function EditorWorkspace({
     setIsSuggestionLoaded(true)
     setIsSuggestionMode(true)
     setIsSuggestionSidebarOpen(true)
-  }, [cancelPlacement, closeComposer])
+  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen])
 
   const closeSuggestionMode = useCallback(() => {
     setIsSuggestionMode(false)
@@ -358,11 +389,12 @@ export function EditorWorkspace({
     setIsSuggestionSidebarOpen(false)
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
+    setIsPageLayoutOpen(false)
     closeComposer()
     cancelPlacement()
     setComparisonInitialDocument(api?.getDocumentText() ?? '')
     setIsComparisonOpen(true)
-  }, [api, cancelPlacement, closeComposer])
+  }, [api, cancelPlacement, closeComposer, setIsPageLayoutOpen])
 
   const closeComparison = useCallback(() => {
     setIsComparisonOpen(false)
@@ -370,6 +402,27 @@ export function EditorWorkspace({
       document.getElementById('comparison-trigger')?.focus()
     })
   }, [])
+
+  const openPageLayout = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    cancelPlacement()
+    closeComposer()
+    setIsPageLayoutOpen(true)
+  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen])
+
+  const closePageLayout = useCallback(() => {
+    setIsPageLayoutOpen(false)
+    window.requestAnimationFrame(() => {
+      document.getElementById('page-layout-trigger')?.focus()
+    })
+  }, [setIsPageLayoutOpen])
 
   const hideSuggestionSidebar = useCallback(() => {
     setIsSuggestionSidebarOpen(false)
@@ -537,6 +590,13 @@ export function EditorWorkspace({
                       else openComparison()
                     }}
                   />
+                  <PageLayoutToolbarControl
+                    isOpen={isPageLayoutOpen}
+                    onToggle={() => {
+                      if (isPageLayoutOpen) closePageLayout()
+                      else openPageLayout()
+                    }}
+                  />
                 </>
               }
             />
@@ -608,10 +668,26 @@ export function EditorWorkspace({
             editor={editor}
             placementActive={Boolean(pendingAsset)}
             onSurfaceClick={placePendingAsset}
+            pageOverlay={
+              <PageIndicator
+                layout={pageLayout}
+                pagination={pagination}
+                onRemoveBreak={removePageBreak}
+              />
+            }
           />
         </div>
       </div>
-      <div className="shrink-0">
+      <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">
+        <PageLayoutPanel
+          isOpen={isPageLayoutOpen}
+          layout={pageLayout}
+          pagination={pagination}
+          onLayoutChange={setPageLayout}
+          onInsertBreak={insertPageBreak}
+          onOpenPreview={() => setIsPrintPreviewOpen(true)}
+          onClose={closePageLayout}
+        />
         {isSuggestionLoaded && (
           <ErrorBoundary compact title="Suggestions need a retry">
             <Suspense
@@ -793,6 +869,31 @@ export function EditorWorkspace({
             <ComparisonWorkspace
               initialDocument={comparisonInitialDocument}
               onClose={closeComparison}
+            />
+          </Suspense>
+        </ErrorBoundary>
+      )}
+      {isPrintPreviewOpen && api && (
+        <ErrorBoundary compact title="Print preview needs a retry">
+          <Suspense
+            fallback={
+              <div
+                className="fixed inset-0 z-[90] flex items-center justify-center bg-[#e9e9e7]"
+                role="status"
+                aria-label="Loading print preview"
+              >
+                <LoaderCircle size={22} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden />
+              </div>
+            }
+          >
+            <PrintPreview
+              api={api}
+              documentText={api.getDocumentText()}
+              layout={pageLayout}
+              pagination={pagination}
+              zoom={printZoom}
+              onZoomChange={setPrintZoom}
+              onClose={() => setIsPrintPreviewOpen(false)}
             />
           </Suspense>
         </ErrorBoundary>

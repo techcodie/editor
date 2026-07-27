@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { Editor } from '@tiptap/react'
 
 /** Options required to configure the underlying editor instance. */
@@ -20,4 +21,6 @@ export interface DocumentEditorProps {
   onSurfaceClick?: () => void
   /** Exposes pending placement to the editing surface. */
   placementActive?: boolean
+  /** Visual page chrome rendered above the editor without changing document content. */
+  pageOverlay?: ReactNode
 }

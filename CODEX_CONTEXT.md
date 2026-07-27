@@ -384,6 +384,45 @@ Formatting-only Markdown marker changes are classified as format changes.
 Comparison inputs and decisions remain browser-memory state and do not create
 version records or modify editor content.
 
+### Enterprise Page Layout Flow
+
+```text
+Page Layout Toolbar Control
+        |
+        v
+Instance-Local Page Layout State
+        |
+        v
+Pagination Engine
+        |
+        v
+Editor API
+        |
+        v
+Visual Page Surface / Print Preview
+```
+
+Page Layout Phase 1 composes a visual pagination layer above the existing
+editor. Paper size, orientation, margins, headers, footers, page numbers, and
+manual page breaks remain instance-local layout state. The pure pagination
+engine consumes measured top-level editor blocks and returns page geometry,
+visual offsets, and navigation metadata. Automatic and manual pagination do
+not add nodes to or otherwise rewrite document content.
+
+Layout controls and preview components communicate with the editor only through
+the Editor API. The API owns page-surface measurement, visual block offsets,
+cursor-page calculation, manual-break mapping, pagination subscriptions, and
+temporary readonly preview mode. The print preview is lazy-loaded and renders
+content only for the current page and its immediate neighbors.
+
+### Future Print Architecture
+
+The current layout model and preview establish paper metrics and a read-only
+page representation for a future print adapter. Native browser printing,
+PDF/DOCX export, persisted layout metadata, section-aware pagination, columns,
+watermarks, and print-provider integration remain deferred. Phase 1 does not
+call `window.print`, generate files, or introduce a print service.
+
 ### Future Annotation Engine
 
 Comments and Track Changes now share the same architectural pattern: stable
@@ -475,6 +514,10 @@ editor marks while the sidebar consumes framework-neutral change records.
 Document Comparison reads current document text through the Editor API. Its
 viewer, diff services, and change sidebar remain framework-neutral and do not
 access Tiptap or ProseMirror.
+
+Page Layout UI also remains framework-neutral. It uses Editor API methods for
+visual pagination, page-break commands, page navigation state, and readonly
+preview mode; no layout component imports Tiptap or ProseMirror.
 
 ---
 
@@ -624,6 +667,25 @@ system.
 - Comparison data is instance-local. No version repository, persistence,
   three-way comparison, audit report, or editor replacement is included.
 
+### Enterprise Page Layout
+
+- Renders A4, A5, A3, Letter, Legal, Executive, and custom paper sizes in
+  portrait or landscape orientation.
+- Supports Normal, Narrow, Wide, and custom margins plus configurable headers,
+  footers, page-number position and alignment, and first-page hiding.
+- Automatically paginates measured editor blocks without modifying document
+  content and recalculates when content, layout, or available width changes.
+- Supports explicit, removable visual page breaks mapped through editor
+  transactions and a current-page indicator for long documents.
+- Provides a responsive Page Layout panel that remains available while the
+  document scrolls on desktop and becomes a bounded overlay on smaller screens.
+- Provides a lazy-loaded readonly print preview with 50%, 75%, 100%, 125%,
+  150%, and Fit Width zoom, mini-page navigation, Page Up/Page Down controls,
+  Escape dismissal, focus restoration, and nearby-page rendering.
+- Page layout and manual breaks are session-local. Printing, export, persisted
+  layout metadata, sections, columns, watermarks, and image layout are not
+  included in Phase 1.
+
 ### Production Shell
 
 - Ask Document is lazy-loaded on first use and remains mounted afterward so its
@@ -764,6 +826,11 @@ src/
     preview/             Preview workspace and format-specific viewers
     services/            Local parsers, PDF loading, and AI context building
     types/               Source contracts, validation, and file helpers
+  layout/
+    components/          Layout controls, page overlays, navigation, and preview
+    hooks/               Instance-local layout and pagination composition
+    services/            Paper metrics and pure visual pagination
+    types/               Page layout, page, break, and preview zoom contracts
   comparison/
     components/          Workspace, toolbar, summary, viewers, sidebar, and navigation
     hooks/               Instance-local comparison lifecycle and decisions
@@ -820,7 +887,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Document Comparison Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Page Layout Phase 1 Complete**
 
 Completed:
 
@@ -907,6 +974,14 @@ Completed:
 - Comparison summary statistics, search, filters, sorting, mini overview,
   previous/next navigation, jump, and local change decisions
 - Line-contained comparison rendering for long documents
+- Visual page-based editing with automatic non-destructive pagination
+- A4, A5, A3, Letter, Legal, Executive, and custom paper configuration
+- Portrait and landscape orientation with preset and custom margins
+- Configurable headers, footers, page numbers, alignment, and first-page hiding
+- Removable manual page breaks mapped through editor transactions
+- Responsive Page Layout controls, live page indicators, and current-page state
+- Lazy readonly print preview with zoom, mini pages, keyboard navigation, focus
+  restoration, and nearby-page rendering
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -926,6 +1001,11 @@ marks share one annotation pattern without a parallel store or UI-to-Tiptap
 dependency. Document Comparison also reuses `TrackChange` records and obtains
 editor content through the Editor API; its diff and viewer layers remain
 independent from Tiptap. No known functional bugs are open.
+Page Layout follows the same boundary: UI consumes framework-neutral layout and
+pagination contracts while the Editor API alone measures and adjusts the Tiptap
+surface. Pagination remains visual and session-local, so document content and
+existing editor, AI, asset, review, suggestion, and comparison behavior are
+unchanged. No print or export dependency has been added.
 
 ### Version 1.0 Release Notes
 
@@ -965,6 +1045,12 @@ These are not missing. Do not implement unless requested.
 - Persisted comparison sessions and saved version sources
 - Three-way document comparison and move detection
 - Comparison report export and audit reporting
+- Native browser printing and print-provider integration
+- PDF and DOCX document export
+- Persisted page-layout settings and manual page breaks
+- Section breaks and section-specific layout
+- Multi-column page layout
+- Watermarks and page-level image layout
 - Track-change author and permission providers
 - AI-assisted review and compliance policy checks
 - Export

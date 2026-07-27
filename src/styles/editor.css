@@ -262,3 +262,37 @@
   content-visibility: auto;
   contain-intrinsic-block-size: 28px;
 }
+
+.document-page-surface[data-page-layout='enabled'] {
+  width: min(100%, var(--page-width));
+  max-width: var(--page-width);
+  margin-inline: auto;
+  padding-top: var(--page-margin-top);
+  padding-right: var(--page-margin-right);
+  padding-bottom: var(--page-margin-bottom);
+  padding-left: var(--page-margin-left);
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: linear-gradient(
+    to bottom,
+    #fff 0,
+    #fff var(--page-height),
+    transparent var(--page-height),
+    transparent calc(var(--page-height) + var(--page-gap))
+  );
+  background-size: 100% calc(var(--page-height) + var(--page-gap));
+  filter: drop-shadow(0 2px 8px rgba(20, 20, 20, 0.12));
+  box-shadow: none;
+}
+
+.document-page-surface[data-page-layout='enabled']:focus-within {
+  box-shadow: none;
+}
+
+.document-page-surface[data-page-layout='enabled'] .tiptap {
+  min-height: calc(
+    var(--page-height) - var(--page-margin-top) - var(--page-margin-bottom)
+  );
+}

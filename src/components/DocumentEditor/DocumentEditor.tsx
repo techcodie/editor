@@ -16,6 +16,7 @@ function DocumentEditorComponent({
   className,
   onSurfaceClick,
   placementActive = false,
+  pageOverlay,
 }: DocumentEditorProps) {
   // Clicking the page margins (not the text) drops the caret at the document end.
   const focusFromMargin = (event: MouseEvent<HTMLDivElement>) => {
@@ -29,13 +30,16 @@ function DocumentEditorComponent({
     <div
       className={cn(
         CONTAINER_CLASS,
+        'document-page-surface relative',
         placementActive && 'cursor-copy border-indigo-300 ring-2 ring-indigo-500/10',
         className,
       )}
+      data-document-page-surface
       data-asset-placement={placementActive ? 'active' : undefined}
       onClick={focusFromMargin}
     >
       <EditorContent editor={editor} />
+      {pageOverlay}
     </div>
   )
 }

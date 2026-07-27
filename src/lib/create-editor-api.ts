@@ -7,6 +7,10 @@ import type {
   EditorTextSelection,
   EditorTrackChangeInteraction,
 } from './editor-api'
+import { resolvePageMetrics } from '../layout/services/pageMetrics'
+import { paginateBlocks } from '../layout/services/paginationEngine'
+import type { PageLayout } from '../layout/types/layout'
+import type { PaginationSnapshot } from '../layout/types/page'
 import {
   TRACK_CHANGES_INTERNAL_META,
   type TrackChangeSegment,
@@ -23,6 +27,152 @@ export function createEditorApi(editor: Editor): EditorApi {
   const trackChangesStorage = (
     editor.storage as unknown as { trackChange: TrackChangesStorage }
   ).trackChange
+  let pageLayout: PageLayout | null = null
+  let paginationFrame: number | null = null
+  let editableBeforePreview = editor.isEditable
+  let manualPageBreaks: { id: string; position: number }[] = []
+  let resizeObserver: ResizeObserver | null = null
+  const paginationListeners = new Set<(snapshot: PaginationSnapshot) => void>()
+  let paginationSnapshot: PaginationSnapshot = {
+    pages: [{
+      id: 'page-1',
+      index: 0,
+      number: 1,
+      top: 0,
+      height: 0,
+      contentTop: 0,
+      contentHeight: 0,
+    }],
+    breaks: [],
+    currentPage: 1,
+    pageWidth: 0,
+    pageHeight: 0,
+    pageGap: 24,
+  }
+
+  const getPageSurface = () =>
+    editor.view.dom.closest<HTMLElement>('[data-document-page-surface]')
+
+  const resetPaginationStyles = () => {
+    const surface = getPageSurface()
+    if (!surface) return
+    delete surface.dataset.pageLayout
+    surface.style.removeProperty('--page-width')
+    surface.style.removeProperty('--page-height')
+    surface.style.removeProperty('--page-gap')
+    surface.style.removeProperty('--page-margin-top')
+    surface.style.removeProperty('--page-margin-right')
+    surface.style.removeProperty('--page-margin-bottom')
+    surface.style.removeProperty('--page-margin-left')
+    surface.style.removeProperty('min-height')
+    for (const child of editor.view.dom.children) {
+      if (!(child instanceof HTMLElement)) continue
+      child.style.removeProperty('margin-top')
+      delete child.dataset.pageBreakBefore
+    }
+  }
+
+  const notifyPagination = () => {
+    for (const listener of paginationListeners) listener(paginationSnapshot)
+  }
+
+  const applyPagination = () => {
+    paginationFrame = null
+    const surface = getPageSurface()
+    if (!surface || !pageLayout) {
+      resetPaginationStyles()
+      return
+    }
+
+    const metrics = resolvePageMetrics(pageLayout)
+    surface.dataset.pageLayout = 'enabled'
+    surface.dataset.pageOrientation = pageLayout.orientation
+    surface.style.setProperty('--page-width', `${metrics.width}px`)
+    surface.style.setProperty('--page-aspect-ratio', String(metrics.height / metrics.width))
+
+    const scale = Math.min(1, surface.clientWidth / metrics.width)
+    const pageWidth = metrics.width * scale
+    const pageHeight = metrics.height * scale
+    const marginTop = metrics.marginTop * scale
+    const marginRight = metrics.marginRight * scale
+    const marginBottom = metrics.marginBottom * scale
+    const marginLeft = metrics.marginLeft * scale
+    const contentHeight = metrics.contentHeight * scale
+    const pageGap = scale < 0.7 ? 12 : scale < 0.9 ? 18 : 24
+
+    surface.style.setProperty('--page-height', `${pageHeight}px`)
+    surface.style.setProperty('--page-gap', `${pageGap}px`)
+    surface.style.setProperty('--page-margin-top', `${marginTop}px`)
+    surface.style.setProperty('--page-margin-right', `${marginRight}px`)
+    surface.style.setProperty('--page-margin-bottom', `${marginBottom}px`)
+    surface.style.setProperty('--page-margin-left', `${marginLeft}px`)
+
+    const blocks = [...editor.view.dom.children].flatMap((child) => {
+      if (!(child instanceof HTMLElement)) return []
+      child.style.removeProperty('margin-top')
+      delete child.dataset.pageBreakBefore
+      return [{
+        element: child,
+        position: editor.view.posAtDOM(child, 0),
+        top: child.offsetTop,
+        height: child.getBoundingClientRect().height,
+      }]
+    })
+    const result = paginateBlocks({
+      blocks,
+      manualBreaks: [...manualPageBreaks].sort((left, right) => left.position - right.position),
+      pageHeight,
+      contentHeight,
+      marginTop,
+      pageGap,
+    })
+
+    for (const offset of result.offsets) {
+      const block = blocks.find((item) => item.position === offset.position)
+      if (!block) continue
+      const baseMargin = Number.parseFloat(getComputedStyle(block.element).marginTop) || 0
+      block.element.style.marginTop = `${baseMargin + offset.offset}px`
+      block.element.dataset.pageBreakBefore = offset.manualBreakId ? 'manual' : 'automatic'
+    }
+
+    const surfaceHeight =
+      result.pages.length * pageHeight + Math.max(0, result.pages.length - 1) * pageGap
+    surface.style.minHeight = `${surfaceHeight}px`
+    const surfaceBounds = surface.getBoundingClientRect()
+    const caret = editor.view.coordsAtPos(editor.state.selection.head)
+    const currentPage = Math.min(
+      result.pages.length,
+      Math.max(1, Math.floor((caret.top - surfaceBounds.top) / (pageHeight + pageGap)) + 1),
+    )
+    paginationSnapshot = {
+      pages: result.pages,
+      breaks: result.breaks,
+      currentPage,
+      pageWidth,
+      pageHeight,
+      pageGap,
+    }
+    notifyPagination()
+  }
+
+  const schedulePagination = () => {
+    if (paginationFrame !== null) cancelAnimationFrame(paginationFrame)
+    paginationFrame = requestAnimationFrame(applyPagination)
+  }
+
+  editor.on('transaction', ({ transaction }) => {
+    if (transaction.docChanged && manualPageBreaks.length > 0) {
+      manualPageBreaks = manualPageBreaks.map((pageBreak) => ({
+        ...pageBreak,
+        position: transaction.mapping.map(pageBreak.position, 1),
+      }))
+    }
+    if (pageLayout) schedulePagination()
+  })
+  editor.on('destroy', () => {
+    resizeObserver?.disconnect()
+    if (paginationFrame !== null) cancelAnimationFrame(paginationFrame)
+  })
   const insertStructuredContent = ({
     target,
     content,
@@ -531,6 +681,59 @@ export function createEditorApi(editor: Editor): EditorApi {
         editor.view.dom.removeEventListener('mouseover', handleMouseOver, true)
         editor.view.dom.removeEventListener('mousemove', handleMouseOver, true)
         editor.view.dom.removeEventListener('mouseout', handleMouseOut, true)
+      }
+    },
+
+    setPageLayout: (layout) => {
+      pageLayout = layout ? structuredClone(layout) : null
+      if (!pageLayout) {
+        resetPaginationStyles()
+        return
+      }
+      if (!resizeObserver) {
+        const surface = getPageSurface()
+        if (surface) {
+          resizeObserver = new ResizeObserver(schedulePagination)
+          resizeObserver.observe(surface)
+        }
+      }
+      schedulePagination()
+    },
+    getPaginationSnapshot: () => paginationSnapshot,
+    subscribePagination: (listener) => {
+      paginationListeners.add(listener)
+      listener(paginationSnapshot)
+      return () => paginationListeners.delete(listener)
+    },
+    insertPageBreak: () => {
+      const selectionPosition = editor.state.selection.head
+      const nextBlock = [...editor.view.dom.children].find((child) => {
+        if (!(child instanceof HTMLElement)) return false
+        return editor.view.posAtDOM(child, 0) >= selectionPosition
+      })
+      const position = nextBlock instanceof HTMLElement
+        ? editor.view.posAtDOM(nextBlock, 0)
+        : selectionPosition
+      if (manualPageBreaks.some((pageBreak) => Math.abs(pageBreak.position - position) <= 1)) {
+        return false
+      }
+      manualPageBreaks.push({ id: crypto.randomUUID(), position })
+      schedulePagination()
+      return true
+    },
+    removePageBreak: (pageBreakId) => {
+      const next = manualPageBreaks.filter((pageBreak) => pageBreak.id !== pageBreakId)
+      if (next.length === manualPageBreaks.length) return false
+      manualPageBreaks = next
+      schedulePagination()
+      return true
+    },
+    setPrintPreviewMode: (enabled) => {
+      if (enabled) {
+        editableBeforePreview = editor.isEditable
+        editor.setEditable(false)
+      } else {
+        editor.setEditable(editableBeforePreview)
       }
     },
 
