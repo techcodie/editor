@@ -3,6 +3,7 @@ import type {
   EditorApi,
   EditorAssetInsertion,
   EditorCommentInteraction,
+  EditorDocumentNode,
   EditorStructuredInsertion,
   EditorTextSelection,
   EditorTrackChangeInteraction,
@@ -557,6 +558,7 @@ export function createEditorApi(editor: Editor): EditorApi {
         .replace(/[ \t]+\n/g, '\n')
         .replace(/\n{3,}/g, '\n\n')
         .trim(),
+    getDocumentSnapshot: () => structuredClone(editor.getJSON()) as EditorDocumentNode,
     insertStructuredContent,
     insertAsset,
     addCommentAnchor,

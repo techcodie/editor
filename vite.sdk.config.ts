@@ -14,10 +14,12 @@ const EXTERNAL_PACKAGES = [
   '@tiptap/react',
   '@tiptap/starter-kit',
   'diff',
+  'docx',
   'dompurify',
   'lucide-react',
   'mammoth',
   'marked',
+  'pdf-lib',
   'pdfjs-dist',
 ]
 

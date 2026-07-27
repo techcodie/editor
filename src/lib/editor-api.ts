@@ -71,6 +71,19 @@ export interface EditorTrackChangeInteraction {
   bounds: EditorSelectionBounds
 }
 
+export interface EditorDocumentMark {
+  type: string
+  attrs?: Record<string, unknown>
+}
+
+export interface EditorDocumentNode {
+  type: string
+  attrs?: Record<string, unknown>
+  marks?: EditorDocumentMark[]
+  text?: string
+  content?: EditorDocumentNode[]
+}
+
 /**
  * Framework-neutral editor command surface used by SDK UI and host applications.
  */
@@ -116,6 +129,7 @@ export interface EditorApi {
   clearFormatting(): void
 
   getDocumentText(): string
+  getDocumentSnapshot(): EditorDocumentNode
   insertStructuredContent(insertion: EditorStructuredInsertion): boolean
   insertAsset(asset: EditorAssetInsertion): boolean
 

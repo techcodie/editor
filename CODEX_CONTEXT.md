@@ -455,14 +455,72 @@ selection, editing, keyboard navigation, and responsive document scrolling.
 Uploaded watermark images remain browser-memory data URLs and are not inserted
 into the editor document.
 
+### Enterprise Export Flow
+
+```text
+Export Toolbar Control
+        |
+        v
+Export Manager
+        |
+        v
+Shared Document Renderer
+        |
+        v
+Page Layout / Watermark / Asset Serializers
+        |
+        v
+Lazy Format Adapter
+        |
+   PDF / DOCX / HTML
+```
+
+Export Phase 1 captures an immutable, framework-neutral document snapshot
+through the Editor API. The shared document renderer converts that snapshot,
+the current page layout, manual page breaks, watermark, comments, suggestions,
+and document-native assets into one normalized page model. Each format adapter
+consumes that model; UI and export services never access Tiptap directly.
+
+### Renderer Pipeline
+
+The renderer preserves headings, paragraphs, lists, task items, block quotes,
+code blocks, horizontal rules, tables, inline marks, embedded images, and
+enterprise assets. It reuses page metrics and block pagination from the Page
+Layout Engine, page assignment from the Watermark Engine, and the existing SVG
+Stamp Renderer through the asset serializer. One snapshot is rendered once per
+job, and each job keeps its own options and browser-memory result.
+
+### Format Adapters
+
+- PDF uses PDF-lib for fixed-layout pages, headers, footers, page numbers,
+  watermarks, tables, rasterized images, and enterprise assets.
+- DOCX uses docx for editable structured content, page geometry, headers,
+  footers, page numbers, tables, images, assets, and review appendices. Text
+  watermarks use a header representation pending native floating-watermark
+  support.
+- HTML Archive produces a standalone `.html` document with embedded CSS,
+  embedded data assets, page layout, watermark overlays, and no external
+  runtime dependencies.
+
+PDF, DOCX, and HTML adapters are separate on-demand chunks. Export jobs and
+repeat-download history remain instance-local browser state.
+
 ### Future Print Architecture
 
-The current layout, watermark model, and preview establish paper metrics and a
-read-only page representation for a future print adapter. Native browser
-printing, watermark embedding in generated files, PDF/DOCX export, persisted
-layout metadata, section-aware pagination, columns, and print-provider
-integration remain deferred. Phase 1 does not call `window.print`, generate
-files, or introduce a print service.
+The current layout, watermark model, preview, and export renderer establish
+paper metrics and a reusable page representation for future print adapters.
+Native browser printing, persisted layout metadata, section-aware pagination,
+columns, print-provider integration, and DOCX-native floating watermarks remain
+deferred. Export Phase 1 generates local files but does not call `window.print`
+or introduce a print queue.
+
+### Future Cloud Export
+
+Export results are generated and downloaded locally. Cloud storage, shared
+links, email delivery, provider uploads, batch jobs, encryption, passwords,
+digital signatures, and print queues remain host-owned future integrations.
+No network request, upload provider, persistent export history, or global job
+registry is introduced in Phase 1.
 
 ### Future Annotation Engine
 
@@ -740,8 +798,23 @@ system.
 - Reuses one memoized, non-interactive overlay renderer across editable pages
   and print preview, preserving editor selection and interaction.
 - Watermark configuration and uploaded image data remain session-local. Print
-  and PDF embedding, dynamic fields, QR codes, and generated watermarks are not
+  embedding, dynamic fields, QR codes, and generated watermarks are not
   included in Phase 1.
+
+### Enterprise Export
+
+- Generates downloadable PDF, DOCX, and standalone HTML files through one
+  framework-neutral document renderer.
+- Reuses current paper size, orientation, margins, manual pagination, headers,
+  footers, page numbers, watermarks, images, tables, and enterprise assets.
+- Supports optional comments, tracked changes, flattened suggestions,
+  watermarks, assets, and export metadata.
+- Exposes queued, rendering, generating, finalizing, completed, and failed job
+  states with progress feedback and browser-memory repeat-download history.
+- Lazy-loads the dialog, PDF adapter, DOCX adapter, and HTML adapter so exporter
+  libraries do not increase the initial application bundle.
+- Export remains local. Cloud storage, shared links, email delivery, encryption,
+  digital signatures, and persistent job history are not included in Phase 1.
 
 ### Production Shell
 
@@ -835,10 +908,13 @@ has been introduced.
 - Marked
 - DOMPurify
 - Diff
+- PDF-lib
+- docx
 
 PDF.js and Mammoth are isolated to client-side Knowledge Source parsing and
 preview rendering. Marked and DOMPurify are also reused by the AI insertion
-normalizer to produce sanitized, schema-compatible editor content.
+normalizer to produce sanitized, schema-compatible editor content. PDF-lib and
+docx are isolated to lazy export adapters for local file generation.
 
 ---
 
@@ -893,6 +969,11 @@ src/
     hooks/               Instance-local watermark composition
     services/            Watermark defaults, assignment, and render styles
     types/               Watermark configuration and image contracts
+  export/
+    components/          Export dialog, selector, options, progress, and history
+    hooks/               Instance-local export job lifecycle
+    services/            Renderer pipeline, serializers, manager, and adapters
+    types/               Export jobs, options, results, and rendered document model
   comparison/
     components/          Workspace, toolbar, summary, viewers, sidebar, and navigation
     hooks/               Instance-local comparison lifecycle and decisions
@@ -949,7 +1030,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Watermark Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Export Phase 1 Complete**
 
 Completed:
 
@@ -1050,6 +1131,16 @@ Completed:
 - Entire-document, current-page, page-range, even-page, and odd-page assignment
 - Shared memoized watermark rendering across editor pages and print preview
 - Responsive watermark controls with keyboard dismissal and focus restoration
+- Framework-neutral structured document snapshots through the Editor API
+- Shared page-aware export renderer for document blocks, tables, and assets
+- Local PDF generation with page layout, headers, footers, page numbers,
+  watermarks, tables, images, and enterprise stamps
+- Editable DOCX generation with document structure, page settings, images,
+  tables, assets, and optional review appendices
+- Standalone HTML export with embedded CSS and data assets
+- Export content options, estimated size, staged progress, error handling, and
+  repeat-download history
+- Lazy-loaded export dialog and PDF, DOCX, and HTML format adapters
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -1073,12 +1164,16 @@ Page Layout follows the same boundary: UI consumes framework-neutral layout and
 pagination contracts while the Editor API alone measures and adjusts the Tiptap
 surface. Pagination remains visual and session-local, so document content and
 existing editor, AI, asset, review, suggestion, and comparison behavior are
-unchanged. No print or export dependency has been added.
+unchanged. Export reads its structured snapshot through the same Editor API
+boundary and does not mutate the document.
 Watermarks extend that page-layout boundary through a separate non-interactive
 overlay. The shared renderer consumes only watermark and page contracts, never
 the editor instance, and uploaded images remain local browser-memory data. No
-watermark dependency, persistence layer, or print embedding behavior has been
-added.
+watermark persistence layer or print embedding behavior has been added.
+The Export Manager renders one normalized document per job and dispatches it to
+lazy PDF, DOCX, or HTML adapters. PDF-lib and docx are the only new production
+dependencies. Export results and history remain local to the editor instance;
+no backend, storage provider, or global job service has been introduced.
 
 ### Version 1.0 Release Notes
 
@@ -1119,17 +1214,21 @@ These are not missing. Do not implement unless requested.
 - Three-way document comparison and move detection
 - Comparison report export and audit reporting
 - Native browser printing and print-provider integration
-- PDF and DOCX document export
 - Persisted page-layout settings and manual page breaks
 - Section breaks and section-specific layout
 - Multi-column page layout
 - Persisted watermark settings and uploaded watermark assets
-- Watermark embedding in print, PDF, and DOCX output
+- Native floating watermark embedding in DOCX and print output
 - Dynamic watermark fields, QR codes, security hashes, and generated watermarks
 - Page-level background image layout
 - Track-change author and permission providers
 - AI-assisted review and compliance policy checks
-- Export
+- Encrypted and password-protected PDF export
+- Digital signatures and compliance certificates
+- Batch export and background export workers
+- Cloud storage providers, shared links, and email delivery
+- Persistent export history and server-side export jobs
+- Print queues and managed print providers
 - Search
 - Persistence
 - Autosave
@@ -1160,7 +1259,6 @@ These are not missing. Do not implement unless requested.
 - Custom asset and stamp creator
 - Asset persistence and shared favorites
 - QR code and signature authoring tools
-- Asset export workflows
 
 ---
 

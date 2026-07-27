@@ -4,6 +4,7 @@ import { AssetToolbarControl } from '../../assets/components/AssetToolbarControl
 import { useAssetInsertion } from '../../assets/hooks/useAssetInsertion'
 import type { Asset } from '../../assets/types/asset'
 import { ComparisonToolbarControl } from '../../comparison/components/ComparisonToolbar'
+import { ExportToolbarControl } from '../../export/components/ExportToolbarControl'
 import { PageIndicator } from '../../layout/components/PageIndicator'
 import {
   PageLayoutPanel,
@@ -74,6 +75,11 @@ const PrintPreview = lazy(async () => {
   return { default: module.PrintPreview }
 })
 
+const ExportDialog = lazy(async () => {
+  const module = await import('../../export/components/ExportDialog')
+  return { default: module.ExportDialog }
+})
+
 /**
  * Owns the editor instance and wires it to its UI: it creates the editor, binds
  * the public {@link EditorApi} for the toolbar, and renders the editing surface.
@@ -113,6 +119,8 @@ export function EditorWorkspace({
   const [suggestionPreview, setSuggestionPreview] =
     useState<{ changeId: string; bounds: CommentHighlightPreviewState['bounds'] } | null>(null)
   const [isComparisonOpen, setIsComparisonOpen] = useState(false)
+  const [isExportOpen, setIsExportOpen] = useState(false)
+  const [isExportLoaded, setIsExportLoaded] = useState(false)
   const [comparisonInitialDocument, setComparisonInitialDocument] = useState('')
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [askDocumentCommand, setAskDocumentCommand] =
@@ -475,6 +483,30 @@ export function EditorWorkspace({
     })
   }, [setIsWatermarkOpen])
 
+  const openExport = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    cancelPlacement()
+    closeComposer()
+    setIsExportLoaded(true)
+    setIsExportOpen(true)
+  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+
+  const closeExport = useCallback(() => {
+    setIsExportOpen(false)
+    window.requestAnimationFrame(() => {
+      document.getElementById('export-trigger')?.focus()
+    })
+  }, [])
+
   const hideSuggestionSidebar = useCallback(() => {
     setIsSuggestionSidebarOpen(false)
     setSuggestionPreview(null)
@@ -654,6 +686,13 @@ export function EditorWorkspace({
                     onToggle={() => {
                       if (isWatermarkOpen) closeWatermark()
                       else openWatermark()
+                    }}
+                  />
+                  <ExportToolbarControl
+                    isOpen={isExportOpen}
+                    onToggle={() => {
+                      if (isExportOpen) closeExport()
+                      else openExport()
                     }}
                   />
                 </>
@@ -945,6 +984,34 @@ export function EditorWorkspace({
             <ComparisonWorkspace
               initialDocument={comparisonInitialDocument}
               onClose={closeComparison}
+            />
+          </Suspense>
+        </ErrorBoundary>
+      )}
+      {isExportLoaded && (
+        <ErrorBoundary compact title="Export needs a retry">
+          <Suspense
+            fallback={
+              isExportOpen ? (
+                <div
+                  className="fixed inset-0 z-[100] flex items-center justify-center bg-neutral-950/35 backdrop-blur-[2px]"
+                  role="status"
+                  aria-label="Loading export tools"
+                >
+                  <LoaderCircle size={22} strokeWidth={1.8} className="animate-spin text-white" aria-hidden />
+                </div>
+              ) : null
+            }
+          >
+            <ExportDialog
+              isOpen={isExportOpen}
+              api={api}
+              layout={pageLayout}
+              pagination={pagination}
+              watermark={watermark}
+              comments={comments}
+              trackChanges={changes}
+              onClose={closeExport}
             />
           </Suspense>
         </ErrorBoundary>

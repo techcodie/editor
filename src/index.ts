@@ -32,6 +32,8 @@ export type {
   EditorAssetInsertion,
   EditorCommentInteraction,
   EditorCommentInteractionType,
+  EditorDocumentMark,
+  EditorDocumentNode,
   EditorInsertionProvenance,
   EditorInsertionTarget,
   EditorSelectionBounds,

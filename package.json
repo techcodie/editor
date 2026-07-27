@@ -72,10 +72,12 @@
     "@tiptap/react": "^3.28.0",
     "@tiptap/starter-kit": "^3.28.0",
     "diff": "^9.0.0",
+    "docx": "^9.7.1",
     "dompurify": "^3.4.12",
     "lucide-react": "^1.25.0",
     "mammoth": "^1.12.0",
     "marked": "^18.0.7",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.6.205"
   },
   "peerDependencies": {
@@ -83,11 +85,11 @@
     "react-dom": ">=19.0.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
-    "@tailwindcss/vite": "^4.3.3",
     "oxlint": "^1.71.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
