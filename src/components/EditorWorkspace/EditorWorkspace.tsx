@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { Command, LoaderCircle, MessageSquareText, MousePointer2, X } from 'lucide-react'
+import { Command, FilePenLine, LoaderCircle, MessageSquareText, MousePointer2, X } from 'lucide-react'
 import { AssetToolbarControl } from '../../assets/components/AssetToolbarControl'
 import { useAssetInsertion } from '../../assets/hooks/useAssetInsertion'
 import type { Asset } from '../../assets/types/asset'
@@ -11,6 +11,9 @@ import { useComments } from '../../review/hooks/useComments'
 import { useSelectionComment } from '../../review/hooks/useSelectionComment'
 import type { Comment } from '../../review/types/comment'
 import type { CommentHighlightPreviewState } from '../../review/types/review'
+import { SuggestionPreview } from '../../review/trackChanges/components/SuggestionPreview'
+import { SuggestionToolbar } from '../../review/trackChanges/components/SuggestionToolbar'
+import { useTrackChanges } from '../../review/trackChanges/hooks/useTrackChanges'
 import { useDocumentEditor } from '../../hooks/useDocumentEditor'
 import { useEditorApi } from '../../hooks/useEditorApi'
 import { cn } from '../../lib/cn'
@@ -40,6 +43,11 @@ const AssetLibrary = lazy(async () => {
 const ReviewSidebar = lazy(async () => {
   const module = await import('../../review/components/ReviewSidebar')
   return { default: module.ReviewSidebar }
+})
+
+const SuggestionSidebar = lazy(async () => {
+  const module = await import('../../review/trackChanges/components/SuggestionSidebar')
+  return { default: module.SuggestionSidebar }
 })
 
 /**
@@ -74,6 +82,12 @@ export function EditorWorkspace({
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
   const [commentHighlightPreview, setCommentHighlightPreview] =
     useState<CommentHighlightPreviewState | null>(null)
+  const [isSuggestionMode, setIsSuggestionMode] = useState(false)
+  const [isSuggestionSidebarOpen, setIsSuggestionSidebarOpen] = useState(false)
+  const [isSuggestionLoaded, setIsSuggestionLoaded] = useState(false)
+  const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null)
+  const [suggestionPreview, setSuggestionPreview] =
+    useState<{ changeId: string; bounds: CommentHighlightPreviewState['bounds'] } | null>(null)
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [askDocumentCommand, setAskDocumentCommand] =
     useState<AskDocumentCommandRequest | null>(null)
@@ -115,6 +129,13 @@ export function EditorWorkspace({
     deleteComment,
     jumpToComment,
   } = useComments(api)
+  const {
+    changes,
+    changesById,
+    decide: decideTrackChange,
+    decideAll: decideAllTrackChanges,
+    jumpToChange,
+  } = useTrackChanges(api, currentAuthor)
 
   const handleCommentCreated = useCallback((comment: Comment) => {
     setSelectedCommentId(comment.id)
@@ -136,6 +157,28 @@ export function EditorWorkspace({
   const previewedComment = commentHighlightPreview
     ? commentsById.get(commentHighlightPreview.commentId) ?? null
     : null
+  const previewedChange = suggestionPreview
+    ? changesById.get(suggestionPreview.changeId) ?? null
+    : null
+  const pendingTrackChangeCount = changes.filter(
+    (change) => change.status === 'pending',
+  ).length
+  const acceptTrackChange = useCallback(
+    (changeId: string) => decideTrackChange(changeId, 'accept'),
+    [decideTrackChange],
+  )
+  const rejectTrackChange = useCallback(
+    (changeId: string) => decideTrackChange(changeId, 'reject'),
+    [decideTrackChange],
+  )
+  const acceptAllTrackChanges = useCallback(
+    () => decideAllTrackChanges('accept'),
+    [decideAllTrackChanges],
+  )
+  const rejectAllTrackChanges = useCallback(
+    () => decideAllTrackChanges('reject'),
+    [decideAllTrackChanges],
+  )
 
   useEffect(() => {
     onApiChange(api)
@@ -173,6 +216,12 @@ export function EditorWorkspace({
   }, [api, isReviewMode])
 
   useEffect(() => {
+    if (!api) return
+    api.setSuggestionMode(isSuggestionMode)
+    return () => api.setSuggestionMode(false)
+  }, [api, isSuggestionMode])
+
+  useEffect(() => {
     if (!api || !isReviewMode) return
     return api.subscribeCommentInteractions((interaction) => {
       if (interaction.type === 'leave') {
@@ -196,10 +245,38 @@ export function EditorWorkspace({
     })
   }, [api, isReviewMode])
 
+  useEffect(() => {
+    if (!api || !isSuggestionMode) return
+    return api.subscribeTrackChangeInteractions((interaction) => {
+      if (interaction.type === 'leave') {
+        setSuggestionPreview((current) =>
+          current?.changeId === interaction.changeId ? null : current,
+        )
+        return
+      }
+      if (interaction.type === 'preview') {
+        setSuggestionPreview({
+          changeId: interaction.changeId,
+          bounds: interaction.bounds,
+        })
+        return
+      }
+
+      setSuggestionPreview(null)
+      setSelectedChangeId(interaction.changeId)
+      setIsSuggestionLoaded(true)
+      setIsSuggestionMode(true)
+      setIsSuggestionSidebarOpen(true)
+    })
+  }, [api, isSuggestionMode])
+
   const openAskDocument = useCallback(() => {
     setIsAssetLibraryOpen(false)
     setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
     setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
     setIsAskDocumentLoaded(true)
     setIsAskDocumentOpen(true)
   }, [])
@@ -212,7 +289,10 @@ export function EditorWorkspace({
   const openAssetLibrary = useCallback(() => {
     setIsAskDocumentOpen(false)
     setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
     setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
     setIsAssetLibraryLoaded(true)
     setIsAssetLibraryOpen(true)
   }, [])
@@ -220,6 +300,9 @@ export function EditorWorkspace({
   const openReviewMode = useCallback(() => {
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setSuggestionPreview(null)
     cancelPlacement()
     setIsReviewLoaded(true)
     setIsReviewMode(true)
@@ -233,6 +316,33 @@ export function EditorWorkspace({
       document.getElementById('review-mode-trigger')?.focus()
     })
   }, [closeComposer])
+
+  const openSuggestionMode = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setCommentHighlightPreview(null)
+    closeComposer()
+    cancelPlacement()
+    setIsSuggestionLoaded(true)
+    setIsSuggestionMode(true)
+    setIsSuggestionSidebarOpen(true)
+  }, [cancelPlacement, closeComposer])
+
+  const closeSuggestionMode = useCallback(() => {
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setSuggestionPreview(null)
+    window.requestAnimationFrame(() => {
+      document.getElementById('suggestion-mode-trigger')?.focus()
+    })
+  }, [])
+
+  const hideSuggestionSidebar = useCallback(() => {
+    setIsSuggestionSidebarOpen(false)
+    setSuggestionPreview(null)
+    window.requestAnimationFrame(() => api?.focus())
+  }, [api])
 
   const closeAssetLibrary = useCallback(() => {
     setIsAssetLibraryOpen(false)
@@ -331,6 +441,31 @@ export function EditorWorkspace({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [config.commandPalette, config.keyboardShortcuts])
 
+  useEffect(() => {
+    if (!config.keyboardShortcuts || config.readonly) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key.toLocaleLowerCase() !== 's' ||
+        !(event.metaKey || event.ctrlKey) ||
+        !event.shiftKey ||
+        !event.altKey
+      ) {
+        return
+      }
+      event.preventDefault()
+      if (isSuggestionMode) closeSuggestionMode()
+      else openSuggestionMode()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [
+    closeSuggestionMode,
+    config.keyboardShortcuts,
+    config.readonly,
+    isSuggestionMode,
+    openSuggestionMode,
+  ])
+
   return (
     <div className="document-editor-workspace mx-auto flex w-full max-w-[84rem] items-start justify-center px-3 py-4 sm:px-6 sm:py-7 lg:px-8 lg:py-6">
       <div className="min-w-0 w-full max-w-[48rem]">
@@ -353,6 +488,13 @@ export function EditorWorkspace({
                     onToggle={() => {
                       if (isReviewMode) closeReviewMode()
                       else openReviewMode()
+                    }}
+                  />
+                  <SuggestionToolbar
+                    isActive={isSuggestionMode}
+                    onToggle={() => {
+                      if (isSuggestionMode) closeSuggestionMode()
+                      else openSuggestionMode()
                     }}
                   />
                 </>
@@ -430,6 +572,35 @@ export function EditorWorkspace({
         </div>
       </div>
       <div className="shrink-0">
+        {isSuggestionLoaded && (
+          <ErrorBoundary compact title="Suggestions need a retry">
+            <Suspense
+              fallback={
+                <div
+                  className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[26rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[25rem] lg:rounded-lg lg:border"
+                  role="status"
+                  aria-label="Loading suggestion sidebar"
+                >
+                  <LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden />
+                </div>
+              }
+            >
+              <SuggestionSidebar
+                isOpen={isSuggestionSidebarOpen}
+                changes={changes}
+                selectedChangeId={selectedChangeId}
+                currentAuthorId={currentAuthor.id}
+                onClose={hideSuggestionSidebar}
+                onSelectChange={setSelectedChangeId}
+                onAccept={acceptTrackChange}
+                onReject={rejectTrackChange}
+                onAcceptAll={acceptAllTrackChanges}
+                onRejectAll={rejectAllTrackChanges}
+                onJump={jumpToChange}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        )}
         {isReviewLoaded && (
           <ErrorBoundary compact title="Review needs a retry">
             <Suspense
@@ -516,7 +687,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
       </div>
-      {config.ai && !config.readonly && !isReviewMode && (
+      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && (
         <ErrorBoundary compact title="Selection AI needs a retry">
           <SelectionAi
             api={api}
@@ -545,6 +716,26 @@ export function EditorWorkspace({
           comment={previewedComment}
           bounds={commentHighlightPreview.bounds}
         />
+      )}
+      {isSuggestionMode && previewedChange && suggestionPreview && (
+        <SuggestionPreview
+          change={previewedChange}
+          bounds={suggestionPreview.bounds}
+        />
+      )}
+      {isSuggestionMode && !isSuggestionSidebarOpen && (
+        <button
+          type="button"
+          onClick={() => setIsSuggestionSidebarOpen(true)}
+          aria-label={`Open suggestions, ${pendingTrackChangeCount} pending`}
+          className="fixed bottom-4 right-4 z-40 inline-flex h-10 items-center gap-2 rounded-lg border border-emerald-200 bg-white px-3 text-xs font-semibold text-emerald-800 shadow-[var(--document-editor-shadow-overlay)] transition-[background-color,box-shadow,transform] hover:-translate-y-px hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/35 focus-visible:ring-offset-2"
+        >
+          <FilePenLine size={16} strokeWidth={1.9} aria-hidden />
+          Suggestions
+          <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] tabular-nums">
+            {pendingTrackChangeCount}
+          </span>
+        </button>
       )}
       {config.commandPalette && (
         <CommandPalette

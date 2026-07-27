@@ -50,6 +50,24 @@ export interface EditorCommentInteraction {
   bounds: EditorSelectionBounds
 }
 
+export type EditorTrackChangeType = 'insert' | 'delete' | 'replace' | 'format'
+export type EditorTrackChangeDecision = 'accept' | 'reject'
+
+export interface EditorTrackChangeDraft {
+  id: string
+  type: EditorTrackChangeType
+  createdAt: number
+  range: { from: number; to: number }
+  before: string
+  after: string
+}
+
+export interface EditorTrackChangeInteraction {
+  type: EditorCommentInteractionType
+  changeId: string
+  bounds: EditorSelectionBounds
+}
+
 /**
  * Framework-neutral editor command surface used by SDK UI and host applications.
  */
@@ -105,6 +123,22 @@ export interface EditorApi {
   setReviewMode(enabled: boolean): void
   subscribeCommentInteractions(
     listener: (interaction: EditorCommentInteraction) => void,
+  ): () => void
+
+  setSuggestionMode(enabled: boolean): void
+  subscribeTrackChanges(
+    listener: (change: EditorTrackChangeDraft) => void,
+  ): () => void
+  resolveTrackChange(
+    changeId: string,
+    decision: EditorTrackChangeDecision,
+  ): boolean
+  focusTrackChange(
+    changeId: string,
+    fallbackRange?: { from: number; to: number },
+  ): boolean
+  subscribeTrackChangeInteractions(
+    listener: (interaction: EditorTrackChangeInteraction) => void,
   ): () => void
 
   getTextSelection(): EditorTextSelection | null

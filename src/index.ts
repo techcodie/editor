@@ -37,6 +37,10 @@ export type {
   EditorSelectionBounds,
   EditorStructuredInsertion,
   EditorTextSelection,
+  EditorTrackChangeDecision,
+  EditorTrackChangeDraft,
+  EditorTrackChangeInteraction,
+  EditorTrackChangeType,
   HeadingLevel,
   TextAlignment,
 } from './lib/editor-api'

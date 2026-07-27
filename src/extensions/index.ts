@@ -7,6 +7,7 @@ import type { Extensions } from '@tiptap/core'
 import type { DocumentEditorOptions } from '../types/editor'
 import { AssetNode } from '../assets/editor/AssetNode'
 import { CommentMark } from '../review/editor/CommentMark'
+import { TrackChangeMark } from '../review/trackChanges/editor/TrackChangeMark'
 
 /** Node types that support text alignment. */
 const ALIGNABLE_NODES = ['heading', 'paragraph'] as const
@@ -34,5 +35,6 @@ export function createEditorExtensions({ placeholder }: DocumentEditorOptions): 
     TaskItem.configure({ nested: true }),
     AssetNode,
     CommentMark,
+    TrackChangeMark,
   ]
 }

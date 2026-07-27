@@ -316,6 +316,48 @@ document range; thread content remains browser-memory state owned by the
 workspace. Review mode controls highlight visibility and comment interaction
 listeners without changing normal editor behavior.
 
+### Enterprise Track Changes Flow
+
+```text
+Suggestion Toolbar Control
+        |
+        v
+Suggestion Mode
+        |
+        v
+Transaction-Aware Change Mark
+        |
+        v
+Suggestion Registry / Sidebar
+        |
+        v
+Editor API Decisions
+        |
+        v
+Accepted or Restored Document Content
+```
+
+Track Changes Phase 1 extends the existing review annotation layer. A single
+internal `trackChange` mark represents insertion, deletion, replacement, and
+format segments. The transaction-aware mark compares each editor transaction,
+restores deleted content for review, groups adjacent typing and deletion, and
+emits framework-neutral change drafts to instance-local workspace state.
+
+The Editor API owns Suggestion Mode, live change lookup, accept and reject
+decisions, range focus, and annotation interactions. Suggestion UI never imports
+Tiptap or ProseMirror. The responsive sidebar may be hidden while Suggestion
+Mode remains active, allowing mobile users to continue editing and reopen the
+same review session.
+
+### Future Annotation Engine
+
+Comments and Track Changes now share the same architectural pattern: stable
+document annotations, local review models, Editor API interactions, and
+workspace-composed side panels. This is the integration point for future
+governed review, audit, compliance, version, and AI review workflows. No global
+annotation engine, event bus, permissions layer, or persistence service has
+been introduced in Phase 1.
+
 ---
 
 ## Important Rules
@@ -389,6 +431,11 @@ active-comment lookup, review-mode visibility, and comment highlight
 interactions. Review UI never imports or calls Tiptap. Clearing formatting
 preserves review anchors so document styling commands do not silently remove
 discussions.
+
+The Editor API also owns Suggestion Mode, tracked-change subscriptions,
+accept/reject decisions, live range focus, and hover/click interactions.
+Insertion, deletion, replacement, and formatting annotations remain internal
+editor marks while the sidebar consumes framework-neutral change records.
 
 ---
 
@@ -500,8 +547,26 @@ system.
 - Comment threads are memoized and review state updates do not recreate the
   editor instance.
 - Comments and replies are currently session-local. No persistence, mentions,
-  notifications, collaboration, approval workflow, or Track Changes behavior
+  notifications, collaboration, governed review workflow, or Track Changes
+  behavior
   is included in Phase 1.
+
+### Enterprise Track Changes
+
+- Suggestion Mode is toggled from the workspace toolbar or its accessible
+  keyboard shortcut and uses the existing review side-panel lifecycle.
+- Normal editing remains unchanged while Suggestion Mode is off.
+- Typing creates grouped green insertion suggestions; deleting restores text
+  with a red strike-through; replacement shows old and new segments under one
+  suggestion; formatting receives a reversible blue annotation.
+- Suggestions support Accept, Reject, Accept All, Reject All, jump, click-to-open,
+  hover preview, previous/next navigation, and newest/oldest sorting.
+- The sidebar supports All, Pending, Accepted, Rejected, and Mine views plus
+  author, type, status, content, and date search.
+- Suggestion state remains active when the responsive sidebar is hidden, so the
+  editor stays usable on small screens.
+- Track-change records are session-local. No realtime collaboration, version
+  history, branching, permissions, or persistent audit log is included.
 
 ### Production Shell
 
@@ -569,6 +634,11 @@ sources. It is not a global store and does not persist state.
 Enterprise Review uses a local comment hook composed by the editor workspace.
 It does not introduce React Context, a global registry, or persistent comment
 storage.
+
+Track Changes uses a local suggestion hook composed alongside comments in the
+same workspace. The editor mark owns transaction interpretation; React owns
+only the review records and visible panel state. No new global store or context
+has been introduced.
 
 ---
 
@@ -643,6 +713,12 @@ src/
     hooks/               Local comment and selection-comment lifecycles
     services/            Comment model operations, filtering, and display helpers
     types/               Comment, reply, anchor, and review UI contracts
+    trackChanges/
+      components/        Suggestion sidebar, cards, navigation, toolbar, and preview
+      editor/            Transaction-aware tracked-change annotation mark
+      hooks/             Instance-local suggestion lifecycle and decisions
+      services/          Change registry, filtering, labels, and date helpers
+      types/             Change model, decisions, filters, and sorting contracts
   hooks/
     useSpeechRecognition.ts  Native browser speech recognition lifecycle
   services/              Shared AI transport and frame-batched stream updates
@@ -682,7 +758,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Review System Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Track Changes Phase 1 Complete**
 
 Completed:
 
@@ -754,6 +830,12 @@ Completed:
   previous/next navigation
 - Accessible selection composer, highlight preview, keyboard shortcut, focus
   management, and mobile review layout
+- Suggestion Mode integrated with the existing enterprise review architecture
+- Transaction-aware insertion, deletion, replacement, and formatting suggestions
+- Green insertion, red deletion, and blue formatting document annotations
+- Suggestion accept, reject, accept-all, reject-all, jump, search, filtering,
+  sorting, navigation, click-to-open, and hover-preview workflows
+- Responsive sidebar visibility independent from active tracking state
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -767,11 +849,10 @@ local callbacks and reaches editor behavior only through the Editor API; no
 runtime, command registry, dependency injection, or global store has been
 introduced. The public event and plugin contracts remain controller-local. No
 global asset store, asset persistence, custom creator, or static stamp image
-catalog has been introduced. Review comments are local workspace state and
-reach Tiptap only through the Editor API. The internal comment mark is the
-future integration point for Track Changes, but no suggestion, approval, or
-change-tracking behavior has been introduced. No known functional bugs are
-open.
+catalog has been introduced. Review comments and tracked suggestions are local
+workspace state and reach Tiptap only through the Editor API. Their internal
+marks share one annotation pattern without a parallel store or UI-to-Tiptap
+dependency. No known functional bugs are open.
 
 ### Version 1.0 Release Notes
 
@@ -800,12 +881,16 @@ These are not missing. Do not implement unless requested.
 - Upload providers
 - Storage providers
 - Collaboration
-- Track changes
 - Persisted and server-backed comment threads
 - Realtime comment collaboration
 - Comment mentions and notifications
-- Review approval and suggestion workflows
+- Governed review and suggestion workflows
 - Comment author and permission providers
+- Persisted and server-backed tracked changes
+- Realtime suggestion collaboration and conflict handling
+- Version history and legal audit records
+- Track-change author and permission providers
+- AI-assisted review and compliance policy checks
 - Export
 - Search
 - Persistence

@@ -5,7 +5,13 @@ import type {
   EditorCommentInteraction,
   EditorStructuredInsertion,
   EditorTextSelection,
+  EditorTrackChangeInteraction,
 } from './editor-api'
+import {
+  TRACK_CHANGES_INTERNAL_META,
+  type TrackChangeSegment,
+  type TrackChangesStorage,
+} from '../review/trackChanges/editor/TrackChangeMark'
 
 /**
  * Binds a Tiptap editor to the {@link EditorApi} contract.
@@ -14,6 +20,9 @@ import type {
  * place `editor.chain()` / `editor.isActive()` / `editor.can()` may appear.
  */
 export function createEditorApi(editor: Editor): EditorApi {
+  const trackChangesStorage = (
+    editor.storage as unknown as { trackChange: TrackChangesStorage }
+  ).trackChange
   const insertStructuredContent = ({
     target,
     content,
@@ -167,6 +176,127 @@ export function createEditorApi(editor: Editor): EditorApi {
     }
   }
 
+  interface TrackChangeSegmentRange {
+    from: number
+    to: number
+    segment: TrackChangeSegment
+  }
+
+  const findTrackChangeSegments = (changeId: string): TrackChangeSegmentRange[] => {
+    const segments: TrackChangeSegmentRange[] = []
+    editor.state.doc.descendants((node, position) => {
+      if (!node.isText) return
+      const mark = node.marks.find(
+        (item) =>
+          item.type.name === 'trackChange' &&
+          String(item.attrs.changeId) === changeId,
+      )
+      if (!mark) return
+      const segment = mark.attrs.segment as TrackChangeSegment
+      const previous = segments.at(-1)
+      if (previous && previous.to === position && previous.segment === segment) {
+        previous.to = position + node.nodeSize
+        return
+      }
+      segments.push({
+        from: position,
+        to: position + node.nodeSize,
+        segment,
+      })
+    })
+    return segments
+  }
+
+  const findTrackChangeRange = (
+    changeId: string,
+  ): { from: number; to: number } | null => {
+    const segments = findTrackChangeSegments(changeId)
+    if (segments.length === 0) return null
+    return {
+      from: Math.min(...segments.map((segment) => segment.from)),
+      to: Math.max(...segments.map((segment) => segment.to)),
+    }
+  }
+
+  const removeTrackChangeMarks = (
+    changeId: string,
+    transaction: typeof editor.state.tr,
+  ) => {
+    const markType = editor.state.schema.marks.trackChange
+    if (!markType) return
+    editor.state.doc.descendants((node, position) => {
+      if (!node.isText) return
+      for (const mark of node.marks) {
+        if (
+          mark.type === markType &&
+          String(mark.attrs.changeId) === changeId
+        ) {
+          transaction.removeMark(position, position + node.nodeSize, mark)
+        }
+      }
+    })
+  }
+
+  const resolveTrackChange = (
+    changeId: string,
+    decision: 'accept' | 'reject',
+  ): boolean => {
+    const segments = findTrackChangeSegments(changeId)
+    if (segments.length === 0) return false
+    const firstSegment = segments[0]
+    const firstNode = firstSegment
+      ? editor.state.doc.nodeAt(firstSegment.from)
+      : null
+    const changeMark = firstNode?.marks.find(
+      (mark) =>
+        mark.type.name === 'trackChange' &&
+        String(mark.attrs.changeId) === changeId,
+    )
+    const changeType = String(changeMark?.attrs.changeType || '')
+    const transaction = editor.state.tr.setMeta(TRACK_CHANGES_INTERNAL_META, true)
+
+    if (changeType === 'format' && decision === 'reject') {
+      const snapshot = trackChangesStorage.formatSnapshots.get(changeId)
+      const range = findTrackChangeRange(changeId)
+      if (!snapshot || !range) return false
+      transaction.replaceRange(range.from, range.to, snapshot.before)
+    } else {
+      removeTrackChangeMarks(changeId, transaction)
+      const segmentToDelete =
+        decision === 'accept' ? 'deletion' : 'insertion'
+      const deletedSegments = segments
+        .filter((segment) => segment.segment === segmentToDelete)
+        .sort((left, right) => right.from - left.from)
+      for (const segment of deletedSegments) {
+        transaction.delete(segment.from, segment.to)
+      }
+    }
+
+    if (!transaction.docChanged) return false
+    trackChangesStorage.formatSnapshots.delete(changeId)
+    editor.view.dispatch(transaction)
+    return true
+  }
+
+  const trackChangeInteractionFromElement = (
+    type: EditorTrackChangeInteraction['type'],
+    element: HTMLElement,
+  ): EditorTrackChangeInteraction | null => {
+    const changeId = element.dataset.changeId
+    if (!changeId) return null
+    const bounds = element.getBoundingClientRect()
+    return {
+      type,
+      changeId,
+      bounds: {
+        top: bounds.top,
+        right: bounds.right,
+        bottom: bounds.bottom,
+        left: bounds.left,
+      },
+    }
+  }
+
   return {
     undo: () => {
       editor.chain().focus().undo().run()
@@ -247,7 +377,12 @@ export function createEditorApi(editor: Editor): EditorApi {
         .command(({ state, tr }) => {
           const { from, to } = state.selection
           for (const markType of Object.values(state.schema.marks)) {
-            if (markType.name !== 'reviewComment') tr.removeMark(from, to, markType)
+            if (
+              markType.name !== 'reviewComment' &&
+              markType.name !== 'trackChange'
+            ) {
+              tr.removeMark(from, to, markType)
+            }
           }
           return true
         })
@@ -313,6 +448,77 @@ export function createEditorApi(editor: Editor): EditorApi {
         const interaction = interactionFromElement('leave', element)
         if (!interaction || interaction.commentId !== previewedCommentId) return
         previewedCommentId = null
+        listener(interaction)
+      }
+
+      editor.view.dom.addEventListener('pointerdown', handlePointerDown, true)
+      editor.view.dom.addEventListener('mouseover', handleMouseOver, true)
+      editor.view.dom.addEventListener('mousemove', handleMouseOver, true)
+      editor.view.dom.addEventListener('mouseout', handleMouseOut, true)
+      return () => {
+        editor.view.dom.removeEventListener('pointerdown', handlePointerDown, true)
+        editor.view.dom.removeEventListener('mouseover', handleMouseOver, true)
+        editor.view.dom.removeEventListener('mousemove', handleMouseOver, true)
+        editor.view.dom.removeEventListener('mouseout', handleMouseOut, true)
+      }
+    },
+    setSuggestionMode: (enabled) => {
+      trackChangesStorage.enabled = enabled
+      if (enabled) editor.view.dom.dataset.suggestionMode = 'enabled'
+      else delete editor.view.dom.dataset.suggestionMode
+    },
+    subscribeTrackChanges: (listener) => {
+      trackChangesStorage.listeners.add(listener)
+      return () => trackChangesStorage.listeners.delete(listener)
+    },
+    resolveTrackChange,
+    focusTrackChange: (changeId, fallbackRange) => {
+      const liveRange = findTrackChangeRange(changeId)
+      const documentEnd = editor.state.doc.content.size
+      const range = liveRange ?? (fallbackRange
+        ? {
+            from: Math.min(Math.max(fallbackRange.from, 1), documentEnd),
+            to: Math.min(Math.max(fallbackRange.to, 1), documentEnd),
+          }
+        : null)
+      if (!range) return false
+      const selection = {
+        from: Math.min(range.from, range.to),
+        to: Math.max(range.from, range.to),
+      }
+      return editor.chain().focus().setTextSelection(selection).scrollIntoView().run()
+    },
+    subscribeTrackChangeInteractions: (listener) => {
+      let previewedChangeId: string | null = null
+      const findChangeElement = (target: EventTarget | null): HTMLElement | null => {
+        const element =
+          target instanceof HTMLElement
+            ? target
+            : target instanceof Node
+              ? target.parentElement
+              : null
+        return element?.closest<HTMLElement>('[data-track-change]') ?? null
+      }
+      const handlePointerDown = (event: PointerEvent) => {
+        const element = findChangeElement(event.target)
+        if (!element) return
+        const interaction = trackChangeInteractionFromElement('open', element)
+        if (interaction) listener(interaction)
+      }
+      const handleMouseOver = (event: MouseEvent) => {
+        const element = findChangeElement(event.target)
+        if (!element) return
+        const interaction = trackChangeInteractionFromElement('preview', element)
+        if (!interaction || interaction.changeId === previewedChangeId) return
+        previewedChangeId = interaction.changeId
+        listener(interaction)
+      }
+      const handleMouseOut = (event: MouseEvent) => {
+        const element = findChangeElement(event.target)
+        if (!element || element.contains(event.relatedTarget as Node | null)) return
+        const interaction = trackChangeInteractionFromElement('leave', element)
+        if (!interaction || interaction.changeId !== previewedChangeId) return
+        previewedChangeId = null
         listener(interaction)
       }
 
