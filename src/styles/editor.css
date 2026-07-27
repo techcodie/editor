@@ -251,3 +251,14 @@
     font-size: 1.375rem;
   }
 }
+
+.comparison-document-scroll {
+  scrollbar-color: #d4d4d4 transparent;
+  scrollbar-width: thin;
+}
+
+.comparison-virtual-line {
+  contain: layout paint style;
+  content-visibility: auto;
+  contain-intrinsic-block-size: 28px;
+}

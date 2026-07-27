@@ -13,6 +13,7 @@ const EXTERNAL_PACKAGES = [
   '@tiptap/extension-text-align',
   '@tiptap/react',
   '@tiptap/starter-kit',
+  'diff',
   'dompurify',
   'lucide-react',
   'mammoth',

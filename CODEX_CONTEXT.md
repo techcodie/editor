@@ -349,6 +349,41 @@ Tiptap or ProseMirror. The responsive sidebar may be hidden while Suggestion
 Mode remains active, allowing mobile users to continue editing and reopen the
 same review session.
 
+### Enterprise Document Comparison Flow
+
+```text
+Compare Toolbar Control
+        |
+        v
+Original + Modified Documents
+        |
+        v
+Word-Level Diff Engine
+        |
+        v
+Existing TrackChange Model
+        |
+        v
+Split / Unified Comparison Viewer
+        |
+        v
+Comparison Change Sidebar
+```
+
+Document Comparison Phase 1 is a lazy-loaded workspace composed above the
+editor. It reads the current document through the Editor API and accepts a
+second document or version as local input. The `diff` package supplies the core
+word-level algorithm; the comparison engine converts its output into the
+existing `TrackChange[]` contract and does not introduce a parallel review
+model.
+
+The viewer supports synchronized side-by-side scrolling, a unified redline,
+line-level browser rendering containment for long documents, change selection,
+search, filters, document-order navigation, and local accept/reject decisions.
+Formatting-only Markdown marker changes are classified as format changes.
+Comparison inputs and decisions remain browser-memory state and do not create
+version records or modify editor content.
+
 ### Future Annotation Engine
 
 Comments and Track Changes now share the same architectural pattern: stable
@@ -436,6 +471,10 @@ The Editor API also owns Suggestion Mode, tracked-change subscriptions,
 accept/reject decisions, live range focus, and hover/click interactions.
 Insertion, deletion, replacement, and formatting annotations remain internal
 editor marks while the sidebar consumes framework-neutral change records.
+
+Document Comparison reads current document text through the Editor API. Its
+viewer, diff services, and change sidebar remain framework-neutral and do not
+access Tiptap or ProseMirror.
 
 ---
 
@@ -568,6 +607,23 @@ system.
 - Track-change records are session-local. No realtime collaboration, version
   history, branching, permissions, or persistent audit log is included.
 
+### Enterprise Document Comparison
+
+- Opens from the formatting toolbar as a lazy-loaded full comparison workspace.
+- Compares document-to-document or version-to-version text using named local
+  sources without changing editor content.
+- Converts word-level diff output into the existing insertion, deletion,
+  replacement, and formatting `TrackChange` records.
+- Supports synchronized side-by-side and unified redline views with green,
+  red, amber, and blue change treatments.
+- Provides total and per-type counts, word and character differences, and
+  estimated reading-time difference.
+- Supports change search, type and status filters, document/type sorting,
+  mini-overview navigation, jump, previous/next, and accept/reject decisions.
+- Uses line-level browser rendering containment for long comparison documents.
+- Comparison data is instance-local. No version repository, persistence,
+  three-way comparison, audit report, or editor replacement is included.
+
 ### Production Shell
 
 - Ask Document is lazy-loaded on first use and remains mounted afterward so its
@@ -659,6 +715,7 @@ has been introduced.
 - Mammoth
 - Marked
 - DOMPurify
+- Diff
 
 PDF.js and Mammoth are isolated to client-side Knowledge Source parsing and
 preview rendering. Marked and DOMPurify are also reused by the AI insertion
@@ -707,6 +764,11 @@ src/
     preview/             Preview workspace and format-specific viewers
     services/            Local parsers, PDF loading, and AI context building
     types/               Source contracts, validation, and file helpers
+  comparison/
+    components/          Workspace, toolbar, summary, viewers, sidebar, and navigation
+    hooks/               Instance-local comparison lifecycle and decisions
+    services/            Diff adapter, TrackChange conversion, statistics, and filtering
+    types/               Comparison documents, statistics, view state, and diff segments
   review/
     components/          Review sidebar, navigation, threads, composers, and highlights
     editor/              Internal comment anchor mark
@@ -758,7 +820,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Track Changes Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Document Comparison Phase 1 Complete**
 
 Completed:
 
@@ -836,6 +898,15 @@ Completed:
 - Suggestion accept, reject, accept-all, reject-all, jump, search, filtering,
   sorting, navigation, click-to-open, and hover-preview workflows
 - Responsive sidebar visibility independent from active tracking state
+- Lazy-loaded enterprise document comparison workspace
+- Document and version source inputs with source names and swap action
+- Reusable word-level diff engine converted into the existing TrackChange model
+- Side-by-side comparison with synchronized scrolling and selection
+- Unified redline comparison with insertion, deletion, replacement, and
+  formatting visualization
+- Comparison summary statistics, search, filters, sorting, mini overview,
+  previous/next navigation, jump, and local change decisions
+- Line-contained comparison rendering for long documents
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -852,7 +923,9 @@ global asset store, asset persistence, custom creator, or static stamp image
 catalog has been introduced. Review comments and tracked suggestions are local
 workspace state and reach Tiptap only through the Editor API. Their internal
 marks share one annotation pattern without a parallel store or UI-to-Tiptap
-dependency. No known functional bugs are open.
+dependency. Document Comparison also reuses `TrackChange` records and obtains
+editor content through the Editor API; its diff and viewer layers remain
+independent from Tiptap. No known functional bugs are open.
 
 ### Version 1.0 Release Notes
 
@@ -889,6 +962,9 @@ These are not missing. Do not implement unless requested.
 - Persisted and server-backed tracked changes
 - Realtime suggestion collaboration and conflict handling
 - Version history and legal audit records
+- Persisted comparison sessions and saved version sources
+- Three-way document comparison and move detection
+- Comparison report export and audit reporting
 - Track-change author and permission providers
 - AI-assisted review and compliance policy checks
 - Export

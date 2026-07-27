@@ -3,6 +3,7 @@ import { Command, FilePenLine, LoaderCircle, MessageSquareText, MousePointer2, X
 import { AssetToolbarControl } from '../../assets/components/AssetToolbarControl'
 import { useAssetInsertion } from '../../assets/hooks/useAssetInsertion'
 import type { Asset } from '../../assets/types/asset'
+import { ComparisonToolbarControl } from '../../comparison/components/ComparisonToolbar'
 import { CommentHighlightPreview } from '../../review/components/CommentHighlightPreview'
 import { CommentToolbar } from '../../review/components/CommentToolbar'
 import { ReviewToolbarControl } from '../../review/components/ReviewToolbarControl'
@@ -50,6 +51,11 @@ const SuggestionSidebar = lazy(async () => {
   return { default: module.SuggestionSidebar }
 })
 
+const ComparisonWorkspace = lazy(async () => {
+  const module = await import('../../comparison/components/ComparisonWorkspace')
+  return { default: module.ComparisonWorkspace }
+})
+
 /**
  * Owns the editor instance and wires it to its UI: it creates the editor, binds
  * the public {@link EditorApi} for the toolbar, and renders the editing surface.
@@ -88,6 +94,8 @@ export function EditorWorkspace({
   const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null)
   const [suggestionPreview, setSuggestionPreview] =
     useState<{ changeId: string; bounds: CommentHighlightPreviewState['bounds'] } | null>(null)
+  const [isComparisonOpen, setIsComparisonOpen] = useState(false)
+  const [comparisonInitialDocument, setComparisonInitialDocument] = useState('')
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [askDocumentCommand, setAskDocumentCommand] =
     useState<AskDocumentCommandRequest | null>(null)
@@ -271,6 +279,7 @@ export function EditorWorkspace({
   }, [api, isSuggestionMode])
 
   const openAskDocument = useCallback(() => {
+    setIsComparisonOpen(false)
     setIsAssetLibraryOpen(false)
     setIsReviewMode(false)
     setIsSuggestionMode(false)
@@ -287,6 +296,7 @@ export function EditorWorkspace({
   }, [])
 
   const openAssetLibrary = useCallback(() => {
+    setIsComparisonOpen(false)
     setIsAskDocumentOpen(false)
     setIsReviewMode(false)
     setIsSuggestionMode(false)
@@ -298,6 +308,7 @@ export function EditorWorkspace({
   }, [])
 
   const openReviewMode = useCallback(() => {
+    setIsComparisonOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
     setIsSuggestionMode(false)
@@ -318,6 +329,7 @@ export function EditorWorkspace({
   }, [closeComposer])
 
   const openSuggestionMode = useCallback(() => {
+    setIsComparisonOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
     setIsReviewMode(false)
@@ -335,6 +347,27 @@ export function EditorWorkspace({
     setSuggestionPreview(null)
     window.requestAnimationFrame(() => {
       document.getElementById('suggestion-mode-trigger')?.focus()
+    })
+  }, [])
+
+  const openComparison = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    closeComposer()
+    cancelPlacement()
+    setComparisonInitialDocument(api?.getDocumentText() ?? '')
+    setIsComparisonOpen(true)
+  }, [api, cancelPlacement, closeComposer])
+
+  const closeComparison = useCallback(() => {
+    setIsComparisonOpen(false)
+    window.requestAnimationFrame(() => {
+      document.getElementById('comparison-trigger')?.focus()
     })
   }, [])
 
@@ -495,6 +528,13 @@ export function EditorWorkspace({
                     onToggle={() => {
                       if (isSuggestionMode) closeSuggestionMode()
                       else openSuggestionMode()
+                    }}
+                  />
+                  <ComparisonToolbarControl
+                    isActive={isComparisonOpen}
+                    onToggle={() => {
+                      if (isComparisonOpen) closeComparison()
+                      else openComparison()
                     }}
                   />
                 </>
@@ -736,6 +776,26 @@ export function EditorWorkspace({
             {pendingTrackChangeCount}
           </span>
         </button>
+      )}
+      {isComparisonOpen && (
+        <ErrorBoundary compact title="Comparison needs a retry">
+          <Suspense
+            fallback={
+              <div
+                className="fixed inset-0 z-[80] flex items-center justify-center bg-[#f6f6f4]"
+                role="status"
+                aria-label="Loading document comparison"
+              >
+                <LoaderCircle size={22} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden />
+              </div>
+            }
+          >
+            <ComparisonWorkspace
+              initialDocument={comparisonInitialDocument}
+              onClose={closeComparison}
+            />
+          </Suspense>
+        </ErrorBoundary>
       )}
       {config.commandPalette && (
         <CommandPalette
