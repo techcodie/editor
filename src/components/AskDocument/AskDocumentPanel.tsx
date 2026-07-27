@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { ReplacementDiffDialog } from '../../editor/components/ReplacementDiffDialog'
 import { KnowledgeSources } from '../../knowledge'
+import type { PreparedKnowledgeSource } from '../../knowledge/types/source'
 import { cn } from '../../lib/cn'
 import type { EditorApi } from '../../lib/editor-api'
 import type { InternalDocumentEditorEvents } from '../../sdk/events'
@@ -20,10 +21,12 @@ export type AskDocumentCommand =
   | 'upload-source'
   | 'open-preview'
   | 'insert-last-response'
+  | 'add-prepared-source'
 
 export interface AskDocumentCommandRequest {
   id: string
   command: AskDocumentCommand
+  preparedSource?: PreparedKnowledgeSource
 }
 
 export interface AskDocumentPanelProps {
@@ -69,6 +72,7 @@ export function AskDocumentPanel({
     focusInput,
     insertLastResponse,
     openFirstPreview,
+    addPreparedSource,
   } = session
 
   useEffect(() => {
@@ -119,9 +123,16 @@ export function AskDocumentPanel({
             : 'Ask a question before inserting the latest response.',
         )
         break
+      case 'add-prepared-source':
+        if (commandRequest.preparedSource) {
+          addPreparedSource(commandRequest.preparedSource)
+          setCommandNotice(`${commandRequest.preparedSource.name} is ready as an active source.`)
+        }
+        break
     }
   }, [
     commandRequest,
+    addPreparedSource,
     focusInput,
     insertLastResponse,
     isOpen,

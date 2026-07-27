@@ -3,6 +3,7 @@ import {
   CURRENT_DOCUMENT_SOURCE,
   getKnowledgeSourceType,
   type KnowledgeSource,
+  type PreparedKnowledgeSource,
 } from '../types/source'
 import { parseKnowledgeSourceFile } from '../services/fileParser'
 import type { InternalDocumentEditorEvents } from '../../sdk/events'
@@ -90,6 +91,27 @@ export function useKnowledgeSources(events: InternalDocumentEditorEvents) {
     }
   }, [events])
 
+  const addPreparedSource = useCallback((prepared: PreparedKnowledgeSource) => {
+    const source: KnowledgeSource = {
+      id: crypto.randomUUID(),
+      name: prepared.name,
+      type: prepared.type,
+      size: prepared.size,
+      status: 'uploaded',
+      isActive: true,
+      file: prepared.file,
+      parseStatus: 'ready',
+      parsedContent: prepared.text,
+      previewHtml: prepared.html,
+      pageCount: prepared.pageCount,
+    }
+    setSources((current) => [...current, source])
+    events.emit('knowledgeSourceAdded', {
+      source: toKnowledgeSourceEventData(source),
+    })
+    return source
+  }, [events])
+
   const removeSource = useCallback((sourceId: string) => {
     const source = sourcesRef.current.find((item) => item.id === sourceId)
     setSources((current) =>
@@ -124,6 +146,7 @@ export function useKnowledgeSources(events: InternalDocumentEditorEvents) {
   return {
     sources,
     addFiles,
+    addPreparedSource,
     removeSource,
     setSourceActive,
   }

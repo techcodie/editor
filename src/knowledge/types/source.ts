@@ -22,6 +22,16 @@ export interface KnowledgeSource {
   errorMessage?: string
 }
 
+export interface PreparedKnowledgeSource {
+  name: string
+  type: Exclude<KnowledgeSourceType, 'document'>
+  size: number
+  text: string
+  file?: File
+  html?: string
+  pageCount?: number
+}
+
 export const CURRENT_DOCUMENT_SOURCE: KnowledgeSource = {
   id: CURRENT_DOCUMENT_SOURCE_ID,
   name: 'Current Document',
@@ -67,6 +77,8 @@ export function getKnowledgeSourceLabel(type: KnowledgeSourceType): string {
   switch (type) {
     case 'document':
       return 'Editor'
+    case 'image':
+      return 'Image OCR'
     case 'markdown':
       return 'Markdown'
     default:

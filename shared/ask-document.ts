@@ -2,7 +2,13 @@ export const ASK_DOCUMENT_HISTORY_LIMIT = 8
 export const CURRENT_DOCUMENT_SOURCE_ID = 'current-document'
 
 export type AskDocumentHistoryRole = 'user' | 'assistant'
-export type AskDocumentSourceType = 'document' | 'pdf' | 'docx' | 'txt' | 'markdown'
+export type AskDocumentSourceType =
+  | 'document'
+  | 'pdf'
+  | 'docx'
+  | 'txt'
+  | 'markdown'
+  | 'image'
 
 export interface AskDocumentHistoryMessage {
   role: AskDocumentHistoryRole

@@ -19,7 +19,7 @@ export function useWorkspaceSession(
   config: ResolvedDocumentEditorConfig,
   events: InternalDocumentEditorEvents,
 ) {
-  const { sources, addFiles, removeSource, setSourceActive } =
+  const { sources, addFiles, addPreparedSource, removeSource, setSourceActive } =
     useKnowledgeSources(events)
   const { previewSource, previewFocusVersion, openPreview, closePreview } =
     useDocumentPreview(sources, events, config.preview)
@@ -173,6 +173,7 @@ export function useWorkspaceSession(
       sendMessage,
     },
     addFiles,
+    addPreparedSource,
     removeSource: handleRemoveSource,
     setSourceActive,
     openPreview,

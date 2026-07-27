@@ -35,6 +35,7 @@ const SOURCE_TYPES = new Set<AskDocumentSourceType>([
   'docx',
   'txt',
   'markdown',
+  'image',
 ])
 
 function parseHistory(value: unknown): AskDocumentHistoryMessage[] {

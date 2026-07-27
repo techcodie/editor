@@ -5,6 +5,8 @@ import { useAssetInsertion } from '../../assets/hooks/useAssetInsertion'
 import type { Asset } from '../../assets/types/asset'
 import { ComparisonToolbarControl } from '../../comparison/components/ComparisonToolbar'
 import { ExportToolbarControl } from '../../export/components/ExportToolbarControl'
+import { DocumentIntelligenceToolbarControl } from '../../intelligence/components/DocumentIntelligenceToolbarControl'
+import type { PreparedKnowledgeSource } from '../../knowledge/types/source'
 import { PageIndicator } from '../../layout/components/PageIndicator'
 import {
   PageLayoutPanel,
@@ -80,6 +82,11 @@ const ExportDialog = lazy(async () => {
   return { default: module.ExportDialog }
 })
 
+const DocumentImportPanel = lazy(async () => {
+  const module = await import('../../intelligence/components/DocumentImportPanel')
+  return { default: module.DocumentImportPanel }
+})
+
 /**
  * Owns the editor instance and wires it to its UI: it creates the editor, binds
  * the public {@link EditorApi} for the toolbar, and renders the editing surface.
@@ -121,6 +128,8 @@ export function EditorWorkspace({
   const [isComparisonOpen, setIsComparisonOpen] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [isExportLoaded, setIsExportLoaded] = useState(false)
+  const [isIntelligenceOpen, setIsIntelligenceOpen] = useState(false)
+  const [isIntelligenceLoaded, setIsIntelligenceLoaded] = useState(false)
   const [comparisonInitialDocument, setComparisonInitialDocument] = useState('')
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [askDocumentCommand, setAskDocumentCommand] =
@@ -507,6 +516,31 @@ export function EditorWorkspace({
     })
   }, [])
 
+  const openIntelligence = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
+    setIsExportOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    cancelPlacement()
+    closeComposer()
+    setIsIntelligenceLoaded(true)
+    setIsIntelligenceOpen(true)
+  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+
+  const closeIntelligence = useCallback(() => {
+    setIsIntelligenceOpen(false)
+    window.requestAnimationFrame(() => {
+      document.getElementById('document-intelligence-trigger')?.focus()
+    })
+  }, [])
+
   const hideSuggestionSidebar = useCallback(() => {
     setIsSuggestionSidebarOpen(false)
     setSuggestionPreview(null)
@@ -551,6 +585,16 @@ export function EditorWorkspace({
     },
     [openAskDocument],
   )
+
+  const saveIntelligenceSource = useCallback((source: PreparedKnowledgeSource) => {
+    setIsIntelligenceOpen(false)
+    openAskDocument()
+    setAskDocumentCommand({
+      id: crypto.randomUUID(),
+      command: 'add-prepared-source',
+      preparedSource: source,
+    })
+  }, [openAskDocument])
 
   const runWorkspaceCommand = useCallback(
     (command: WorkspaceCommandId) => {
@@ -693,6 +737,13 @@ export function EditorWorkspace({
                     onToggle={() => {
                       if (isExportOpen) closeExport()
                       else openExport()
+                    }}
+                  />
+                  <DocumentIntelligenceToolbarControl
+                    isOpen={isIntelligenceOpen}
+                    onToggle={() => {
+                      if (isIntelligenceOpen) closeIntelligence()
+                      else openIntelligence()
                     }}
                   />
                 </>
@@ -1012,6 +1063,27 @@ export function EditorWorkspace({
               comments={comments}
               trackChanges={changes}
               onClose={closeExport}
+            />
+          </Suspense>
+        </ErrorBoundary>
+      )}
+      {isIntelligenceLoaded && (
+        <ErrorBoundary compact title="Document Intelligence needs a retry">
+          <Suspense
+            fallback={
+              isIntelligenceOpen ? (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-neutral-950/35 backdrop-blur-[2px]" role="status" aria-label="Loading Document Intelligence">
+                  <LoaderCircle size={22} strokeWidth={1.8} className="animate-spin text-white" aria-hidden />
+                </div>
+              ) : null
+            }
+          >
+            <DocumentImportPanel
+              isOpen={isIntelligenceOpen}
+              api={api}
+              canSaveSource={Boolean(config.ai && config.knowledgeSources)}
+              onSaveSource={saveIntelligenceSource}
+              onClose={closeIntelligence}
             />
           </Suspense>
         </ErrorBoundary>

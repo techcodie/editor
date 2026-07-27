@@ -62,7 +62,7 @@ export type DocumentEditorThemeOverrides = {
 export interface KnowledgeSourceEventData {
   id: string
   name: string
-  type: 'document' | 'pdf' | 'docx' | 'txt' | 'markdown'
+  type: 'document' | 'pdf' | 'docx' | 'txt' | 'markdown' | 'image'
   status: 'current' | 'uploaded'
   parseStatus: 'idle' | 'parsing' | 'ready' | 'error'
   size: number

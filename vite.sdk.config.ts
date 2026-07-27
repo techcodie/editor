@@ -21,6 +21,7 @@ const EXTERNAL_PACKAGES = [
   'marked',
   'pdf-lib',
   'pdfjs-dist',
+  'tesseract.js',
 ]
 
 function isExternalDependency(id: string) {

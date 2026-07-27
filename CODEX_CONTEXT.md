@@ -505,6 +505,49 @@ job, and each job keeps its own options and browser-memory result.
 PDF, DOCX, and HTML adapters are separate on-demand chunks. Export jobs and
 repeat-download history remain instance-local browser state.
 
+### Enterprise Document Intelligence Flow
+
+```text
+Document Intelligence Toolbar
+        |
+        v
+Local Import Pipeline
+        |
+        v
+Parser / Lazy OCR / Layout Analyzer
+        |
+        v
+Structured DocumentModel
+        |
+   +----+----+
+   v         v
+Editor API   Knowledge Sources / AI Context
+```
+
+Document Intelligence Phase 1 analyzes local PNG, JPEG, PDF, scanned PDF,
+DOCX, TXT, and Markdown inputs. Digital PDFs and existing document parsers are
+reused; image-only pages load Tesseract.js on demand and retain paragraph-level
+confidence and bounding boxes. The pipeline then classifies layout blocks,
+extracts available metadata, and creates a browser-memory token index and an
+AI-ready context string.
+
+The framework-neutral `DocumentModel` owns pages, blocks, paragraphs, tables,
+images, metadata, recognized text, language, confidence, and search data. The
+responsive import workspace renders original, structure, and text views from
+that model. Explicit insertion uses the Editor API, while saving as a Knowledge
+Source hands the already analyzed text to the existing Ask Document session.
+No UI component imports Tiptap, and no persistent index or backend document
+upload has been introduced.
+
+### Future AI Analysis Architecture
+
+The structured model and local index are the shared input boundary for future
+compliance checks, redaction, risk detection, contract intelligence, invoice
+extraction, form recognition, and semantic search. Those analyzers must consume
+the model instead of introducing format-specific parsing paths. Cloud OCR,
+persistent indexing, and domain-specific extraction remain separate future
+capabilities.
+
 ### Future Print Architecture
 
 The current layout, watermark model, preview, and export renderer establish
@@ -910,11 +953,14 @@ has been introduced.
 - Diff
 - PDF-lib
 - docx
+- Tesseract.js
 
 PDF.js and Mammoth are isolated to client-side Knowledge Source parsing and
 preview rendering. Marked and DOMPurify are also reused by the AI insertion
 normalizer to produce sanitized, schema-compatible editor content. PDF-lib and
 docx are isolated to lazy export adapters for local file generation.
+Tesseract.js is loaded only when an image or scanned PDF page requires OCR;
+digital documents do not load the OCR runtime.
 
 ---
 
@@ -959,6 +1005,11 @@ src/
     preview/             Preview workspace and format-specific viewers
     services/            Local parsers, PDF loading, and AI context building
     types/               Source contracts, validation, and file helpers
+  intelligence/
+    components/          Import workspace, preview modes, progress, and extraction UI
+    hooks/               Import and OCR lifecycles with cancellation
+    services/            Parsing pipeline, OCR, layout, metadata, classification, and index
+    types/               Structured document, OCR, and layout contracts
   layout/
     components/          Layout controls, page overlays, navigation, and preview
     hooks/               Instance-local layout and pagination composition
@@ -1030,7 +1081,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Export Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Document Intelligence Phase 1 Complete**
 
 Completed:
 
@@ -1141,6 +1192,16 @@ Completed:
 - Export content options, estimated size, staged progress, error handling, and
   repeat-download history
 - Lazy-loaded export dialog and PDF, DOCX, and HTML format adapters
+- Local Document Intelligence import for images, PDFs, scanned PDFs, DOCX,
+  TXT, and Markdown
+- Lazy image and scanned-page OCR with recognized text, confidence, and
+  paragraph bounding boxes
+- Framework-neutral structured document model with pages, layout blocks,
+  metadata, local search index, and AI-ready context
+- Original, recognized-structure, and recognized-text preview modes with
+  responsive extraction and metadata summaries
+- Explicit recognized-content insertion through the Editor API and direct
+  handoff to the existing Knowledge Sources session
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -1171,9 +1232,13 @@ overlay. The shared renderer consumes only watermark and page contracts, never
 the editor instance, and uploaded images remain local browser-memory data. No
 watermark persistence layer or print embedding behavior has been added.
 The Export Manager renders one normalized document per job and dispatches it to
-lazy PDF, DOCX, or HTML adapters. PDF-lib and docx are the only new production
+lazy PDF, DOCX, or HTML adapters. PDF-lib and docx remain isolated export
 dependencies. Export results and history remain local to the editor instance;
 no backend, storage provider, or global job service has been introduced.
+Document Intelligence follows the same boundary: parsers and lazy OCR produce
+one `DocumentModel`, the workspace consumes only that model, and editor changes
+go through the Editor API. Tesseract.js is the only new production dependency.
+OCR results, metadata, and search entries remain browser-memory data.
 
 ### Version 1.0 Release Notes
 
@@ -1259,6 +1324,13 @@ These are not missing. Do not implement unless requested.
 - Custom asset and stamp creator
 - Asset persistence and shared favorites
 - QR code and signature authoring tools
+- Cloud and server-side OCR
+- Persistent document intelligence models and search indexes
+- Realtime OCR and background upload queues
+- Multi-language OCR selection and automatic language detection
+- AI risk analysis, compliance checks, and redaction
+- Contract, invoice, and form-specific extraction
+- Semantic search over imported document models
 
 ---
 

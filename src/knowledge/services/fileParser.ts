@@ -132,6 +132,8 @@ function getParsingFailureMessage(type: KnowledgeSourceType): string {
       return 'This Markdown file could not be read.'
     case 'document':
       return 'This document could not be read.'
+    case 'image':
+      return 'This image must be prepared through Document Intelligence.'
   }
 }
 
@@ -151,6 +153,10 @@ async function parseUncachedKnowledgeSourceFile(
         return await parseMarkdown(file)
       case 'document':
         throw new KnowledgeSourceParseError('The current document is previewed in the editor.')
+      case 'image':
+        throw new KnowledgeSourceParseError(
+          'Use Document Intelligence to recognize text in this image.',
+        )
     }
   } catch (error) {
     if (error instanceof KnowledgeSourceParseError) throw error
