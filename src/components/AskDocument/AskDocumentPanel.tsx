@@ -22,11 +22,13 @@ export type AskDocumentCommand =
   | 'open-preview'
   | 'insert-last-response'
   | 'add-prepared-source'
+  | 'ask-question'
 
 export interface AskDocumentCommandRequest {
   id: string
   command: AskDocumentCommand
   preparedSource?: PreparedKnowledgeSource
+  question?: string
 }
 
 export interface AskDocumentPanelProps {
@@ -129,6 +131,12 @@ export function AskDocumentPanel({
           setCommandNotice(`${commandRequest.preparedSource.name} is ready as an active source.`)
         }
         break
+      case 'ask-question':
+        if (commandRequest.question?.trim()) {
+          setCommandNotice(null)
+          void sendMessage(commandRequest.question)
+        }
+        break
     }
   }, [
     commandRequest,
@@ -137,6 +145,7 @@ export function AskDocumentPanel({
     insertLastResponse,
     isOpen,
     openFirstPreview,
+    sendMessage,
   ])
 
   useEffect(() => {

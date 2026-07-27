@@ -6,6 +6,7 @@ import { extname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { handleAskDocument } from './ask-document.js'
 import { handleSelectionAi } from './selection-ai.js'
+import { handleComplianceAnalysis } from './compliance.js'
 
 const MIME_TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
@@ -88,6 +89,10 @@ const server = createServer(async (request, response) => {
   }
   if (request.method === 'POST' && url.pathname === '/api/selection-ai') {
     await handleSelectionAi(request, response)
+    return
+  }
+  if (request.method === 'POST' && url.pathname === '/api/compliance-analysis') {
+    await handleComplianceAnalysis(request, response)
     return
   }
   if (url.pathname.startsWith('/api/')) {

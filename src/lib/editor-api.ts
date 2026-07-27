@@ -143,6 +143,7 @@ export interface EditorApi {
   ): () => void
 
   setSuggestionMode(enabled: boolean): void
+  insertTrackedSuggestion(content: string): boolean
   subscribeTrackChanges(
     listener: (change: EditorTrackChangeDraft) => void,
   ): () => void
@@ -166,6 +167,8 @@ export interface EditorApi {
   setPrintPreviewMode(enabled: boolean): void
 
   getTextSelection(): EditorTextSelection | null
+  findTextSelection(text: string): EditorTextSelection | null
+  focusTextSelection(selection: EditorTextSelection): boolean
   replaceTextSelection(selection: EditorTextSelection, replacement: string): boolean
   clearTextSelection(): void
   focus(): void

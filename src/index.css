@@ -208,6 +208,50 @@
   );
 }
 
+.document-editor-sdk .compliance-panel :where(.bg-neutral-50, .bg-neutral-100) {
+  background-color: color-mix(
+    in srgb,
+    var(--document-editor-surface) 94%,
+    var(--document-editor-text)
+  );
+}
+
+.document-editor-sdk .compliance-panel :where(.text-neutral-600, .text-neutral-700, .text-neutral-800) {
+  color: color-mix(
+    in srgb,
+    var(--document-editor-text) 76%,
+    var(--document-editor-muted-text)
+  );
+}
+
+.document-editor-sdk .compliance-panel :where(.bg-indigo-50, .bg-amber-50, .bg-emerald-50, .bg-orange-50, .bg-red-50) {
+  background-color: color-mix(
+    in srgb,
+    var(--document-editor-surface) 90%,
+    currentcolor
+  );
+}
+
+.document-editor-sdk .compliance-panel .text-indigo-700 {
+  color: color-mix(in srgb, var(--document-editor-text) 58%, #4f46e5);
+}
+
+.document-editor-sdk .compliance-panel .text-amber-800 {
+  color: color-mix(in srgb, var(--document-editor-text) 62%, #d97706);
+}
+
+.document-editor-sdk .compliance-panel .text-emerald-700 {
+  color: color-mix(in srgb, var(--document-editor-text) 58%, #059669);
+}
+
+.document-editor-sdk .compliance-panel .text-orange-800 {
+  color: color-mix(in srgb, var(--document-editor-text) 58%, #ea580c);
+}
+
+.document-editor-sdk .compliance-panel .text-red-700 {
+  color: color-mix(in srgb, var(--document-editor-text) 58%, #dc2626);
+}
+
 .knowledge-preview-content {
   color: #40403d;
   font-size: 0.9375rem;

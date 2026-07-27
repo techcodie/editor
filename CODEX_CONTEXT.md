@@ -152,7 +152,7 @@ registry, dependency injection, UI, runtime service, or global state.
 ### Current AI Request Flow
 
 ```text
-Ask Document UI / Selection AI UI
+Ask Document UI / Selection AI UI / Compliance Engine
                 |
                 v
         Frontend AI Service
@@ -164,13 +164,15 @@ Ask Document UI / Selection AI UI
           Groq Provider
 ```
 
-The two current AI workflows are:
+The three current AI workflows are:
 
 - Ask Document: current document, explicitly active Knowledge Sources, question,
   and recent conversation history.
 - Selection AI: selected text, action, and optional current-document context.
+- Compliance AI: current document and prioritized deterministic findings for
+  optional recommendation enrichment.
 
-Both workflows use the shared streaming transport and return server-sent events.
+All three workflows use the shared streaming transport and return server-sent events.
 The Groq API key remains server-only.
 
 Frontend stream updates are buffered to animation frames before React state is
@@ -539,14 +541,53 @@ Source hands the already analyzed text to the existing Ask Document session.
 No UI component imports Tiptap, and no persistent index or backend document
 upload has been introduced.
 
-### Future AI Analysis Architecture
+### Enterprise Compliance Analysis Flow
 
-The structured model and local index are the shared input boundary for future
-compliance checks, redaction, risk detection, contract intelligence, invoice
-extraction, form recognition, and semantic search. Those analyzers must consume
-the model instead of introducing format-specific parsing paths. Cloud OCR,
-persistent indexing, and domain-specific extraction remain separate future
-capabilities.
+```text
+Compliance Toolbar Control
+        |
+        v
+Compliance Panel
+        |
+        v
+Compliance Engine
+        |
+        v
+Structured DocumentModel
+        |
+   +----+----+
+   v         v
+Local Rules  Optional AI Recommendations
+        |
+        v
+Review / Track Changes / Ask AI / Report Export
+```
+
+Compliance Phase 1 converts live editor text into the existing structured
+`DocumentModel` and runs deterministic checks for missing clauses, empty
+sections, duplicate clauses, placeholders, inconsistent dates, undefined
+terms, broken references, missing signatures, and long paragraphs. Findings
+share one risk model with stable locations, confidence, severity, and advisory
+recommendations. A confidence-weighted quality scorer returns a 0-100 score and
+low, medium, high, or critical document risk.
+
+Results are cached by document fingerprint and analysis reruns incrementally
+while the panel is active. The existing streaming transport and server-only
+Groq provider may enrich the highest-priority findings with grounded proposed
+text through `/api/compliance-analysis`; local analysis remains complete when
+AI is unavailable. The panel never modifies content automatically. Explicit
+actions locate content through the Editor API, create existing review comments,
+create pending tracked insertions or replacements, hand a grounded question to
+Ask Document, or download a standalone advisory HTML report.
+
+### Future Compliance Architecture
+
+The structured model and Compliance Engine contracts are the shared input
+boundary for future GDPR, HIPAA, ISO, SOC 2, company-policy, and legal rule
+packs, plus AI redaction and contract intelligence. Future rule packs must
+produce the current finding model instead of introducing format-specific
+analysis paths. Legal certification, cloud compliance services, persistent
+analysis, and realtime collaborative analysis remain separate capabilities.
 
 ### Future Print Architecture
 
@@ -1081,7 +1122,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Document Intelligence Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Compliance & Risk Analysis Phase 1 Complete**
 
 Completed:
 
@@ -1202,6 +1243,16 @@ Completed:
   responsive extraction and metadata summaries
 - Explicit recognized-content insertion through the Editor API and direct
   handoff to the existing Knowledge Sources session
+- Enterprise Compliance Panel with background progress, severity filters,
+  finding navigation, responsive focus management, and cancellation
+- Deterministic compliance checks for missing clauses, empty sections,
+  duplicates, placeholders, dates, terms, references, signatures, and readability
+- Confidence-weighted 0-100 document quality score and low-to-critical risk level
+- Fingerprint-cached local reports with incremental reanalysis while active
+- Optional Groq-backed recommendation enrichment through the shared AI transport
+- Explicit compliance handoffs to comments, pending tracked suggestions, and
+  grounded Ask Document questions
+- Standalone advisory compliance report export
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -1239,6 +1290,13 @@ Document Intelligence follows the same boundary: parsers and lazy OCR produce
 one `DocumentModel`, the workspace consumes only that model, and editor changes
 go through the Editor API. Tesseract.js is the only new production dependency.
 OCR results, metadata, and search entries remain browser-memory data.
+Compliance analysis consumes the same `DocumentModel`, keeps rule results and
+cache entries in browser memory, and uses the Editor API for all document
+selection and review actions. Its generic governance baseline is advisory, not
+an industry rule pack or legal certification. The direct tracked-insertion
+Editor API command reuses the existing `trackChange` mark and suggestion
+registry for document-level proposed clauses without creating parallel review
+state. No new production dependency was added.
 
 ### Version 1.0 Release Notes
 
@@ -1287,7 +1345,10 @@ These are not missing. Do not implement unless requested.
 - Dynamic watermark fields, QR codes, security hashes, and generated watermarks
 - Page-level background image layout
 - Track-change author and permission providers
-- AI-assisted review and compliance policy checks
+- Industry-specific compliance rule packs for GDPR, HIPAA, ISO, SOC 2, custom
+  company policies, and legal domains
+- Legal certification and cloud compliance services
+- AI redaction and contract intelligence
 - Encrypted and password-protected PDF export
 - Digital signatures and compliance certificates
 - Batch export and background export workers
@@ -1328,7 +1389,7 @@ These are not missing. Do not implement unless requested.
 - Persistent document intelligence models and search indexes
 - Realtime OCR and background upload queues
 - Multi-language OCR selection and automatic language detection
-- AI risk analysis, compliance checks, and redaction
+- Persistent compliance reports and realtime collaborative analysis
 - Contract, invoice, and form-specific extraction
 - Semantic search over imported document models
 

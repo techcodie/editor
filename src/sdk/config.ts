@@ -44,6 +44,7 @@ const DEFAULT_THEME: DocumentEditorTheme = {
 const DEFAULT_AI: Required<DocumentEditorAiConfig> = {
   askDocumentEndpoint: '/api/ask-document',
   selectionEndpoint: '/api/selection-ai',
+  complianceEndpoint: '/api/compliance-analysis',
 }
 
 const CONFIG_KEYS = new Set([
@@ -246,6 +247,12 @@ function resolveAi(value: unknown, warnings: string[]): false | Required<Documen
       ai.selectionEndpoint,
       DEFAULT_AI.selectionEndpoint,
       'ai.selectionEndpoint',
+      warnings,
+    ),
+    complianceEndpoint: validString(
+      ai.complianceEndpoint,
+      DEFAULT_AI.complianceEndpoint,
+      'ai.complianceEndpoint',
       warnings,
     ),
   }

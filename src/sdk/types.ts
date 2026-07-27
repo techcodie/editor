@@ -8,13 +8,15 @@ import type {
 
 export type DocumentEditorContent = string | Record<string, unknown>
 export type DocumentEditorIcon = ComponentType<SVGProps<SVGSVGElement>>
-export type AiWorkflow = 'ask-document' | 'selection'
+export type AiWorkflow = 'ask-document' | 'selection' | 'compliance'
 
 export interface DocumentEditorAiConfig {
   /** Endpoint used by Ask Document. */
   askDocumentEndpoint?: string
   /** Endpoint used by Selection AI. */
   selectionEndpoint?: string
+  /** Endpoint used to enrich local compliance findings. */
+  complianceEndpoint?: string
 }
 
 export interface DocumentEditorIconSlots {
@@ -101,7 +103,7 @@ export interface DocumentEditorEventMap {
   previewOpen: { source: KnowledgeSourceEventData }
   previewClose: { source: KnowledgeSourceEventData }
   error: {
-    scope: 'configuration' | 'plugin' | 'editor' | 'ai' | 'knowledge' | 'preview'
+    scope: 'configuration' | 'plugin' | 'editor' | 'ai' | 'knowledge' | 'preview' | 'compliance'
     message: string
     cause?: unknown
   }

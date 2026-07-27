@@ -1,4 +1,5 @@
 import type { Editor } from '@tiptap/react'
+import { Fragment } from '@tiptap/pm/model'
 import type {
   EditorApi,
   EditorAssetInsertion,
@@ -369,6 +370,47 @@ export function createEditorApi(editor: Editor): EditorApi {
     }
   }
 
+  const insertTrackedSuggestion = (content: string): boolean => {
+    const lines = content
+      .trim()
+      .split(/\r?\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+    const markType = editor.state.schema.marks.trackChange
+    const paragraphType = editor.state.schema.nodes.paragraph
+    if (!lines.length || !markType || !paragraphType) return false
+
+    const changeId = crypto.randomUUID()
+    const mark = markType.create({
+      changeId,
+      changeType: 'insert',
+      segment: 'insertion',
+    })
+    const paragraphs = lines.map((line) =>
+      paragraphType.create(null, editor.state.schema.text(line, [mark])),
+    )
+    const position = editor.state.doc.content.size
+    const transaction = editor.state.tr
+      .setMeta(TRACK_CHANGES_INTERNAL_META, true)
+      .insert(position, Fragment.fromArray(paragraphs))
+    editor.view.dispatch(transaction)
+    const range = findTrackChangeRange(changeId)
+    if (!range) return false
+    const draft = {
+      id: changeId,
+      type: 'insert' as const,
+      createdAt: Date.now(),
+      range,
+      before: '',
+      after: lines.join('\n'),
+    }
+    queueMicrotask(() => {
+      for (const listener of trackChangesStorage.listeners) listener(draft)
+    })
+    editor.chain().focus().setTextSelection(range.to).scrollIntoView().run()
+    return true
+  }
+
   const removeTrackChangeMarks = (
     changeId: string,
     transaction: typeof editor.state.tr,
@@ -445,6 +487,17 @@ export function createEditorApi(editor: Editor): EditorApi {
         bottom: bounds.bottom,
         left: bounds.left,
       },
+    }
+  }
+
+  const selectionBounds = (from: number, to: number) => {
+    const start = editor.view.coordsAtPos(from)
+    const end = editor.view.coordsAtPos(to)
+    return {
+      top: Math.min(start.top, end.top),
+      right: Math.max(start.right, end.right),
+      bottom: Math.max(start.bottom, end.bottom),
+      left: Math.min(start.left, end.left),
     }
   }
 
@@ -619,6 +672,7 @@ export function createEditorApi(editor: Editor): EditorApi {
       if (enabled) editor.view.dom.dataset.suggestionMode = 'enabled'
       else delete editor.view.dom.dataset.suggestionMode
     },
+    insertTrackedSuggestion,
     subscribeTrackChanges: (listener) => {
       trackChangesStorage.listeners.add(listener)
       return () => trackChangesStorage.listeners.delete(listener)
@@ -770,19 +824,39 @@ export function createEditorApi(editor: Editor): EditorApi {
         }
       }
 
-      const start = editor.view.coordsAtPos(from)
-      const end = editor.view.coordsAtPos(to)
       return {
         from,
         to,
         text,
-        bounds: {
-          top: Math.min(start.top, end.top),
-          right: Math.max(start.right, end.right),
-          bottom: Math.max(start.bottom, end.bottom),
-          left: Math.min(start.left, end.left),
-        },
+        bounds: selectionBounds(from, to),
       }
+    },
+    findTextSelection: (text) => {
+      const trimmed = text.trim()
+      const candidates = [
+        trimmed,
+        trimmed.replace(/^#{1,6}\s+/, ''),
+        trimmed.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, ''),
+      ].filter((candidate, index, values) => candidate && values.indexOf(candidate) === index)
+      let found: EditorTextSelection | null = null
+      editor.state.doc.descendants((node, position) => {
+        if (found || !node.isTextblock) return !found
+        for (const candidate of candidates) {
+          const offset = node.textContent.indexOf(candidate)
+          if (offset < 0) continue
+          const from = position + 1 + offset
+          const to = from + candidate.length
+          found = { from, to, text: candidate, bounds: selectionBounds(from, to) }
+          break
+        }
+        return false
+      })
+      return found
+    },
+    focusTextSelection: (selection) => {
+      const currentText = editor.state.doc.textBetween(selection.from, selection.to, '\n')
+      if (currentText !== selection.text) return false
+      return editor.chain().focus().setTextSelection({ from: selection.from, to: selection.to }).scrollIntoView().run()
     },
     replaceTextSelection: (selection, replacement) => {
       const currentText = editor.state.doc.textBetween(selection.from, selection.to, '\n')

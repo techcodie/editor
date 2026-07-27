@@ -72,7 +72,7 @@ function isResponseMetadata(value: unknown): value is AskDocumentResponseMetadat
       typeof item.name === 'string' &&
       item.name.length > 0 &&
       typeof item.type === 'string' &&
-      ['document', 'pdf', 'docx', 'txt', 'markdown'].includes(item.type) &&
+      ['document', 'pdf', 'docx', 'txt', 'markdown', 'image'].includes(item.type) &&
       (item.pageCount === undefined ||
         (typeof item.pageCount === 'number' &&
           Number.isInteger(item.pageCount) &&

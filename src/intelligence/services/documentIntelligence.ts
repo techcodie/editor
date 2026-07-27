@@ -277,6 +277,47 @@ export function analyzeDocument(
   return analyzeUncachedDocument(file, options)
 }
 
+export function createDocumentModelFromText(
+  text: string,
+  title = 'Current document',
+): DocumentModel {
+  const normalizedText = text.trim()
+  const blocks = analyzeTextLayout(normalizedText, { pageNumber: 1 })
+  const pages: DocumentPage[] = [{
+    pageNumber: 1,
+    width: 816,
+    height: 1056,
+    text: normalizedText,
+    confidence: 100,
+    usedOCR: false,
+    blocks,
+  }]
+  const partial = {
+    id: crypto.randomUUID(),
+    pages,
+    blocks,
+    paragraphs: blocks.filter((block) => block.type === 'paragraph'),
+    tables: blocks.filter((block) => block.type === 'table'),
+    images: blocks.filter((block) => block.type === 'image'),
+    metadata: {
+      fileName: title,
+      fileType: 'text' as const,
+      mimeType: 'text/plain',
+      fileSize: new Blob([normalizedText]).size,
+      title,
+      keywords: [],
+      language: 'eng',
+      pageCount: 1,
+    },
+    text: normalizedText,
+    language: 'eng',
+    confidence: 100,
+    layout: summarizeLayout(blocks),
+    searchIndex: buildSearchIndex(blocks),
+  }
+  return { ...partial, aiContext: buildAIContext(partial) }
+}
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll('&', '&amp;')

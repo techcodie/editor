@@ -3,6 +3,11 @@ import { Command, FilePenLine, LoaderCircle, MessageSquareText, MousePointer2, X
 import { AssetToolbarControl } from '../../assets/components/AssetToolbarControl'
 import { useAssetInsertion } from '../../assets/hooks/useAssetInsertion'
 import type { Asset } from '../../assets/types/asset'
+import { ComplianceToolbarControl } from '../../compliance/components/ComplianceToolbarControl'
+import type {
+  ComplianceFinding,
+  ComplianceRecommendation,
+} from '../../compliance/types/compliance'
 import { ComparisonToolbarControl } from '../../comparison/components/ComparisonToolbar'
 import { ExportToolbarControl } from '../../export/components/ExportToolbarControl'
 import { DocumentIntelligenceToolbarControl } from '../../intelligence/components/DocumentIntelligenceToolbarControl'
@@ -87,6 +92,11 @@ const DocumentImportPanel = lazy(async () => {
   return { default: module.DocumentImportPanel }
 })
 
+const CompliancePanel = lazy(async () => {
+  const module = await import('../../compliance/components/CompliancePanel')
+  return { default: module.CompliancePanel }
+})
+
 /**
  * Owns the editor instance and wires it to its UI: it creates the editor, binds
  * the public {@link EditorApi} for the toolbar, and renders the editing surface.
@@ -130,6 +140,8 @@ export function EditorWorkspace({
   const [isExportLoaded, setIsExportLoaded] = useState(false)
   const [isIntelligenceOpen, setIsIntelligenceOpen] = useState(false)
   const [isIntelligenceLoaded, setIsIntelligenceLoaded] = useState(false)
+  const [isComplianceOpen, setIsComplianceOpen] = useState(false)
+  const [isComplianceLoaded, setIsComplianceLoaded] = useState(false)
   const [comparisonInitialDocument, setComparisonInitialDocument] = useState('')
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [askDocumentCommand, setAskDocumentCommand] =
@@ -346,6 +358,7 @@ export function EditorWorkspace({
   }, [api, isSuggestionMode])
 
   const openAskDocument = useCallback(() => {
+    setIsComplianceOpen(false)
     setIsComparisonOpen(false)
     setIsPageLayoutOpen(false)
     setIsWatermarkOpen(false)
@@ -365,6 +378,7 @@ export function EditorWorkspace({
   }, [])
 
   const openAssetLibrary = useCallback(() => {
+    setIsComplianceOpen(false)
     setIsComparisonOpen(false)
     setIsPageLayoutOpen(false)
     setIsWatermarkOpen(false)
@@ -379,6 +393,7 @@ export function EditorWorkspace({
   }, [setIsPageLayoutOpen, setIsWatermarkOpen])
 
   const openReviewMode = useCallback(() => {
+    setIsComplianceOpen(false)
     setIsComparisonOpen(false)
     setIsPageLayoutOpen(false)
     setIsWatermarkOpen(false)
@@ -402,6 +417,7 @@ export function EditorWorkspace({
   }, [closeComposer])
 
   const openSuggestionMode = useCallback(() => {
+    setIsComplianceOpen(false)
     setIsComparisonOpen(false)
     setIsPageLayoutOpen(false)
     setIsWatermarkOpen(false)
@@ -426,6 +442,7 @@ export function EditorWorkspace({
   }, [])
 
   const openComparison = useCallback(() => {
+    setIsComplianceOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
     setIsReviewMode(false)
@@ -449,6 +466,7 @@ export function EditorWorkspace({
   }, [])
 
   const openPageLayout = useCallback(() => {
+    setIsComplianceOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
     setIsReviewMode(false)
@@ -471,6 +489,7 @@ export function EditorWorkspace({
   }, [setIsPageLayoutOpen])
 
   const openWatermark = useCallback(() => {
+    setIsComplianceOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
     setIsReviewMode(false)
@@ -493,6 +512,7 @@ export function EditorWorkspace({
   }, [setIsWatermarkOpen])
 
   const openExport = useCallback(() => {
+    setIsComplianceOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
     setIsReviewMode(false)
@@ -517,6 +537,7 @@ export function EditorWorkspace({
   }, [])
 
   const openIntelligence = useCallback(() => {
+    setIsComplianceOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
     setIsReviewMode(false)
@@ -538,6 +559,32 @@ export function EditorWorkspace({
     setIsIntelligenceOpen(false)
     window.requestAnimationFrame(() => {
       document.getElementById('document-intelligence-trigger')?.focus()
+    })
+  }, [])
+
+  const openCompliance = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
+    setIsExportOpen(false)
+    setIsIntelligenceOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    cancelPlacement()
+    closeComposer()
+    setIsComplianceLoaded(true)
+    setIsComplianceOpen(true)
+  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+
+  const closeCompliance = useCallback(() => {
+    setIsComplianceOpen(false)
+    window.requestAnimationFrame(() => {
+      document.getElementById('compliance-trigger')?.focus()
     })
   }, [])
 
@@ -577,6 +624,60 @@ export function EditorWorkspace({
   }, [cancelPlacement, pendingAsset])
 
   const getDocumentText = useCallback(() => api?.getDocumentText() ?? '', [api])
+
+  const jumpToComplianceFinding = useCallback((finding: ComplianceFinding) => {
+    if (!api || !finding.location.quote) return false
+    const selection = api.findTextSelection(finding.location.quote)
+    return selection ? api.focusTextSelection(selection) : false
+  }, [api])
+
+  const createComplianceComment = useCallback((finding: ComplianceFinding) => {
+    if (!api || !finding.location.quote) return false
+    const selection = api.findTextSelection(finding.location.quote)
+    if (!selection) return false
+    const comment = addComment(selection, `${finding.title}: ${finding.recommendation}`)
+    if (!comment) return false
+    setSelectedCommentId(comment.id)
+    setIsComplianceOpen(false)
+    setIsReviewLoaded(true)
+    setIsReviewMode(true)
+    return true
+  }, [addComment, api])
+
+  const createComplianceSuggestion = useCallback((
+    finding: ComplianceFinding,
+    recommendation?: ComplianceRecommendation,
+  ) => {
+    if (!api) return false
+    const suggestedText = recommendation?.suggestedText ?? finding.suggestedText
+    if (!suggestedText?.trim()) return false
+    const selection = finding.location.quote
+      ? api.findTextSelection(finding.location.quote)
+      : null
+    if (selection) api.setSuggestionMode(true)
+    const didInsert = selection
+      ? api.replaceTextSelection(selection, suggestedText)
+      : api.insertTrackedSuggestion(suggestedText)
+    if (!didInsert) {
+      if (selection) api.setSuggestionMode(false)
+      return false
+    }
+    setIsComplianceOpen(false)
+    setIsSuggestionLoaded(true)
+    setIsSuggestionMode(true)
+    setIsSuggestionSidebarOpen(true)
+    return true
+  }, [api])
+
+  const askAboutComplianceFinding = useCallback((finding: ComplianceFinding) => {
+    if (!config.ai) return
+    openAskDocument()
+    setAskDocumentCommand({
+      id: crypto.randomUUID(),
+      command: 'ask-question',
+      question: `Explain this compliance finding using the current document and recommend a next step: ${finding.title}. ${finding.description}`,
+    })
+  }, [config.ai, openAskDocument])
 
   const requestAskDocumentCommand = useCallback(
     (command: AskDocumentCommandRequest['command']) => {
@@ -746,6 +847,13 @@ export function EditorWorkspace({
                       else openIntelligence()
                     }}
                   />
+                  <ComplianceToolbarControl
+                    isOpen={isComplianceOpen}
+                    onToggle={() => {
+                      if (isComplianceOpen) closeCompliance()
+                      else openCompliance()
+                    }}
+                  />
                 </>
               }
             />
@@ -835,6 +943,29 @@ export function EditorWorkspace({
         </div>
       </div>
       <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">
+        {isComplianceLoaded && (
+          <ErrorBoundary compact title="Compliance analysis needs a retry">
+            <Suspense
+              fallback={
+                <div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[27rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[26rem] lg:rounded-lg lg:border" role="status" aria-label="Loading compliance analysis">
+                  <LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden />
+                </div>
+              }
+            >
+              <CompliancePanel
+                isOpen={isComplianceOpen}
+                api={api}
+                aiEndpoint={config.ai ? config.ai.complianceEndpoint : undefined}
+                events={events}
+                onClose={closeCompliance}
+                onJump={jumpToComplianceFinding}
+                onCreateComment={createComplianceComment}
+                onCreateSuggestion={createComplianceSuggestion}
+                onAskAI={askAboutComplianceFinding}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        )}
         <PageLayoutPanel
           isOpen={isPageLayoutOpen}
           layout={pageLayout}
@@ -969,7 +1100,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
       </div>
-      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && (
+      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && (
         <ErrorBoundary compact title="Selection AI needs a retry">
           <SelectionAi
             api={api}
