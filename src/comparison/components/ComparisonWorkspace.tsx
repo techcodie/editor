@@ -20,6 +20,8 @@ import { ComparisonViewer } from './ComparisonViewer'
 
 interface ComparisonWorkspaceProps {
   initialDocument: string
+  initialLeftDocument?: ComparisonDocument
+  initialRightDocument?: ComparisonDocument
   onClose: () => void
 }
 
@@ -67,7 +69,12 @@ function DocumentInput({ side, document, onChange }: DocumentInputProps) {
   )
 }
 
-export function ComparisonWorkspace({ initialDocument, onClose }: ComparisonWorkspaceProps) {
+export function ComparisonWorkspace({
+  initialDocument,
+  initialLeftDocument,
+  initialRightDocument,
+  onClose,
+}: ComparisonWorkspaceProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const [viewMode, setViewMode] = useState<ComparisonViewMode>('split')
@@ -91,7 +98,7 @@ export function ComparisonWorkspace({ initialDocument, onClose }: ComparisonWork
     setSort,
     setQuery,
     setSelectedChangeId,
-  } = useComparison(initialDocument)
+  } = useComparison(initialDocument, initialLeftDocument, initialRightDocument)
 
   const selectAndJump = useCallback((changeId: string) => {
     setSelectedChangeId(changeId)

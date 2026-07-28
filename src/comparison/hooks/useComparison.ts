@@ -19,24 +19,34 @@ const COMPARISON_AUTHOR: CommentAuthor = {
   name: 'Comparison Engine',
 }
 
-export function useComparison(initialDocument: string) {
-  const [leftDocument, setLeftDocument] = useState<ComparisonDocument>({
+export function useComparison(
+  initialDocument: string,
+  initialLeftDocument?: ComparisonDocument,
+  initialRightDocument?: ComparisonDocument,
+) {
+  const [leftDocument, setLeftDocument] = useState<ComparisonDocument>(initialLeftDocument ?? {
     id: 'left-document',
     name: 'Current document',
     kind: 'document',
     content: initialDocument,
   })
-  const [rightDocument, setRightDocument] = useState<ComparisonDocument>({
+  const [rightDocument, setRightDocument] = useState<ComparisonDocument>(initialRightDocument ?? {
     id: 'right-document',
     name: 'Modified document',
     kind: 'document',
     content: '',
   })
-  const [comparison, setComparison] = useState<DocumentComparison | null>(null)
+  const [comparison, setComparison] = useState<DocumentComparison | null>(() => (
+    initialLeftDocument && initialRightDocument
+      ? compareDocuments(initialLeftDocument, initialRightDocument, COMPARISON_AUTHOR)
+      : null
+  ))
   const [filter, setFilter] = useState<ComparisonFilter>('all')
   const [sort, setSort] = useState<ComparisonSort>('document')
   const [query, setQuery] = useState('')
-  const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null)
+  const [selectedChangeId, setSelectedChangeId] = useState<string | null>(
+    comparison?.changes[0]?.id ?? null,
+  )
 
   const runComparison = useCallback(() => {
     const result = compareDocuments(leftDocument, rightDocument, COMPARISON_AUTHOR)

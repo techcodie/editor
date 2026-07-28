@@ -135,6 +135,7 @@ export interface EditorApi {
 
   getDocumentText(): string
   getDocumentSnapshot(): EditorDocumentNode
+  replaceDocumentSnapshot(snapshot: EditorDocumentNode): boolean
   insertStructuredContent(insertion: EditorStructuredInsertion): boolean
   insertAsset(asset: EditorAssetInsertion): boolean
 

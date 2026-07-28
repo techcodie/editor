@@ -63,6 +63,25 @@ export type {
   FormPreviewState,
   FormValidationError,
 } from './forms/types/form'
+export type {
+  CreateVersionInput,
+  SnapshotCompression,
+  SnapshotEncoding,
+  Version,
+  VersionAuthor,
+  VersionMetadata,
+  VersionSnapshot,
+  VersionSnapshotContent,
+  VersionSource,
+} from './history/types/version'
+export type {
+  HistoryFilter,
+  HistorySort,
+  HistoryStorageAdapter,
+  HistoryStoragePayload,
+  HistoryState,
+  VersionGroup,
+} from './history/types/history'
 export {
   SELECTION_AI_ACTIONS,
   isSelectionAiAction,

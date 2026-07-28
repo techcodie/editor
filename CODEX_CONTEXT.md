@@ -1029,6 +1029,61 @@ document. Builder selection, preview values, validation messages, and panel
 state remain local to the editor workspace; no global form store or submission
 state has been introduced.
 
+Version History uses an instance-scoped storage adapter composed by the editor
+workspace. Timeline filters, restore previews, and comparison state remain
+local to the history panel. Snapshots are document-scoped and do not introduce
+a global store, cloud service, or collaboration state.
+
+### Enterprise Version History Flow
+
+```text
+History Toolbar Control
+        |
+        v
+History Panel / Timeline
+        |
+        v
+Version Manager
+        |
+        v
+Compressed Snapshot Engine
+        |
+        v
+Instance Storage Adapter
+        |
+        v
+Editor API / Existing Comparison Engine
+```
+
+Version History Phase 1 stores named, audit-aware document snapshots through
+an instance-scoped browser storage adapter. Each version records its author,
+time, description, reason, comments, document hash, source, word count,
+bookmark, and favourite state. Full snapshots are gzip-compressed when the
+browser supports it; later snapshots use prefix/suffix deltas when that is
+smaller. Snapshot resolution validates dependency chains, and deleting a base
+snapshot materializes dependent deltas before removal.
+
+History UI communicates with the editor only through the Editor API. The API
+owns whole structured-document replacement during restore. Every restore first
+persists an automatic recovery snapshot of the live document, then resolves
+and applies the selected snapshot. Timeline browsing, search, filters, sorting,
+metadata editing, deletion, portable version export, timeline export, and
+comparison-report export remain explicit user actions.
+
+Saved-version comparisons call the existing Document Comparison Engine and can
+open the existing full comparison workspace with seeded version documents.
+History does not introduce another diff implementation and does not replace
+editor undo or redo.
+
+### Future Collaboration Layer
+
+The storage adapter, snapshot envelope, author metadata, document hash, and
+version manager are the boundaries for future server-backed history,
+multi-user editing, governed workflows, branching, audit services, and
+conflict resolution. Phase 1 remains local and single-user; those capabilities
+must build on these contracts without moving editor access outside the Editor
+API.
+
 ---
 
 ## Tech Stack
@@ -1129,6 +1184,11 @@ src/
     hooks/               Instance-local field list and selection composition
     services/            Registry, defaults, validation, rendering, and serialization
     types/               Form definition, field, validation, and preview contracts
+  history/
+    components/          Timeline, snapshot cards, restore preview, and comparison UI
+    hooks/               Instance-local history lifecycle and persistence composition
+    services/            Version manager, compressed snapshots, storage, and diff adapter
+    types/               Version, metadata, snapshot, storage, filter, and timeline contracts
   comparison/
     components/          Workspace, toolbar, summary, viewers, sidebar, and navigation
     hooks/               Instance-local comparison lifecycle and decisions
@@ -1185,7 +1245,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Form Builder Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Version History Phase 1 Complete**
 
 Completed:
 
@@ -1328,6 +1388,15 @@ Completed:
   interactive standalone HTML form controls
 - Compliance findings for empty labels, duplicate fields, invalid validation,
   and missing required-field configuration
+- Enterprise Version History with named snapshots, timeline grouping, search,
+  filters, sorting, bookmarks, favourites, rename, deletion, and audit metadata
+- Gzip-compressed full snapshots and size-aware incremental delta snapshots
+  with dependency-safe resolution and deletion
+- Restore preview with automatic recovery snapshot creation before every restore
+- Saved-version and current-document comparison through the existing Document
+  Comparison Engine and full comparison workspace
+- Portable version, timeline, and comparison-report exports
+- Instance-scoped browser storage adapter with in-memory fallback
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -1378,6 +1447,12 @@ preview, serializer, export adapters, and compliance checks consume
 framework-neutral field contracts. Preview values remain local and no backend
 submission, authentication, approval, signature, or workflow behavior was
 introduced. No new production dependency was added.
+Version History captures and restores structured content only through the
+Editor API. The snapshot engine, version manager, storage adapter, timeline,
+and comparison adapter consume framework-neutral contracts. Restore always
+creates a recovery point first, while comparisons reuse the existing engine.
+Snapshots remain local to the document instance and no cloud or collaborative
+service was introduced. No new production dependency was added.
 
 ### Version 1.0 Release Notes
 
@@ -1413,8 +1488,8 @@ These are not missing. Do not implement unless requested.
 - Comment author and permission providers
 - Persisted and server-backed tracked changes
 - Realtime suggestion collaboration and conflict handling
-- Version history and legal audit records
-- Persisted comparison sessions and saved version sources
+- Server-backed version history and legal audit records
+- Persisted comparison sessions across devices
 - Three-way document comparison and move detection
 - Comparison report export and audit reporting
 - Native browser printing and print-provider integration
@@ -1477,6 +1552,9 @@ These are not missing. Do not implement unless requested.
 - Persistent compliance reports and realtime collaborative analysis
 - Contract, invoice, and form-specific extraction
 - Semantic search over imported document models
+- Cloud history and multi-user editing
+- Governed version workflows, branching, and conflict resolution
+- Server-side snapshot compaction and retention policies
 
 ---
 

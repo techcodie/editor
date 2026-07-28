@@ -641,6 +641,11 @@ export function createEditorApi(editor: Editor): EditorApi {
         .replace(/\n{3,}/g, '\n\n')
         .trim(),
     getDocumentSnapshot: () => structuredClone(editor.getJSON()) as EditorDocumentNode,
+    replaceDocumentSnapshot: (snapshot) => editor
+      .chain()
+      .focus()
+      .setContent(snapshot, { emitUpdate: true, errorOnInvalidContent: true })
+      .run(),
     insertStructuredContent,
     insertAsset,
     insertFormField: (field) => {

@@ -11,8 +11,11 @@ import type {
 import { ComparisonToolbarControl } from '../../comparison/components/ComparisonToolbar'
 import { ExportToolbarControl } from '../../export/components/ExportToolbarControl'
 import { FormBuilderToolbarControl } from '../../forms/components/FormBuilderToolbarControl'
+import { HistoryToolbarControl } from '../../history/components/HistoryToolbarControl'
+import { historyNamespace } from '../../history/services/historyStorage'
 import { DocumentIntelligenceToolbarControl } from '../../intelligence/components/DocumentIntelligenceToolbarControl'
 import type { PreparedKnowledgeSource } from '../../knowledge/types/source'
+import type { ComparisonDocument, DocumentComparison } from '../../comparison/types/comparison'
 import { PageIndicator } from '../../layout/components/PageIndicator'
 import {
   PageLayoutPanel,
@@ -103,6 +106,11 @@ const FormBuilderPanel = lazy(async () => {
   return { default: module.FormBuilderPanel }
 })
 
+const HistoryPanel = lazy(async () => {
+  const module = await import('../../history/components/HistoryPanel')
+  return { default: module.HistoryPanel }
+})
+
 /**
  * Owns the editor instance and wires it to its UI: it creates the editor, binds
  * the public {@link EditorApi} for the toolbar, and renders the editing surface.
@@ -151,7 +159,12 @@ export function EditorWorkspace({
   const [isFormBuilderOpen, setIsFormBuilderOpen] = useState(false)
   const [isFormBuilderLoaded, setIsFormBuilderLoaded] = useState(false)
   const [formFieldCount, setFormFieldCount] = useState(0)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false)
+  const [historyVersionCount, setHistoryVersionCount] = useState(0)
   const [comparisonInitialDocument, setComparisonInitialDocument] = useState('')
+  const [comparisonInitialLeft, setComparisonInitialLeft] = useState<ComparisonDocument>()
+  const [comparisonInitialRight, setComparisonInitialRight] = useState<ComparisonDocument>()
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [askDocumentCommand, setAskDocumentCommand] =
     useState<AskDocumentCommandRequest | null>(null)
@@ -169,6 +182,10 @@ export function EditorWorkspace({
       : []),
     'focus-editor',
   ]
+  const documentHistoryNamespace = useMemo(
+    () => historyNamespace(JSON.stringify(config.initialContent ?? 'document')),
+    [config.initialContent],
+  )
 
   const recordRecentAsset = useCallback((asset: Asset) => {
     setRecentAssetIds((current) => [
@@ -464,7 +481,7 @@ export function EditorWorkspace({
     })
   }, [])
 
-  const openComparison = useCallback(() => {
+  const openComparison = useCallback((seed?: DocumentComparison) => {
     setIsFormBuilderOpen(false)
     setIsComplianceOpen(false)
     setIsAskDocumentOpen(false)
@@ -479,6 +496,8 @@ export function EditorWorkspace({
     closeComposer()
     cancelPlacement()
     setComparisonInitialDocument(api?.getDocumentText() ?? '')
+    setComparisonInitialLeft(seed?.leftDocument)
+    setComparisonInitialRight(seed?.rightDocument)
     setIsComparisonOpen(true)
   }, [api, cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
 
@@ -643,6 +662,55 @@ export function EditorWorkspace({
       document.getElementById('form-builder-trigger')?.focus()
     })
   }, [])
+
+  const openHistory = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
+    setIsExportOpen(false)
+    setIsIntelligenceOpen(false)
+    setIsComplianceOpen(false)
+    setIsFormBuilderOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    cancelPlacement()
+    closeComposer()
+    setIsHistoryLoaded(true)
+    setIsHistoryOpen(true)
+  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+
+  const closeHistory = useCallback(() => {
+    setIsHistoryOpen(false)
+    window.requestAnimationFrame(() => {
+      document.getElementById('history-trigger')?.focus()
+    })
+  }, [])
+
+  useEffect(() => {
+    if (
+      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
+      isSuggestionMode || isComparisonOpen || isPageLayoutOpen ||
+      isWatermarkOpen || isExportOpen || isIntelligenceOpen ||
+      isComplianceOpen || isFormBuilderOpen
+    ) setIsHistoryOpen(false)
+  }, [
+    isAskDocumentOpen,
+    isAssetLibraryOpen,
+    isReviewMode,
+    isSuggestionMode,
+    isComparisonOpen,
+    isPageLayoutOpen,
+    isWatermarkOpen,
+    isExportOpen,
+    isIntelligenceOpen,
+    isComplianceOpen,
+    isFormBuilderOpen,
+  ])
 
   const hideSuggestionSidebar = useCallback(() => {
     setIsSuggestionSidebarOpen(false)
@@ -918,6 +986,14 @@ export function EditorWorkspace({
                       else openFormBuilder()
                     }}
                   />
+                  <HistoryToolbarControl
+                    isOpen={isHistoryOpen}
+                    versionCount={historyVersionCount}
+                    onToggle={() => {
+                      if (isHistoryOpen) closeHistory()
+                      else openHistory()
+                    }}
+                  />
                 </>
               }
             />
@@ -1007,6 +1083,24 @@ export function EditorWorkspace({
         </div>
       </div>
       <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">
+        {isHistoryLoaded && (
+          <ErrorBoundary compact title="Version history needs a retry">
+            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[29rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[28rem] lg:rounded-lg lg:border" role="status" aria-label="Loading version history"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+              <HistoryPanel
+                isOpen={isHistoryOpen}
+                api={api}
+                author={currentAuthor}
+                storageNamespace={documentHistoryNamespace}
+                onClose={closeHistory}
+                onCountChange={setHistoryVersionCount}
+                onOpenComparison={(result) => {
+                  setIsHistoryOpen(false)
+                  openComparison(result)
+                }}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        )}
         {isFormBuilderLoaded && (
           <ErrorBoundary compact title="Form builder needs a retry">
             <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[28rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[27rem] lg:rounded-lg lg:border" role="status" aria-label="Loading form builder"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
@@ -1176,7 +1270,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
       </div>
-      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && (
+      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && (
         <ErrorBoundary compact title="Selection AI needs a retry">
           <SelectionAi
             api={api}
@@ -1241,6 +1335,8 @@ export function EditorWorkspace({
           >
             <ComparisonWorkspace
               initialDocument={comparisonInitialDocument}
+              initialLeftDocument={comparisonInitialLeft}
+              initialRightDocument={comparisonInitialRight}
               onClose={closeComparison}
             />
           </Suspense>
