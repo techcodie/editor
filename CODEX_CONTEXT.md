@@ -1237,6 +1237,55 @@ GraphRAG, Enterprise RAG, federated retrieval, and cross-workspace search.
 Those providers remain host-owned and must preserve explicit source selection
 and the existing Editor API boundary.
 
+### Enterprise AI Redaction Flow
+
+```text
+Redaction Toolbar
+        |
+        v
+Sensitive Data Panel
+        |
+        v
+Local Detection Pipeline ----> Optional Host AI Detector
+        |
+        v
+Classification and Review
+        |
+   +----+-------------------+
+   v                        v
+Search Exclusion      Export Sanitizer
+                             |
+                             v
+                       PDF / DOCX / HTML
+```
+
+AI Redaction Phase 1 detects common personal, financial, identity, credential,
+medical, company-secret, and confidential-clause data with cached local regex
+and entity rules, plus debounced rescanning while the panel is active. Hosts may
+optionally provide an AI-assisted detector through
+`DocumentEditorAiConfig.redactionDetector`; cloud DLP remains host-owned and is
+not part of this milestone.
+
+Detected and manually selected ranges enter instance-local review records with
+confidence, classification, replacement style, reviewer decision, comments,
+and an immutable audit trail. Adding a record creates a Version History restore
+point. Approving a redaction never changes the editor snapshot: Semantic Search
+indexes a copy with approved ranges excluded, and the shared Export Engine
+sanitizes its rendered document before the PDF, DOCX, or HTML adapter runs.
+
+The public SDK exports framework-neutral detection, classification, review,
+and sanitization contracts plus pure detection and sanitization helpers. UI
+selection and navigation use only the Editor API; no redaction component
+accesses Tiptap.
+
+### Future Enterprise DLP
+
+The AI detector and custom-pattern contracts are the replacement boundaries
+for future Microsoft Purview, Google DLP, AWS Macie, company policy packs,
+legal hold, selective disclosure, role-based visibility, and document labels.
+Permission enforcement, approval-gated exports, realtime monitoring, and cloud
+DLP are intentionally deferred.
+
 ---
 
 ## Tech Stack
@@ -1369,6 +1418,11 @@ src/
     hooks/               Instance-local index, query, preferences, and graph composition
     services/            Embeddings, keyword/semantic/hybrid ranking, linking, graph, and engine
     types/               Search index, result, provider, graph node, edge, and relation contracts
+  redaction/
+    components/          Detection, classification, review, preview, restore, and toolbar UI
+    hooks/               Cancellable scanning and instance-local redaction review state
+    services/            Pattern, entity, classification, review, rendering, and export sanitization
+    types/               Detection, classification, redaction, audit, and provider contracts
   hooks/
     useSpeechRecognition.ts  Native browser speech recognition lifecycle
   services/              Shared AI transport and frame-batched stream updates
@@ -1408,7 +1462,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Semantic Search and Knowledge Graph Phase 1 Complete**
+**Version 1.0 Complete; Enterprise AI Redaction and Sensitive Data Protection Phase 1 Complete**
 
 Completed:
 
@@ -1596,6 +1650,22 @@ Completed:
   Version History snapshots, workflow status, and compliance findings
 - Saved and recent searches, related-document navigation, AI summary handoff,
   source creation, responsive UI, and typed SDK search lifecycle events
+- Enterprise Sensitive Data panel with cancellable background scanning, type
+  filters, confidence scores, manual selection capture, and responsive review UI
+- Local regex and entity detection for personal, identity, financial, medical,
+  credential, company-secret, confidential-clause, and custom policy data
+- Public optional AI-assisted detector contract without a bundled cloud DLP service
+- Public, Internal, Confidential, Restricted, and Highly Confidential classification
+  with minimum-classification validation
+- Black Box, Blur, Mask, Label, Placeholder, and Temporary Hide replacements
+- Explicit approve, reject, reviewer comment, restore, navigation, and sanitized
+  preview workflows with immutable audit entries
+- Automatic Version History restore point for every new redaction review record
+- Shared permanent sanitization of PDF, DOCX, and HTML export copies while the
+  original editor document remains unchanged
+- Semantic Search exclusion for approved redacted ranges
+- Framework-neutral redaction types, detector, sanitizer, and engine helpers in
+  the public SDK surface
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -1728,7 +1798,12 @@ These are not missing. Do not implement unless requested.
 - Industry-specific compliance rule packs for GDPR, HIPAA, ISO, SOC 2, custom
   company policies, and legal domains
 - Legal certification and cloud compliance services
-- AI redaction and contract intelligence
+- Contract intelligence
+- Microsoft Purview, Google DLP, AWS Macie, and cloud DLP providers
+- Realtime sensitive-data monitoring and automatic deletion
+- Redaction permission enforcement, legal hold, selective disclosure, and
+  role-based visibility
+- Document classification labels and approval-gated permanent export
 - Encrypted and password-protected PDF export
 - Digital signatures and compliance certificates
 - Batch export and background export workers

@@ -6,6 +6,7 @@ import type { TrackChange } from '../../review/trackChanges/types/trackChange'
 import type { Watermark } from '../../watermark/types/watermark'
 import type { FormField } from '../../forms/types/field'
 import type { Workflow } from '../../workflow/types/workflow'
+import type { RedactionRecord } from '../../redaction/types/redaction'
 
 export type ExportFormat = 'pdf' | 'docx' | 'html'
 export type ExportStatus =
@@ -54,6 +55,7 @@ export interface ExportSource {
   comments: Comment[]
   trackChanges: TrackChange[]
   workflow: Workflow | null
+  redactions: RedactionRecord[]
 }
 
 export interface ExportRequest {

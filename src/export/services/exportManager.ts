@@ -1,4 +1,5 @@
 import { renderDocument } from './documentRenderer'
+import { sanitizeRenderedDocument } from '../../redaction/services/exportSanitizer'
 import type {
   ExportRequest,
   ExportResult,
@@ -20,7 +21,10 @@ export async function runExport(
 ): Promise<ExportResult> {
   onProgress({ status: 'rendering', progress: 20 })
   await yieldToBrowser()
-  const rendered = renderDocument(request)
+  const rendered = sanitizeRenderedDocument(
+    renderDocument(request),
+    request.source.redactions,
+  )
 
   onProgress({ status: 'generating', progress: 52 })
   await yieldToBrowser()

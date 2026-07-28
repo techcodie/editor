@@ -53,6 +53,8 @@ import { renderCollaboratorDecorations } from '../../collaboration/services/coll
 import type { CollaborationEntityState } from '../../collaboration/services/collaborationEngine'
 import { SearchToolbarControl } from '../../search/components/SearchToolbarControl'
 import type { IndexedDocument } from '../../search/types/search'
+import { RedactionToolbarControl } from '../../redaction/components/RedactionToolbarControl'
+import type { RedactionRecord } from '../../redaction/types/redaction'
 import { useDocumentEditor } from '../../hooks/useDocumentEditor'
 import { useEditorApi } from '../../hooks/useEditorApi'
 import { cn } from '../../lib/cn'
@@ -134,6 +136,11 @@ const SearchPanel = lazy(async () => {
   return { default: module.SearchPanel }
 })
 
+const RedactionPanel = lazy(async () => {
+  const module = await import('../../redaction/components/RedactionPanel')
+  return { default: module.RedactionPanel }
+})
+
 /**
  * Owns the editor instance and wires it to its UI: it creates the editor, binds
  * the public {@link EditorApi} for the toolbar, and renders the editing surface.
@@ -190,6 +197,9 @@ export function EditorWorkspace({
   const [currentWorkflow, setCurrentWorkflow] = useState<Workflow | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isSearchLoaded, setIsSearchLoaded] = useState(false)
+  const [isRedactionOpen, setIsRedactionOpen] = useState(false)
+  const [isRedactionLoaded, setIsRedactionLoaded] = useState(false)
+  const [redactionRecords, setRedactionRecords] = useState<RedactionRecord[]>([])
   const [searchKnowledgeSources, setSearchKnowledgeSources] = useState<KnowledgeSource[]>([])
   const [complianceReport, setComplianceReport] = useState<ComplianceReport | null>(null)
   const [collaborationLayoutTick, setCollaborationLayoutTick] = useState(0)
@@ -835,18 +845,47 @@ export function EditorWorkspace({
     window.requestAnimationFrame(() => document.getElementById('semantic-search-trigger')?.focus())
   }, [])
 
+  const openRedaction = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
+    setIsExportOpen(false)
+    setIsIntelligenceOpen(false)
+    setIsComplianceOpen(false)
+    setIsFormBuilderOpen(false)
+    setIsHistoryOpen(false)
+    setIsWorkflowOpen(false)
+    setIsSearchOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    cancelPlacement()
+    closeComposer()
+    setIsRedactionLoaded(true)
+    setIsRedactionOpen(true)
+  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+
+  const closeRedaction = useCallback(() => {
+    setIsRedactionOpen(false)
+    window.requestAnimationFrame(() => document.getElementById('redaction-trigger')?.focus())
+  }, [])
+
   useEffect(() => {
     if (
       isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
       isSuggestionMode || isComparisonOpen || isPageLayoutOpen ||
       isWatermarkOpen || isExportOpen || isIntelligenceOpen ||
-      isComplianceOpen || isFormBuilderOpen || isHistoryOpen || isWorkflowOpen
+      isComplianceOpen || isFormBuilderOpen || isHistoryOpen || isWorkflowOpen || isRedactionOpen
     ) setIsSearchOpen(false)
   }, [
     isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
     isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
     isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
-    isWorkflowOpen,
+    isWorkflowOpen, isRedactionOpen,
   ])
 
   useEffect(() => {
@@ -854,7 +893,7 @@ export function EditorWorkspace({
       isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
       isSuggestionMode || isComparisonOpen || isPageLayoutOpen ||
       isWatermarkOpen || isExportOpen || isIntelligenceOpen ||
-      isComplianceOpen || isFormBuilderOpen || isWorkflowOpen
+      isComplianceOpen || isFormBuilderOpen || isWorkflowOpen || isRedactionOpen
     ) setIsHistoryOpen(false)
   }, [
     isAskDocumentOpen,
@@ -868,7 +907,7 @@ export function EditorWorkspace({
     isIntelligenceOpen,
     isComplianceOpen,
     isFormBuilderOpen,
-    isWorkflowOpen,
+    isWorkflowOpen, isRedactionOpen,
   ])
 
   useEffect(() => {
@@ -876,12 +915,27 @@ export function EditorWorkspace({
       isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
       isSuggestionMode || isComparisonOpen || isPageLayoutOpen ||
       isWatermarkOpen || isExportOpen || isIntelligenceOpen ||
-      isComplianceOpen || isFormBuilderOpen || isHistoryOpen
+      isComplianceOpen || isFormBuilderOpen || isHistoryOpen || isRedactionOpen
     ) setIsWorkflowOpen(false)
   }, [
     isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
     isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
+    isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen, isRedactionOpen,
+  ])
+
+  useEffect(() => {
+    if (
+      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
+      isSuggestionMode || isComparisonOpen || isPageLayoutOpen ||
+      isWatermarkOpen || isExportOpen || isIntelligenceOpen ||
+      isComplianceOpen || isFormBuilderOpen || isHistoryOpen ||
+      isWorkflowOpen || isSearchOpen
+    ) setIsRedactionOpen(false)
+  }, [
+    isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
+    isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
     isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
+    isWorkflowOpen, isSearchOpen,
   ])
 
   const hideSuggestionSidebar = useCallback(() => {
@@ -1249,6 +1303,14 @@ export function EditorWorkspace({
                       else openSearch()
                     }}
                   />
+                  <RedactionToolbarControl
+                    isOpen={isRedactionOpen}
+                    count={redactionRecords.filter((record) => record.decision === 'pending').length}
+                    onToggle={() => {
+                      if (isRedactionOpen) closeRedaction()
+                      else openRedaction()
+                    }}
+                  />
                 </>
               }
             />
@@ -1349,6 +1411,21 @@ export function EditorWorkspace({
         </div>
       </div>
       <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">
+        {isRedactionLoaded && (
+          <ErrorBoundary compact title="Redaction review needs a retry">
+            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[30rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[29rem] lg:rounded-lg lg:border" role="status" aria-label="Loading redaction review"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+              <RedactionPanel
+                isOpen={isRedactionOpen}
+                api={api}
+                namespace={documentHistoryNamespace}
+                author={currentAuthor}
+                aiProvider={config.ai ? config.ai.redactionDetector : undefined}
+                onClose={closeRedaction}
+                onRecordsChange={setRedactionRecords}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        )}
         {isSearchLoaded && (
           <ErrorBoundary compact title="Semantic search needs a retry">
             <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[31rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[30rem] lg:rounded-lg lg:border" role="status" aria-label="Loading semantic search"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
@@ -1365,6 +1442,7 @@ export function EditorWorkspace({
                 onOpenDocument={openSearchDocument}
                 onAddKnowledgeSource={addSearchKnowledgeSource}
                 onAskAI={askAIAboutSearchResults}
+                redactions={redactionRecords}
               />
             </Suspense>
           </ErrorBoundary>
@@ -1574,7 +1652,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
       </div>
-      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && !isSearchOpen && (
+      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && !isSearchOpen && !isRedactionOpen && (
         <ErrorBoundary compact title="Selection AI needs a retry">
           <SelectionAi
             api={api}
@@ -1670,6 +1748,7 @@ export function EditorWorkspace({
               comments={comments}
               trackChanges={changes}
               workflow={currentWorkflow}
+              redactions={redactionRecords}
               onClose={closeExport}
             />
           </Suspense>

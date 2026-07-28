@@ -7,6 +7,8 @@ import type { KnowledgeSource } from '../../knowledge/types/source'
 import type { EditorApi } from '../../lib/editor-api'
 import type { InternalDocumentEditorEvents } from '../../sdk/events'
 import type { Workflow } from '../../workflow/types/workflow'
+import { excludeRedactedText } from '../../redaction/services/exportSanitizer'
+import type { RedactionRecord } from '../../redaction/types/redaction'
 import { createSearchEngine } from '../services/searchEngine'
 import type {
   IndexedDocument,
@@ -31,6 +33,7 @@ interface UseSearchOptions {
   workflow: Workflow | null
   complianceFindings: ComplianceFinding[]
   events: InternalDocumentEditorEvents
+  redactions?: RedactionRecord[]
 }
 
 interface StoredSearchPreferences {
@@ -88,6 +91,7 @@ export function useSearch({
   workflow,
   complianceFindings,
   events,
+  redactions = [],
 }: UseSearchOptions) {
   const engineRef = useRef(createSearchEngine())
   const indexControllerRef = useRef<AbortController | null>(null)
@@ -155,7 +159,7 @@ export function useSearch({
 
   const inputs = useMemo<SearchIndexInput[]>(() => {
     void documentTick
-    const currentText = api?.getDocumentText().trim() ?? ''
+    const currentText = excludeRedactedText(api?.getDocumentText() ?? '', redactions).trim()
     const currentTitle = documentTitle(currentText)
     const current: SearchIndexInput[] = currentText ? [{
       id: 'current-document',
@@ -198,7 +202,7 @@ export function useSearch({
       }]
     })
     return [...current, ...findings, ...sources, ...historyInputs]
-  }, [api, complianceFindings, documentTick, historyInputs, knowledgeSources, workflow?.status])
+  }, [api, complianceFindings, documentTick, historyInputs, knowledgeSources, redactions, workflow?.status])
 
   const executeSearch = useCallback(async (
     nextQuery = query,

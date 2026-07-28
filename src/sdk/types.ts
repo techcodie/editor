@@ -8,6 +8,7 @@ import type {
 } from '../collaboration/types/collaboration'
 import type { Collaborator } from '../collaboration/types/presence'
 import type { SearchMode } from '../search/types/search'
+import type { AiDetectionProvider } from '../redaction/types/detection'
 import type {
   EditorApi,
   EditorInsertionTarget,
@@ -25,6 +26,15 @@ export interface DocumentEditorAiConfig {
   selectionEndpoint?: string
   /** Endpoint used to enrich local compliance findings. */
   complianceEndpoint?: string
+  /** Optional host-provided detector used after local redaction rules. */
+  redactionDetector?: AiDetectionProvider
+}
+
+export interface ResolvedDocumentEditorAiConfig {
+  askDocumentEndpoint: string
+  selectionEndpoint: string
+  complianceEndpoint: string
+  redactionDetector?: AiDetectionProvider
 }
 
 export interface DocumentEditorIconSlots {
@@ -209,7 +219,7 @@ export interface ResolvedDocumentEditorConfig {
   readonly: boolean
   toolbar: boolean
   voice: boolean
-  ai: false | Required<DocumentEditorAiConfig>
+  ai: false | ResolvedDocumentEditorAiConfig
   knowledgeSources: boolean
   preview: boolean
   streaming: boolean

@@ -47,7 +47,7 @@ const DEFAULT_THEME: DocumentEditorTheme = {
   },
 }
 
-const DEFAULT_AI: Required<DocumentEditorAiConfig> = {
+const DEFAULT_AI: Omit<Required<DocumentEditorAiConfig>, 'redactionDetector'> = {
   askDocumentEndpoint: '/api/ask-document',
   selectionEndpoint: '/api/selection-ai',
   complianceEndpoint: '/api/compliance-analysis',
@@ -238,7 +238,7 @@ function mergeTheme(
   }
 }
 
-function resolveAi(value: unknown, warnings: string[]): false | Required<DocumentEditorAiConfig> {
+function resolveAi(value: unknown, warnings: string[]): ResolvedDocumentEditorConfig['ai'] {
   if (value === false) return false
   if (value === undefined || value === true) return { ...DEFAULT_AI }
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -266,6 +266,9 @@ function resolveAi(value: unknown, warnings: string[]): false | Required<Documen
       'ai.complianceEndpoint',
       warnings,
     ),
+    redactionDetector: typeof ai.redactionDetector?.detect === 'function'
+      ? ai.redactionDetector
+      : undefined,
   }
 }
 

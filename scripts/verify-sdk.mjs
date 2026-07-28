@@ -10,14 +10,21 @@ const sdk = await import(new URL('../dist-sdk/index.js', import.meta.url))
 const expectedRuntimeExports = [
   'DocumentEditor',
   'SELECTION_AI_ACTIONS',
+  'clearDetectionCache',
   'createBroadcastChannelTransport',
   'createEditor',
   'createLocalEmbeddingProvider',
+  'createRedaction',
   'createSearchEngine',
   'createWebSocketTransport',
+  'detectSensitiveData',
+  'excludeRedactedText',
   'getDefaultDocumentEditorTheme',
   'isSelectionAiAction',
+  'replacementFor',
   'resolveDocumentEditorConfig',
+  'sanitizeTextForExport',
+  'summarizeRedactions',
   'validateDocumentEditorConfig',
 ]
 

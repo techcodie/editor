@@ -26,6 +26,7 @@ export type {
   DocumentEditorThemeOverrides,
   KnowledgeSourceEventData,
   ResolvedDocumentEditorConfig,
+  ResolvedDocumentEditorAiConfig,
 } from './sdk/types'
 export {
   createBroadcastChannelTransport,
@@ -80,6 +81,28 @@ export type {
   KnowledgeNodeType,
   RelatedDocument,
 } from './search/types/knowledgeGraph'
+export { detectSensitiveData, clearDetectionCache } from './redaction/services/detectionEngine'
+export { sanitizeTextForExport, excludeRedactedText } from './redaction/services/exportSanitizer'
+export { createRedaction, replacementFor, summarizeRedactions } from './redaction/services/redactionEngine'
+export type {
+  AiDetectionProvider,
+  CustomDetectionPattern,
+  DetectionOptions,
+  DetectionProgress,
+  DetectionRange,
+  DetectionSource,
+  SensitiveDataDetection,
+  SensitiveDataType,
+} from './redaction/types/detection'
+export type {
+  ClassificationLevel,
+  RedactionAuditEntry,
+  RedactionComment,
+  RedactionDecision,
+  RedactionRecord,
+  RedactionStyle,
+  RedactionSummary,
+} from './redaction/types/redaction'
 export type {
   EditorApi,
   EditorAssetInsertion,

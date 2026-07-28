@@ -7,6 +7,7 @@ import type { Comment } from '../../review/types/comment'
 import type { TrackChange } from '../../review/trackChanges/types/trackChange'
 import type { Watermark } from '../../watermark/types/watermark'
 import type { Workflow } from '../../workflow/types/workflow'
+import type { RedactionRecord } from '../../redaction/types/redaction'
 import { useExport } from '../hooks/useExport'
 import { formatBytes } from '../services/exportManager'
 import {
@@ -30,6 +31,7 @@ interface ExportDialogProps {
   comments: Comment[]
   trackChanges: TrackChange[]
   workflow: Workflow | null
+  redactions: RedactionRecord[]
   onClose: () => void
 }
 
@@ -47,6 +49,7 @@ export function ExportDialog({
   comments,
   trackChanges,
   workflow,
+  redactions,
   onClose,
 }: ExportDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -77,6 +80,7 @@ export function ExportDialog({
         comments,
         trackChanges,
         workflow,
+        redactions,
       },
     }
   }

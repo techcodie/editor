@@ -5,6 +5,7 @@ import type { KnowledgeSource, PreparedKnowledgeSource } from '../../knowledge/t
 import type { EditorApi } from '../../lib/editor-api'
 import type { InternalDocumentEditorEvents } from '../../sdk/events'
 import type { Workflow } from '../../workflow/types/workflow'
+import type { RedactionRecord } from '../../redaction/types/redaction'
 import { useSearch } from '../hooks/useSearch'
 import type { IndexedDocument, SavedSearch, SearchMode } from '../types/search'
 import { EmbeddingStatus } from './EmbeddingStatus'
@@ -33,15 +34,16 @@ interface SearchPanelProps {
   onOpenDocument: (document: IndexedDocument) => void
   onAddKnowledgeSource: (source: PreparedKnowledgeSource) => void
   onAskAI: (documents: IndexedDocument[], query: string) => void
+  redactions?: RedactionRecord[]
 }
 
-export function SearchPanel({ isOpen, api, namespace, knowledgeSources, workflow, complianceFindings, aiEnabled, events, onClose, onOpenDocument, onAddKnowledgeSource, onAskAI }: SearchPanelProps) {
+export function SearchPanel({ isOpen, api, namespace, knowledgeSources, workflow, complianceFindings, aiEnabled, events, onClose, onOpenDocument, onAddKnowledgeSource, onAskAI, redactions }: SearchPanelProps) {
   const panelRef = useRef<HTMLElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [view, setView] = useState<SearchView>('results')
   const [relatedSourceId, setRelatedSourceId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const search = useSearch({ api, active: isOpen, namespace, knowledgeSources, workflow, complianceFindings, events })
+  const search = useSearch({ api, active: isOpen, namespace, knowledgeSources, workflow, complianceFindings, events, redactions })
   const visibleResults = useMemo(() => {
     const results = search.response?.results ?? []
     return [...results].toSorted((left, right) => {
