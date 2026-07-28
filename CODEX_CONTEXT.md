@@ -118,8 +118,8 @@ Version 1.0 exposes one package root, `@techcodie/editor`, with:
 - `createEditor(config)` for creating an instance-scoped controller.
 - Configuration validation and default-theme helpers.
 - Framework-neutral Editor API types.
-- Typed configuration, event, plugin, theme, AI, knowledge-source, and
-  collaboration contracts.
+- Typed configuration, event, plugin, theme, AI, knowledge-source,
+  collaboration, search, embedding, and knowledge-graph contracts.
 - Selection AI action constants and validation.
 
 Package export maps allow only the root API, `styles.css`, and package metadata.
@@ -142,7 +142,8 @@ Each controller owns a typed event target. Public callbacks and `events.on`
 cover editor readiness and changes, selection changes, AI request and response
 lifecycle, insertions, Knowledge Source add/remove/activation, preview open and
 close, collaboration status and presence changes, and errors. Events expose
-public data contracts only.
+public data contracts only. Semantic Search also emits index-size and
+completed-query events without exposing indexed document content.
 
 ### Plugin Architecture
 
@@ -1183,6 +1184,59 @@ Automerge, offline queues, presence recording, playback, and session replay can
 be added behind those contracts without moving editor access outside the
 Editor API or creating a parallel review model.
 
+### Enterprise Semantic Search Flow
+
+```text
+Search Toolbar
+        |
+        v
+Semantic Search Panel
+        |
+        v
+Instance Search Engine
+        |
+   +----+----------------+----------------+
+   v                     v                v
+Keyword Ranking   Embedding Provider   Metadata Ranking
+   |                     |                |
+   +---------------------+----------------+
+                         |
+                         v
+                  Knowledge Graph
+                         |
+                         v
+Document Intelligence / Knowledge Sources / History / Workflow / Editor API
+```
+
+Semantic Search Phase 1 incrementally indexes the current document, ready
+Knowledge Sources, up to sixty local Version History snapshots, workflow
+status, and available compliance findings. Keyword relevance, deterministic
+local feature-hash embeddings, document recency, and graph relationships are
+combined by the hybrid ranking engine. Search results expose snippets,
+relevance, matched topics, source metadata, related documents, pinning, recent
+queries, and saved queries.
+
+The knowledge graph links documents, sections, obligation-like clauses,
+entities, references, shared topics, and Knowledge Sources. Graph rendering is
+requested explicitly and remains local to the editor instance. Result actions
+reuse the Editor API, Ask Document, Knowledge Sources, and Version History
+surfaces; the search module does not access Tiptap or duplicate AI transport,
+document parsing, snapshot resolution, or source management.
+
+The public SDK exports the framework-neutral `createSearchEngine`, local
+embedding provider, index/search contracts, and graph contracts. Hosts may
+replace the embedding provider without changing indexing or UI composition.
+No cloud vector database, external search provider, distributed index, or new
+production dependency was introduced.
+
+### Future Enterprise Retrieval
+
+The embedding-provider and search-engine contracts are the boundaries for
+future Pinecone, Weaviate, Qdrant, pgvector, OpenSearch, Azure AI Search,
+GraphRAG, Enterprise RAG, federated retrieval, and cross-workspace search.
+Those providers remain host-owned and must preserve explicit source selection
+and the existing Editor API boundary.
+
 ---
 
 ## Tech Stack
@@ -1310,6 +1364,11 @@ src/
       hooks/             Instance-local suggestion lifecycle and decisions
       services/          Change registry, filtering, labels, and date helpers
       types/             Change model, decisions, filters, and sorting contracts
+  search/
+    components/          Search panel, results, filters, graph, related documents, and status UI
+    hooks/               Instance-local index, query, preferences, and graph composition
+    services/            Embeddings, keyword/semantic/hybrid ranking, linking, graph, and engine
+    types/               Search index, result, provider, graph node, edge, and relation contracts
   hooks/
     useSpeechRecognition.ts  Native browser speech recognition lifecycle
   services/              Shared AI transport and frame-batched stream updates
@@ -1349,7 +1408,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Real-time Collaboration Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Semantic Search and Knowledge Graph Phase 1 Complete**
 
 Completed:
 
@@ -1525,13 +1584,25 @@ Completed:
 - Automatic deduplicated Version History checkpoints after remote edits settle
 - Public collaboration configuration, presence and status events, transport
   contracts, and framework-neutral editor selection geometry
+- Instance-scoped Semantic Search Engine with incremental local indexing and
+  cached query results
+- Keyword, semantic, hybrid, recent, related-document, and Knowledge Source
+  search modes with filters, snippets, relevance scores, topics, and pinning
+- Deterministic local feature-hash embeddings behind an injectable public
+  `EmbeddingProvider` contract
+- Knowledge graph relationships across documents, sections, clauses, entities,
+  references, shared topics, and Knowledge Sources
+- Search integration with current editor content, parsed Knowledge Sources,
+  Version History snapshots, workflow status, and compliance findings
+- Saved and recent searches, related-document navigation, AI summary handoff,
+  source creation, responsive UI, and typed SDK search lifecycle events
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
 dedicated context builder to create structured Ask Document requests. Prompt
-formatting and response-source metadata remain server-side. Evidence is
-source-level transparency for the exact request context; no embeddings,
-retrieval, semantic claim matching, or source persistence has been introduced.
+formatting and response-source metadata remain server-side. Evidence remains
+source-level transparency for the exact request context; Semantic Search does
+not change citation behavior or persist source content.
 AI insertion remains independent of Ask Document presentation and reaches
 Tiptap only through the Editor API. The command palette coordinates existing
 local callbacks and reaches editor behavior only through the Editor API; no
@@ -1594,6 +1665,12 @@ shares annotation metadata, and schedules checkpoint snapshots. Its default
 browser channel is demo and local-development infrastructure; production
 identity, permissions, persistence, and WebSocket routing remain host-owned. No
 new production dependency was added.
+Semantic Search composes existing Document Intelligence, Knowledge Sources,
+History, Workflow, Compliance, Ask Document, and Editor API contracts. Its
+index, embeddings, query cache, graph, pinned results, and saved searches remain
+local to the editor instance or document-scoped browser storage. The default
+embedding provider is deterministic local retrieval infrastructure, not an AI
+model or hosted vector service. No new production dependency was added.
 
 ### Version 1.0 Release Notes
 
@@ -1658,7 +1735,6 @@ These are not missing. Do not implement unless requested.
 - Cloud storage providers, shared links, and email delivery
 - Persistent export history and server-side export jobs
 - Print queues and managed print providers
-- Search
 - Persistence
 - Autosave
 - Multi-document support
@@ -1666,13 +1742,12 @@ These are not missing. Do not implement unless requested.
 - Prompt customization
 - Inline AI editing
 - Automatic AI replacement
-- RAG
-- Embeddings
+- Hosted and generative RAG
+- Cloud embedding providers and model-generated embeddings
 - Multiple selections
 - Claim-level and passage-level citations
 - Exact evidence-section highlighting
 - Backend knowledge source upload and persistence
-- Knowledge source search
 - Insert knowledge source content into the editor
 - Voice conversation
 - AI voice replies
@@ -1694,7 +1769,9 @@ These are not missing. Do not implement unless requested.
 - Multi-language OCR selection and automatic language detection
 - Persistent compliance reports and realtime collaborative analysis
 - Contract, invoice, and form-specific extraction
-- Semantic search over imported document models
+- Cloud vector databases including Pinecone, Weaviate, Qdrant, and pgvector
+- OpenSearch and Azure AI Search providers
+- GraphRAG, Enterprise RAG, federated search, and cross-workspace retrieval
 - Cloud history and multi-user editing
 - Governed version workflows, branching, and conflict resolution
 - Server-side snapshot compaction and retention policies

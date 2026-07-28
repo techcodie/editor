@@ -51,6 +51,35 @@ export type {
   CollaborationRange,
   CollaborationUser,
 } from './collaboration/types/presence'
+export { createLocalEmbeddingProvider } from './search/services/embeddingEngine'
+export { createSearchEngine } from './search/services/searchEngine'
+export type { SemanticSearchEngine } from './search/services/searchEngine'
+export type {
+  EmbeddingProvider,
+  IndexedDocument,
+  RecentSearch,
+  SavedSearch,
+  SearchDocumentKind,
+  SearchDocumentMetadata,
+  SearchEngineOptions,
+  SearchFiltersState,
+  SearchIndexInput,
+  SearchMode,
+  SearchProgress,
+  SearchRequest,
+  SearchResponse,
+  SearchResult,
+  SearchScoreBreakdown,
+  SearchSection,
+} from './search/types/search'
+export type {
+  KnowledgeEdgeType,
+  KnowledgeGraph,
+  KnowledgeGraphEdge,
+  KnowledgeGraphNode,
+  KnowledgeNodeType,
+  RelatedDocument,
+} from './search/types/knowledgeGraph'
 export type {
   EditorApi,
   EditorAssetInsertion,

@@ -114,7 +114,9 @@ stop()
 | `previewClose` | `onPreviewClose` | Source preview closed |
 | `collaborationStatus` | `onCollaborationStatus` | Connection or sync state changed |
 | `collaboratorsChange` | `onCollaboratorsChange` | Live presence list changed |
-| `error` | `onError` | Configuration, plugin, editor, AI, source, preview, or collaboration error |
+| `searchIndexChange` | `onSearchIndexChange` | Local document index or graph changed |
+| `search` | `onSearch` | Search completed with count and timing |
+| `error` | `onError` | Configuration, plugin, editor, AI, source, preview, collaboration, or search error |
 
 Callbacks and `events.on` use the same event target. Throwing inside a
 non-error handler emits an `error` event rather than breaking the editor.

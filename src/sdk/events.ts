@@ -28,6 +28,8 @@ const CALLBACK_EVENTS = {
   onPreviewClose: 'previewClose',
   onCollaborationStatus: 'collaborationStatus',
   onCollaboratorsChange: 'collaboratorsChange',
+  onSearchIndexChange: 'searchIndexChange',
+  onSearch: 'search',
   onError: 'error',
 } as const satisfies Record<keyof DocumentEditorCallbacks, DocumentEditorEventName>
 

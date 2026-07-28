@@ -12,6 +12,8 @@ const expectedRuntimeExports = [
   'SELECTION_AI_ACTIONS',
   'createBroadcastChannelTransport',
   'createEditor',
+  'createLocalEmbeddingProvider',
+  'createSearchEngine',
   'createWebSocketTransport',
   'getDefaultDocumentEditorTheme',
   'isSelectionAiAction',

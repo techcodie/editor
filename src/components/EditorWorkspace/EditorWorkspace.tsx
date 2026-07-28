@@ -6,6 +6,7 @@ import type { Asset } from '../../assets/types/asset'
 import { ComplianceToolbarControl } from '../../compliance/components/ComplianceToolbarControl'
 import type {
   ComplianceFinding,
+  ComplianceReport,
   ComplianceRecommendation,
 } from '../../compliance/types/compliance'
 import { ComparisonToolbarControl } from '../../comparison/components/ComparisonToolbar'
@@ -14,7 +15,7 @@ import { FormBuilderToolbarControl } from '../../forms/components/FormBuilderToo
 import { HistoryToolbarControl } from '../../history/components/HistoryToolbarControl'
 import { historyNamespace } from '../../history/services/historyStorage'
 import { DocumentIntelligenceToolbarControl } from '../../intelligence/components/DocumentIntelligenceToolbarControl'
-import type { PreparedKnowledgeSource } from '../../knowledge/types/source'
+import type { KnowledgeSource, PreparedKnowledgeSource } from '../../knowledge/types/source'
 import type { ComparisonDocument, DocumentComparison } from '../../comparison/types/comparison'
 import { PageIndicator } from '../../layout/components/PageIndicator'
 import {
@@ -50,6 +51,8 @@ import { SelectionLayer } from '../../collaboration/components/SelectionLayer'
 import { useCollaboration } from '../../collaboration/hooks/useCollaboration'
 import { renderCollaboratorDecorations } from '../../collaboration/services/collaborationRenderer'
 import type { CollaborationEntityState } from '../../collaboration/services/collaborationEngine'
+import { SearchToolbarControl } from '../../search/components/SearchToolbarControl'
+import type { IndexedDocument } from '../../search/types/search'
 import { useDocumentEditor } from '../../hooks/useDocumentEditor'
 import { useEditorApi } from '../../hooks/useEditorApi'
 import { cn } from '../../lib/cn'
@@ -126,6 +129,11 @@ const WorkflowPanel = lazy(async () => {
   return { default: module.WorkflowPanel }
 })
 
+const SearchPanel = lazy(async () => {
+  const module = await import('../../search/components/SearchPanel')
+  return { default: module.SearchPanel }
+})
+
 /**
  * Owns the editor instance and wires it to its UI: it creates the editor, binds
  * the public {@link EditorApi} for the toolbar, and renders the editing surface.
@@ -180,6 +188,10 @@ export function EditorWorkspace({
   const [isWorkflowOpen, setIsWorkflowOpen] = useState(false)
   const [isWorkflowLoaded, setIsWorkflowLoaded] = useState(false)
   const [currentWorkflow, setCurrentWorkflow] = useState<Workflow | null>(null)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [isSearchLoaded, setIsSearchLoaded] = useState(false)
+  const [searchKnowledgeSources, setSearchKnowledgeSources] = useState<KnowledgeSource[]>([])
+  const [complianceReport, setComplianceReport] = useState<ComplianceReport | null>(null)
   const [collaborationLayoutTick, setCollaborationLayoutTick] = useState(0)
   const [comparisonInitialDocument, setComparisonInitialDocument] = useState('')
   const [comparisonInitialLeft, setComparisonInitialLeft] = useState<ComparisonDocument>()
@@ -795,6 +807,48 @@ export function EditorWorkspace({
     window.requestAnimationFrame(() => document.getElementById('workflow-trigger')?.focus())
   }, [])
 
+  const openSearch = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
+    setIsExportOpen(false)
+    setIsIntelligenceOpen(false)
+    setIsComplianceOpen(false)
+    setIsFormBuilderOpen(false)
+    setIsHistoryOpen(false)
+    setIsWorkflowOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    cancelPlacement()
+    closeComposer()
+    setIsSearchLoaded(true)
+    setIsSearchOpen(true)
+  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+
+  const closeSearch = useCallback(() => {
+    setIsSearchOpen(false)
+    window.requestAnimationFrame(() => document.getElementById('semantic-search-trigger')?.focus())
+  }, [])
+
+  useEffect(() => {
+    if (
+      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
+      isSuggestionMode || isComparisonOpen || isPageLayoutOpen ||
+      isWatermarkOpen || isExportOpen || isIntelligenceOpen ||
+      isComplianceOpen || isFormBuilderOpen || isHistoryOpen || isWorkflowOpen
+    ) setIsSearchOpen(false)
+  }, [
+    isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
+    isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
+    isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
+    isWorkflowOpen,
+  ])
+
   useEffect(() => {
     if (
       isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
@@ -939,6 +993,56 @@ export function EditorWorkspace({
     })
   }, [openAskDocument])
 
+  const openSearchDocument = useCallback((document: IndexedDocument) => {
+    if (document.metadata.kind === 'current-document' || document.metadata.kind === 'compliance-finding') {
+      const quote = document.metadata.locationQuote ?? document.content
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .find((line) => line && line !== document.title)
+        ?.split(/(?<=[.!?])\s+/)[0]
+        ?.slice(0, 180)
+      const selection = quote ? api?.findTextSelection(quote) : null
+      setIsSearchOpen(false)
+      if (selection) api?.focusTextSelection(selection)
+      else api?.focus()
+      return
+    }
+    if (document.metadata.kind === 'knowledge-source' && document.metadata.sourceId) {
+      openAskDocument()
+      setAskDocumentCommand({
+        id: crypto.randomUUID(),
+        command: 'open-source',
+        sourceId: document.metadata.sourceId,
+      })
+      return
+    }
+    if (document.metadata.kind === 'version') openHistory()
+  }, [api, openAskDocument, openHistory])
+
+  const addSearchKnowledgeSource = useCallback((source: PreparedKnowledgeSource) => {
+    openAskDocument()
+    setAskDocumentCommand({
+      id: crypto.randomUUID(),
+      command: 'add-prepared-source',
+      preparedSource: source,
+    })
+  }, [openAskDocument])
+
+  const askAIAboutSearchResults = useCallback((documents: IndexedDocument[], query: string) => {
+    if (!config.ai || documents.length === 0) return
+    const evidence = documents.map((document, index) =>
+      `${index + 1}. ${document.title}: ${document.content.replace(/\s+/g, ' ').slice(0, 600)}`,
+    ).join('\n')
+    openAskDocument()
+    setAskDocumentCommand({
+      id: crypto.randomUUID(),
+      command: 'ask-question',
+      question: query.trim()
+        ? `Using the current document and these retrieved results, answer this query: ${query}\n\nRetrieved results:\n${evidence}`
+        : `Summarize the most relevant themes, relationships, and differences in these retrieved results:\n\n${evidence}`,
+    })
+  }, [config.ai, openAskDocument])
+
   const runWorkspaceCommand = useCallback(
     (command: WorkspaceCommandId) => {
       switch (command) {
@@ -1021,6 +1125,24 @@ export function EditorWorkspace({
     isSuggestionMode,
     openSuggestionMode,
   ])
+
+  useEffect(() => {
+    if (!config.keyboardShortcuts) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key.toLocaleLowerCase() === 'f' &&
+        (event.metaKey || event.ctrlKey) &&
+        event.shiftKey &&
+        !event.altKey
+      ) {
+        event.preventDefault()
+        if (isSearchOpen) closeSearch()
+        else openSearch()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [closeSearch, config.keyboardShortcuts, isSearchOpen, openSearch])
 
   return (
     <div className="document-editor-workspace mx-auto flex w-full max-w-[84rem] items-start justify-center px-3 py-4 sm:px-6 sm:py-7 lg:px-8 lg:py-6">
@@ -1118,6 +1240,13 @@ export function EditorWorkspace({
                     onToggle={() => {
                       if (isWorkflowOpen) closeWorkflow()
                       else openWorkflow()
+                    }}
+                  />
+                  <SearchToolbarControl
+                    isOpen={isSearchOpen}
+                    onToggle={() => {
+                      if (isSearchOpen) closeSearch()
+                      else openSearch()
                     }}
                   />
                 </>
@@ -1220,6 +1349,26 @@ export function EditorWorkspace({
         </div>
       </div>
       <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">
+        {isSearchLoaded && (
+          <ErrorBoundary compact title="Semantic search needs a retry">
+            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[31rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[30rem] lg:rounded-lg lg:border" role="status" aria-label="Loading semantic search"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+              <SearchPanel
+                isOpen={isSearchOpen}
+                api={api}
+                namespace={documentHistoryNamespace}
+                knowledgeSources={searchKnowledgeSources}
+                workflow={currentWorkflow}
+                complianceFindings={complianceReport?.findings ?? []}
+                aiEnabled={Boolean(config.ai)}
+                events={events}
+                onClose={closeSearch}
+                onOpenDocument={openSearchDocument}
+                onAddKnowledgeSource={addSearchKnowledgeSource}
+                onAskAI={askAIAboutSearchResults}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        )}
         {isWorkflowLoaded && (
           <ErrorBoundary compact title="Approval workflow needs a retry">
             <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[30rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[29rem] lg:rounded-lg lg:border" role="status" aria-label="Loading approval workflow"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
@@ -1285,6 +1434,7 @@ export function EditorWorkspace({
                 onCreateComment={createComplianceComment}
                 onCreateSuggestion={createComplianceSuggestion}
                 onAskAI={askAboutComplianceFinding}
+                onReportChange={setComplianceReport}
               />
             </Suspense>
           </ErrorBoundary>
@@ -1417,13 +1567,14 @@ export function EditorWorkspace({
                 commandRequest={askDocumentCommand}
                 config={config}
                 events={events}
+                onSourcesChange={setSearchKnowledgeSources}
                 onClose={closeAskDocument}
               />
             </Suspense>
           </ErrorBoundary>
         )}
       </div>
-      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && (
+      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && !isSearchOpen && (
         <ErrorBoundary compact title="Selection AI needs a retry">
           <SelectionAi
             api={api}

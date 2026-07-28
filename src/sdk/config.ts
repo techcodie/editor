@@ -96,6 +96,8 @@ const CALLBACK_KEYS = new Set([
   'onPreviewClose',
   'onCollaborationStatus',
   'onCollaboratorsChange',
+  'onSearchIndexChange',
+  'onSearch',
   'onError',
 ])
 

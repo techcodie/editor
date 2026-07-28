@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { ReplacementDiffDialog } from '../../editor/components/ReplacementDiffDialog'
 import { KnowledgeSources } from '../../knowledge'
-import type { PreparedKnowledgeSource } from '../../knowledge/types/source'
+import type { KnowledgeSource, PreparedKnowledgeSource } from '../../knowledge/types/source'
 import { cn } from '../../lib/cn'
 import type { EditorApi } from '../../lib/editor-api'
 import type { InternalDocumentEditorEvents } from '../../sdk/events'
@@ -23,12 +23,14 @@ export type AskDocumentCommand =
   | 'insert-last-response'
   | 'add-prepared-source'
   | 'ask-question'
+  | 'open-source'
 
 export interface AskDocumentCommandRequest {
   id: string
   command: AskDocumentCommand
   preparedSource?: PreparedKnowledgeSource
   question?: string
+  sourceId?: string
 }
 
 export interface AskDocumentPanelProps {
@@ -38,6 +40,7 @@ export interface AskDocumentPanelProps {
   commandRequest?: AskDocumentCommandRequest | null
   config: ResolvedDocumentEditorConfig
   events: InternalDocumentEditorEvents
+  onSourcesChange?: (sources: KnowledgeSource[]) => void
   onClose: () => void
 }
 
@@ -48,6 +51,7 @@ export function AskDocumentPanel({
   commandRequest,
   config,
   events,
+  onSourcesChange,
   onClose,
 }: AskDocumentPanelProps) {
   const session = useWorkspaceSession(
@@ -74,8 +78,13 @@ export function AskDocumentPanel({
     focusInput,
     insertLastResponse,
     openFirstPreview,
+    openSourceById,
     addPreparedSource,
   } = session
+
+  useEffect(() => {
+    onSourcesChange?.(session.sources)
+  }, [onSourcesChange, session.sources])
 
   useEffect(() => {
     if (!isOpen) return
@@ -137,6 +146,11 @@ export function AskDocumentPanel({
           void sendMessage(commandRequest.question)
         }
         break
+      case 'open-source':
+        if (commandRequest.sourceId) {
+          openSourceById(commandRequest.sourceId)
+        }
+        break
     }
   }, [
     commandRequest,
@@ -145,6 +159,7 @@ export function AskDocumentPanel({
     insertLastResponse,
     isOpen,
     openFirstPreview,
+    openSourceById,
     sendMessage,
   ])
 

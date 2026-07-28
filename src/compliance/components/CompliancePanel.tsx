@@ -6,6 +6,7 @@ import { useCompliance } from '../hooks/useCompliance'
 import { exportComplianceReport } from '../services/recommendationEngine'
 import type {
   ComplianceFinding,
+  ComplianceReport,
   ComplianceRecommendation,
   ComplianceSeverityFilter,
 } from '../types/compliance'
@@ -28,6 +29,7 @@ interface CompliancePanelProps {
     recommendation?: ComplianceRecommendation,
   ) => boolean
   onAskAI: (finding: ComplianceFinding) => void
+  onReportChange?: (report: ComplianceReport | null) => void
 }
 
 export function CompliancePanel({
@@ -40,6 +42,7 @@ export function CompliancePanel({
   onCreateComment,
   onCreateSuggestion,
   onAskAI,
+  onReportChange,
 }: CompliancePanelProps) {
   const panelRef = useRef<HTMLElement>(null)
   const [filter, setFilter] = useState<ComplianceSeverityFilter>('all')
@@ -52,6 +55,10 @@ export function CompliancePanel({
     ? report?.recommendations.find((item) => item.findingId === selected.id)
     : undefined
   const selectedIndex = selected ? visibleFindings.findIndex((finding) => finding.id === selected.id) : -1
+
+  useEffect(() => {
+    onReportChange?.(report)
+  }, [onReportChange, report])
 
   useEffect(() => {
     if (!report?.findings.length) {

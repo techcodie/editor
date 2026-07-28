@@ -76,6 +76,8 @@ export function Example() {
         setStatus(`${source.name} added as a knowledge source`),
       onCollaborationStatus: ({ connectionStatus, syncStatus }) =>
         setStatus(`${connectionStatus} · ${syncStatus}`),
+      onSearch: ({ total, durationMs }) =>
+        setStatus(`${total} search results in ${durationMs} ms`),
       onError: ({ message }) => setStatus(message),
     },
   }), [])

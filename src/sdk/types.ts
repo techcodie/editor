@@ -7,6 +7,7 @@ import type {
   ResolvedCollaborationConfig,
 } from '../collaboration/types/collaboration'
 import type { Collaborator } from '../collaboration/types/presence'
+import type { SearchMode } from '../search/types/search'
 import type {
   EditorApi,
   EditorInsertionTarget,
@@ -115,8 +116,19 @@ export interface DocumentEditorEventMap {
     syncStatus: CollaborationSyncStatus
   }
   collaboratorsChange: { collaborators: Collaborator[] }
+  searchIndexChange: {
+    documentCount: number
+    nodeCount: number
+    relationshipCount: number
+  }
+  search: {
+    query: string
+    mode: SearchMode
+    total: number
+    durationMs: number
+  }
   error: {
-    scope: 'configuration' | 'plugin' | 'editor' | 'ai' | 'knowledge' | 'preview' | 'compliance' | 'collaboration'
+    scope: 'configuration' | 'plugin' | 'editor' | 'ai' | 'knowledge' | 'preview' | 'compliance' | 'collaboration' | 'search'
     message: string
     cause?: unknown
   }
@@ -152,6 +164,8 @@ export interface DocumentEditorCallbacks {
   onPreviewClose?: DocumentEditorEventHandler<'previewClose'>
   onCollaborationStatus?: DocumentEditorEventHandler<'collaborationStatus'>
   onCollaboratorsChange?: DocumentEditorEventHandler<'collaboratorsChange'>
+  onSearchIndexChange?: DocumentEditorEventHandler<'searchIndexChange'>
+  onSearch?: DocumentEditorEventHandler<'search'>
   onError?: DocumentEditorEventHandler<'error'>
 }
 

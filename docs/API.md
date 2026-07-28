@@ -179,6 +179,38 @@ content are not exposed through the public event surface.
 Knowledge sources are intentionally managed through the built-in UI in v1.0.
 An imperative source provider API is not part of the public surface.
 
+## Semantic Search
+
+The built-in Semantic Search panel incrementally indexes the current document,
+ready Knowledge Sources, local version snapshots, workflow metadata, and
+available compliance findings. It supports keyword, semantic, hybrid, recent,
+related-document, and Knowledge Source retrieval plus an on-demand knowledge
+graph view.
+
+Hosts can also create a framework-neutral engine:
+
+```ts
+import { createSearchEngine } from '@techcodie/editor'
+
+const search = createSearchEngine()
+await search.index([{
+  id: 'policy-1',
+  title: 'Security Policy',
+  content: policyText,
+  metadata: { kind: 'knowledge-source' },
+}])
+
+const response = await search.search({
+  query: 'data retention obligations',
+  mode: 'hybrid',
+})
+```
+
+The default provider creates deterministic feature-hash embeddings locally.
+Supply an `EmbeddingProvider` to `createSearchEngine` when a host-controlled
+embedding service is required. The engine does not send document content to an
+external search or vector service.
+
 ## Public Exports
 
 Runtime exports:
@@ -186,6 +218,8 @@ Runtime exports:
 - `DocumentEditor`
 - `createBroadcastChannelTransport`
 - `createEditor`
+- `createLocalEmbeddingProvider`
+- `createSearchEngine`
 - `createWebSocketTransport`
 - `validateDocumentEditorConfig`
 - `resolveDocumentEditorConfig`
@@ -194,6 +228,6 @@ Runtime exports:
 - `isSelectionAiAction`
 
 Type exports include configuration, controller, component, theme, event,
-plugin, selection action, collaboration transport, presence, and `EditorApi`
-contracts. Package exports prevent supported imports from reaching internal
-implementation modules.
+plugin, selection action, collaboration, semantic search, knowledge graph,
+embedding provider, and `EditorApi` contracts. Package exports prevent
+supported imports from reaching internal implementation modules.
