@@ -22,7 +22,7 @@ interface UseHistoryOptions {
   author: VersionAuthor
 }
 
-type SnapshotDetails = Omit<CreateVersionInput, 'author' | 'content' | 'source'>
+type SnapshotDetails = Omit<CreateVersionInput, 'author' | 'content'>
 
 function messageFrom(error: unknown): string {
   return error instanceof Error ? error.message : 'Version history could not complete that action.'

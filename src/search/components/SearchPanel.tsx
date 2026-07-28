@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } 
 import { BookmarkPlus, Bot, Clock3, Network, Search, Star, Trash2, X } from 'lucide-react'
 import type { ComplianceFinding } from '../../compliance/types/compliance'
 import type { ContractAnalysis } from '../../contract/types/contract'
+import type { WritingAnalysis } from '../../writing/types/writing'
 import type { KnowledgeSource, PreparedKnowledgeSource } from '../../knowledge/types/source'
 import type { EditorApi } from '../../lib/editor-api'
 import type { InternalDocumentEditorEvents } from '../../sdk/events'
@@ -37,15 +38,16 @@ interface SearchPanelProps {
   onAskAI: (documents: IndexedDocument[], query: string) => void
   redactions?: RedactionRecord[]
   contractAnalysis?: ContractAnalysis | null
+  writingAnalysis?: WritingAnalysis | null
 }
 
-export function SearchPanel({ isOpen, api, namespace, knowledgeSources, workflow, complianceFindings, aiEnabled, events, onClose, onOpenDocument, onAddKnowledgeSource, onAskAI, redactions, contractAnalysis }: SearchPanelProps) {
+export function SearchPanel({ isOpen, api, namespace, knowledgeSources, workflow, complianceFindings, aiEnabled, events, onClose, onOpenDocument, onAddKnowledgeSource, onAskAI, redactions, contractAnalysis, writingAnalysis }: SearchPanelProps) {
   const panelRef = useRef<HTMLElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [view, setView] = useState<SearchView>('results')
   const [relatedSourceId, setRelatedSourceId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const search = useSearch({ api, active: isOpen, namespace, knowledgeSources, workflow, complianceFindings, events, redactions, contractAnalysis })
+  const search = useSearch({ api, active: isOpen, namespace, knowledgeSources, workflow, complianceFindings, events, redactions, contractAnalysis, writingAnalysis })
   const visibleResults = useMemo(() => {
     const results = search.response?.results ?? []
     return [...results].toSorted((left, right) => {

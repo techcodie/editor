@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ComplianceFinding } from '../../compliance/types/compliance'
 import type { ContractAnalysis } from '../../contract/types/contract'
+import type { WritingAnalysis } from '../../writing/types/writing'
 import { createHistoryStorage, HISTORY_STORAGE_EVENT } from '../../history/services/historyStorage'
 import { resolveSnapshot } from '../../history/services/snapshotEngine'
 import { createDocumentModelFromText } from '../../intelligence/services/documentIntelligence'
@@ -36,6 +37,7 @@ interface UseSearchOptions {
   events: InternalDocumentEditorEvents
   redactions?: RedactionRecord[]
   contractAnalysis?: ContractAnalysis | null
+  writingAnalysis?: WritingAnalysis | null
 }
 
 interface StoredSearchPreferences {
@@ -95,6 +97,7 @@ export function useSearch({
   events,
   redactions = [],
   contractAnalysis,
+  writingAnalysis,
 }: UseSearchOptions) {
   const engineRef = useRef(createSearchEngine())
   const indexControllerRef = useRef<AbortController | null>(null)
@@ -209,8 +212,21 @@ export function useSearch({
       ...contractAnalysis.obligations.map((item) => ({ id: `contract-obligation:${item.id}`, title: `${item.responsibleParty} obligation`, content: item.action, metadata: { kind: 'contract-obligation' as const, contractAnalysisId: contractAnalysis.id, locationQuote: contractAnalysis.clauses.find((clause) => clause.id === item.clauseId)?.text, updatedAt: contractAnalysis.analyzedAt, topics: [item.priority, item.status, 'contract obligation'] } })),
       ...contractAnalysis.dates.map((date) => ({ id: `contract-date:${date.id}`, title: date.label, content: `${date.value} ${date.type}`, metadata: { kind: 'contract-date' as const, contractAnalysisId: contractAnalysis.id, contractDateType: date.type, locationQuote: date.value, updatedAt: contractAnalysis.analyzedAt, topics: [date.type, 'contract date'] } })),
     ] : []
-    return [...current, ...findings, ...contractInputs, ...sources, ...historyInputs]
-  }, [api, complianceFindings, contractAnalysis, documentTick, historyInputs, knowledgeSources, redactions, workflow?.status])
+    const writingInputs: SearchIndexInput[] = writingAnalysis?.suggestions.map((suggestion) => ({
+      id: `writing:${suggestion.id}`,
+      title: suggestion.title,
+      content: [suggestion.reason, suggestion.originalText, suggestion.suggestedText].filter(Boolean).join('\n'),
+      metadata: {
+        kind: 'writing-suggestion' as const,
+        severity: suggestion.severity,
+        locationQuote: suggestion.originalText,
+        writingCategory: suggestion.category,
+        updatedAt: writingAnalysis.analyzedAt,
+        topics: [suggestion.category, suggestion.status, 'writing suggestion'],
+      },
+    })) ?? []
+    return [...current, ...findings, ...contractInputs, ...writingInputs, ...sources, ...historyInputs]
+  }, [api, complianceFindings, contractAnalysis, documentTick, historyInputs, knowledgeSources, redactions, workflow?.status, writingAnalysis])
 
   const executeSearch = useCallback(async (
     nextQuery = query,

@@ -119,6 +119,7 @@ export function filterVersions(
       if (filter === 'recovery' && version.metadata.source !== 'recovery') return false
       if (filter === 'workflow' && version.metadata.source !== 'workflow') return false
       if (filter === 'contract' && version.metadata.source !== 'contract') return false
+      if (filter === 'writing' && version.metadata.source !== 'writing') return false
       if (!needle) return true
       return [version.name, version.description, version.author.name, version.metadata.reason, version.metadata.comments]
         .some((value) => value.toLocaleLowerCase().includes(needle))

@@ -14,6 +14,7 @@ export type SearchDocumentKind =
   | 'contract-clause'
   | 'contract-obligation'
   | 'contract-date'
+  | 'writing-suggestion'
 
 export interface SearchDocumentMetadata {
   kind: SearchDocumentKind
@@ -33,6 +34,7 @@ export interface SearchDocumentMetadata {
   contractAnalysisId?: string
   contractClauseType?: string
   contractDateType?: string
+  writingCategory?: string
 }
 
 export interface SearchSection {

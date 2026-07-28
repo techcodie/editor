@@ -8,6 +8,7 @@ import { handleAskDocument } from './ask-document.js'
 import { handleSelectionAi } from './selection-ai.js'
 import { handleComplianceAnalysis } from './compliance.js'
 import { handleContractAnalysis } from './contract.js'
+import { handleWritingAssistant } from './writing.js'
 
 const MIME_TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
@@ -98,6 +99,10 @@ const server = createServer(async (request, response) => {
   }
   if (request.method === 'POST' && url.pathname === '/api/contract-analysis') {
     await handleContractAnalysis(request, response)
+    return
+  }
+  if (request.method === 'POST' && url.pathname === '/api/writing-assistant') {
+    await handleWritingAssistant(request, response)
     return
   }
   if (url.pathname.startsWith('/api/')) {

@@ -17,6 +17,7 @@ const KINDS: Array<{ value: SearchDocumentKind; label: string }> = [
   { value: 'contract-clause', label: 'Clauses' },
   { value: 'contract-obligation', label: 'Duties' },
   { value: 'contract-date', label: 'Dates' },
+  { value: 'writing-suggestion', label: 'Writing' },
 ]
 
 interface SearchFiltersProps {

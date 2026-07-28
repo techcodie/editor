@@ -53,6 +53,7 @@ const DEFAULT_AI: Omit<Required<DocumentEditorAiConfig>, 'redactionDetector'> = 
   selectionEndpoint: '/api/selection-ai',
   complianceEndpoint: '/api/compliance-analysis',
   contractEndpoint: '/api/contract-analysis',
+  writingEndpoint: '/api/writing-assistant',
 }
 
 const CONFIG_KEYS = new Set([
@@ -273,6 +274,12 @@ function resolveAi(value: unknown, warnings: string[]): ResolvedDocumentEditorCo
       ai.contractEndpoint,
       DEFAULT_AI.contractEndpoint,
       'ai.contractEndpoint',
+      warnings,
+    ),
+    writingEndpoint: validString(
+      ai.writingEndpoint,
+      DEFAULT_AI.writingEndpoint,
+      'ai.writingEndpoint',
       warnings,
     ),
     redactionDetector: typeof ai.redactionDetector?.detect === 'function'

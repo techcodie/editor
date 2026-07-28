@@ -87,6 +87,10 @@ export { createRedaction, replacementFor, summarizeRedactions } from './redactio
 export { analyzeContract, clearContractAnalysisCache, fingerprintContract } from './contract/services/contractAnalysis'
 export { compareContractAnalyses } from './contract/services/comparisonEngine'
 export { validatePlaybook } from './contract/services/playbookEngine'
+export { analyzeWriting, clearWritingAnalysisCache } from './writing/services/writingAnalysis'
+export { createLocalRewrite } from './writing/services/rewriteEngine'
+export { WRITING_REWRITE_ACTIONS, isWritingRewriteAction } from '../shared/writing'
+export type { WritingRewriteAction } from '../shared/writing'
 export type {
   AiDetectionProvider,
   CustomDetectionPattern,
@@ -140,6 +144,30 @@ export type {
   PlaybookDeviationType,
   RenewalTerm,
 } from './contract/types/contract'
+export type {
+  VocabularySuggestion,
+  WritingSuggestion,
+  WritingSuggestionCategory,
+  WritingSuggestionSeverity,
+  WritingSuggestionStatus,
+  WritingTextRange,
+} from './writing/types/suggestion'
+export type {
+  ParagraphComplexity,
+  ReadabilityLevel,
+  ReadabilityMetrics,
+  SentenceComplexity,
+  ToneAnalysis,
+  WritingAnalysis,
+  WritingAnalysisProgress,
+  WritingAnalysisSnapshot,
+  WritingAnalysisStage,
+  WritingRewriteResult,
+  WritingRewriteScope,
+  WritingScoreBreakdown,
+  WritingStyleMetrics,
+  WritingTone,
+} from './writing/types/writing'
 export type {
   EditorApi,
   EditorAssetInsertion,

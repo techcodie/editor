@@ -18,7 +18,7 @@ import type {
 
 export type DocumentEditorContent = string | Record<string, unknown>
 export type DocumentEditorIcon = ComponentType<SVGProps<SVGSVGElement>>
-export type AiWorkflow = 'ask-document' | 'selection' | 'compliance' | 'contract'
+export type AiWorkflow = 'ask-document' | 'selection' | 'compliance' | 'contract' | 'writing'
 
 export interface DocumentEditorAiConfig {
   /** Endpoint used by Ask Document. */
@@ -29,6 +29,8 @@ export interface DocumentEditorAiConfig {
   complianceEndpoint?: string
   /** Endpoint used to refine deterministic contract summaries. */
   contractEndpoint?: string
+  /** Endpoint used for explicit writing rewrite previews. */
+  writingEndpoint?: string
   /** Optional host-provided detector used after local redaction rules. */
   redactionDetector?: AiDetectionProvider
 }
@@ -38,6 +40,7 @@ export interface ResolvedDocumentEditorAiConfig {
   selectionEndpoint: string
   complianceEndpoint: string
   contractEndpoint: string
+  writingEndpoint: string
   redactionDetector?: AiDetectionProvider
 }
 

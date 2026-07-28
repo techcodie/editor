@@ -11,6 +11,9 @@ import type {
 } from '../../compliance/types/compliance'
 import { ContractToolbarControl } from '../../contract/components/ContractToolbarControl'
 import type { ContractAnalysis } from '../../contract/types/contract'
+import { WritingAssistantToolbarControl } from '../../writing/components/WritingAssistantToolbarControl'
+import type { WritingSuggestion } from '../../writing/types/suggestion'
+import type { WritingAnalysis } from '../../writing/types/writing'
 import { ComparisonToolbarControl } from '../../comparison/components/ComparisonToolbar'
 import { ExportToolbarControl } from '../../export/components/ExportToolbarControl'
 import { FormBuilderToolbarControl } from '../../forms/components/FormBuilderToolbarControl'
@@ -148,6 +151,11 @@ const ContractPanel = lazy(async () => {
   return { default: module.ContractPanel }
 })
 
+const WritingAssistantPanel = lazy(async () => {
+  const module = await import('../../writing/components/WritingAssistantPanel')
+  return { default: module.WritingAssistantPanel }
+})
+
 /**
  * Owns the editor instance and wires it to its UI: it creates the editor, binds
  * the public {@link EditorApi} for the toolbar, and renders the editing surface.
@@ -210,6 +218,9 @@ export function EditorWorkspace({
   const [isContractOpen, setIsContractOpen] = useState(false)
   const [isContractLoaded, setIsContractLoaded] = useState(false)
   const [contractAnalysis, setContractAnalysis] = useState<ContractAnalysis | null>(null)
+  const [isWritingAssistantOpen, setIsWritingAssistantOpen] = useState(false)
+  const [isWritingAssistantLoaded, setIsWritingAssistantLoaded] = useState(false)
+  const [writingAnalysis, setWritingAnalysis] = useState<WritingAnalysis | null>(null)
   const [searchKnowledgeSources, setSearchKnowledgeSources] = useState<KnowledgeSource[]>([])
   const [complianceReport, setComplianceReport] = useState<ComplianceReport | null>(null)
   const [collaborationLayoutTick, setCollaborationLayoutTick] = useState(0)
@@ -914,6 +925,51 @@ export function EditorWorkspace({
     window.requestAnimationFrame(() => document.getElementById('contract-trigger')?.focus())
   }, [])
 
+  const openWritingAssistant = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
+    setIsExportOpen(false)
+    setIsIntelligenceOpen(false)
+    setIsComplianceOpen(false)
+    setIsFormBuilderOpen(false)
+    setIsHistoryOpen(false)
+    setIsWorkflowOpen(false)
+    setIsSearchOpen(false)
+    setIsRedactionOpen(false)
+    setIsContractOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    cancelPlacement()
+    if (pendingComment) closeComposer()
+    setIsWritingAssistantLoaded(true)
+    setIsWritingAssistantOpen(true)
+  }, [cancelPlacement, closeComposer, pendingComment, setIsPageLayoutOpen, setIsWatermarkOpen])
+
+  const closeWritingAssistant = useCallback(() => {
+    setIsWritingAssistantOpen(false)
+    window.requestAnimationFrame(() => document.getElementById('writing-assistant-trigger')?.focus())
+  }, [])
+
+  useEffect(() => {
+    if (
+      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode || isSuggestionMode ||
+      isComparisonOpen || isPageLayoutOpen || isWatermarkOpen || isExportOpen ||
+      isIntelligenceOpen || isComplianceOpen || isFormBuilderOpen || isHistoryOpen ||
+      isWorkflowOpen || isSearchOpen || isRedactionOpen || isContractOpen
+    ) setIsWritingAssistantOpen(false)
+  }, [
+    isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
+    isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
+    isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
+    isWorkflowOpen, isSearchOpen, isRedactionOpen, isContractOpen,
+  ])
+
   useEffect(() => {
     if (
       isAskDocumentOpen || isAssetLibraryOpen || isReviewMode || isSuggestionMode ||
@@ -1073,6 +1129,39 @@ export function EditorWorkspace({
     return true
   }, [api])
 
+  const createWritingSuggestion = useCallback((
+    originalText: string,
+    suggestedText: string,
+    _reason: string,
+  ) => {
+    if (!api || !originalText.trim() || !suggestedText.trim()) return false
+    const selection = api.findTextSelection(originalText)
+    if (!selection) return false
+    api.setSuggestionMode(true)
+    if (!api.replaceTextSelection(selection, suggestedText)) {
+      api.setSuggestionMode(false)
+      return false
+    }
+    setIsWritingAssistantOpen(false)
+    setIsSuggestionLoaded(true)
+    setIsSuggestionMode(true)
+    setIsSuggestionSidebarOpen(true)
+    return true
+  }, [api])
+
+  const createWritingComment = useCallback((suggestion: WritingSuggestion) => {
+    if (!api) return false
+    const selection = api.findTextSelection(suggestion.originalText)
+    if (!selection) return false
+    const comment = addComment(selection, `Writing suggestion: ${suggestion.reason}`)
+    if (!comment) return false
+    setSelectedCommentId(comment.id)
+    setIsWritingAssistantOpen(false)
+    setIsReviewLoaded(true)
+    setIsReviewMode(true)
+    return true
+  }, [addComment, api])
+
   const askAboutComplianceFinding = useCallback((finding: ComplianceFinding) => {
     if (!config.ai) return
     openAskDocument()
@@ -1102,7 +1191,7 @@ export function EditorWorkspace({
   }, [openAskDocument])
 
   const openSearchDocument = useCallback((document: IndexedDocument) => {
-    if (document.metadata.kind === 'current-document' || document.metadata.kind === 'compliance-finding' || document.metadata.kind.startsWith('contract-')) {
+    if (document.metadata.kind === 'current-document' || document.metadata.kind === 'compliance-finding' || document.metadata.kind === 'writing-suggestion' || document.metadata.kind.startsWith('contract-')) {
       const quote = document.metadata.locationQuote ?? document.content
         .split(/\r?\n/)
         .map((line) => line.trim())
@@ -1373,6 +1462,14 @@ export function EditorWorkspace({
                       else openContract()
                     }}
                   />
+                  <WritingAssistantToolbarControl
+                    isOpen={isWritingAssistantOpen}
+                    score={writingAnalysis?.score}
+                    onToggle={() => {
+                      if (isWritingAssistantOpen) closeWritingAssistant()
+                      else openWritingAssistant()
+                    }}
+                  />
                 </>
               }
             />
@@ -1473,6 +1570,24 @@ export function EditorWorkspace({
         </div>
       </div>
       <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">
+        {isWritingAssistantLoaded && (
+          <ErrorBoundary compact title="Writing assistant needs a retry">
+            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[30rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[29rem] lg:rounded-lg lg:border" role="status" aria-label="Loading writing assistant"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+              <WritingAssistantPanel
+                isOpen={isWritingAssistantOpen}
+                api={api}
+                namespace={documentHistoryNamespace}
+                author={currentAuthor}
+                aiEndpoint={config.ai ? config.ai.writingEndpoint : undefined}
+                events={events}
+                onClose={closeWritingAssistant}
+                onAnalysisChange={setWritingAnalysis}
+                onApply={createWritingSuggestion}
+                onComment={createWritingComment}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        )}
         {isContractLoaded && (
           <ErrorBoundary compact title="Contract intelligence needs a retry">
             <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[32rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[31rem] lg:rounded-lg lg:border" role="status" aria-label="Loading contract intelligence"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
@@ -1523,6 +1638,7 @@ export function EditorWorkspace({
                 onAskAI={askAIAboutSearchResults}
                 redactions={redactionRecords}
                 contractAnalysis={contractAnalysis}
+                writingAnalysis={writingAnalysis}
               />
             </Suspense>
           </ErrorBoundary>
@@ -1733,7 +1849,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
       </div>
-      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && !isSearchOpen && !isRedactionOpen && !isContractOpen && (
+      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && !isSearchOpen && !isRedactionOpen && !isContractOpen && !isWritingAssistantOpen && (
         <ErrorBoundary compact title="Selection AI needs a retry">
           <SelectionAi
             api={api}

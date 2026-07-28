@@ -1387,6 +1387,7 @@ server/
   selection-ai.ts        Selection AI endpoint
   compliance.ts          Compliance AI endpoint
   contract.ts            Contract summary endpoint
+  writing.ts             Explicit writing rewrite endpoint
   http.ts                Shared request validation and errors
   prompts.ts             Centralized AI prompts
 
@@ -1395,6 +1396,7 @@ shared/
   ask-document.ts        Ask Document contracts
   compliance.ts          Compliance AI contracts
   contract.ts            Contract AI summary contracts
+  writing.ts             Writing rewrite action and request contracts
 
 src/
   assets/
@@ -1490,6 +1492,11 @@ src/
     hooks/               Cancellable analysis and clause-search composition
     services/            Extraction, classification, entity, obligation, renewal, playbook, risk, summary, comparison, and orchestration
     types/               Contract, clause, entity, obligation, renewal, risk, and playbook contracts
+  writing/
+    components/          Writing panel, score, tone, readability, suggestions, and rewrite preview
+    hooks/               Debounced analysis, grammar, rewrite, and history composition
+    services/            Grammar, spelling, style, tone, readability, scoring, suggestion, rewrite, and analysis engines
+    types/               Writing analysis, score, tone, readability, rewrite, and suggestion contracts
   hooks/
     useSpeechRecognition.ts  Native browser speech recognition lifecycle
   services/              Shared AI transport and frame-batched stream updates
@@ -1529,7 +1536,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Contract Intelligence Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Grammar and Writing Assistant Phase 1 Complete**
 
 Completed:
 
@@ -1755,6 +1762,25 @@ Completed:
 - Standalone contract summary, risk, clause, and obligation report exports
 - Framework-neutral contract analysis, clause, entity, obligation, date, risk,
   playbook, and comparison contracts in the public SDK surface
+- Enterprise Writing Assistant panel with background analysis, responsive
+  views, keyboard dismissal, focus management, cancellation, and retry
+- Deterministic grammar, spelling, repetition, passive-voice, long-sentence,
+  wordiness, tense, punctuation, capitalization, and formatting detection
+- Clarity, conciseness, professional-tone, consistency, sentence-variety, and
+  vocabulary-diversity style analysis
+- Readability score and level, estimated reading time, sentence complexity,
+  paragraph complexity, tone detection, vocabulary alternatives, and 0-100
+  writing score with correctness, clarity, engagement, and delivery breakdowns
+- Filterable, searchable unresolved and dismissed writing suggestions with
+  confidence, severity, source navigation, and explicit recovery
+- Preview-first clarity, shortening, expansion, professional, friendly, formal,
+  and plain-language rewrites through local rules or optional shared AI transport
+- Explicit writing handoffs to Review comments and pending Track Changes with
+  automatic Version History checkpoints before document changes
+- Writing-labeled Version History snapshots and Semantic Search indexing for
+  grammar and style findings
+- Framework-neutral writing analysis, suggestion, score, readability, tone,
+  and rewrite contracts plus local analysis helpers in the public SDK surface
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -1837,6 +1863,67 @@ framework-neutral contracts; only the Editor API performs document navigation.
 Playbooks remain host-owned configuration, AI enrichment is optional, reports
 are advisory, and no automatic content editing or legal-service integration was
 introduced. No new production dependency was added.
+Writing Assistant composes the existing Editor API, Review, Track Changes,
+Version History, Semantic Search, and shared AI transport. Deterministic
+analysis remains framework-neutral and locally cached; optional AI is limited
+to user-requested rewrite previews. Neither path automatically accepts document
+changes, and no external grammar service or new production dependency was added.
+
+### Enterprise Writing Assistant Flow
+
+```text
+Editor
+  |
+  v
+Writing Assistant Panel
+  |
+  v
+Local Analysis Orchestrator
+  |
+  +--------+---------+------------+-------+
+  v        v         v            v       v
+Grammar  Spelling  Style and Tone  Readability  Score
+  |        |         |            |       |
+  +--------+---------+------------+-------+
+                    |
+                    v
+              Suggestions and Rewrites
+                    |
+          +---------+----------+
+          v                    v
+     Review Comments      Track Changes
+                               |
+                               v
+                           Editor API
+```
+
+Writing Assistant Phase 1 performs deterministic, fingerprint-cached grammar,
+spelling, repetition, passive-voice, sentence length, wordiness, tense,
+punctuation, capitalization, and formatting checks. It also calculates a
+0-100 writing score, clarity and style metrics, vocabulary diversity, tone,
+reading level, reading time, and sentence and paragraph complexity.
+
+Suggestions are advisory and searchable. Users can jump to source text,
+dismiss findings, create review comments, or explicitly create a tracked
+change. Writing analysis checkpoints are labeled in the existing Version
+History timeline. The panel never imports Tiptap and all navigation and edits
+use the Editor API.
+
+Explicit clarity, length, tone, and simplification rewrites are previewed before
+use. When AI is configured, `DocumentEditorAiConfig.writingEndpoint` reuses the
+shared streaming transport and current-document context; local deterministic
+rewrites remain available for supported actions. Applying a preview first
+creates a Version History checkpoint and then creates a pending Track Change.
+No rewrite is accepted automatically.
+
+### Future Writing AI
+
+The public analysis, suggestion, score, tone, readability, and rewrite
+contracts are the extension boundaries for future Grammarly, LanguageTool,
+Microsoft Editor, host LLM, style-guide, brand-voice, writing-policy, and
+multilingual providers. External grammar services, automatic rewriting,
+translation, plagiarism detection, and persistent writing analytics are
+intentionally deferred.
 
 ### Version 1.0 Release Notes
 
@@ -1954,6 +2041,10 @@ These are not missing. Do not implement unless requested.
 - Conditional and parallel approval routing, delegated approvals, and escalations
 - Workflow notifications, email integration, realtime synchronization, and cloud persistence
 - Electronic signatures and approval certificates
+- Grammarly, LanguageTool, Microsoft Editor, and external grammar providers
+- Host-provided writing LLMs, company style guides, brand voice, and writing policies
+- Multilingual writing analysis, translation, and plagiarism detection
+- Automatic rewriting and persistent writing-analysis history
 
 ---
 
