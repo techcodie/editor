@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ComplianceFinding } from '../../compliance/types/compliance'
+import type { ContractAnalysis } from '../../contract/types/contract'
 import { createHistoryStorage, HISTORY_STORAGE_EVENT } from '../../history/services/historyStorage'
 import { resolveSnapshot } from '../../history/services/snapshotEngine'
 import { createDocumentModelFromText } from '../../intelligence/services/documentIntelligence'
@@ -34,6 +35,7 @@ interface UseSearchOptions {
   complianceFindings: ComplianceFinding[]
   events: InternalDocumentEditorEvents
   redactions?: RedactionRecord[]
+  contractAnalysis?: ContractAnalysis | null
 }
 
 interface StoredSearchPreferences {
@@ -92,6 +94,7 @@ export function useSearch({
   complianceFindings,
   events,
   redactions = [],
+  contractAnalysis,
 }: UseSearchOptions) {
   const engineRef = useRef(createSearchEngine())
   const indexControllerRef = useRef<AbortController | null>(null)
@@ -201,8 +204,13 @@ export function useSearch({
         },
       }]
     })
-    return [...current, ...findings, ...sources, ...historyInputs]
-  }, [api, complianceFindings, documentTick, historyInputs, knowledgeSources, redactions, workflow?.status])
+    const contractInputs: SearchIndexInput[] = contractAnalysis ? [
+      ...contractAnalysis.clauses.map((clause) => ({ id: `contract-clause:${clause.id}`, title: clause.title, content: clause.text, metadata: { kind: 'contract-clause' as const, contractAnalysisId: contractAnalysis.id, contractClauseType: clause.type, locationQuote: clause.text, updatedAt: contractAnalysis.analyzedAt, topics: [String(clause.type), 'contract clause'] } })),
+      ...contractAnalysis.obligations.map((item) => ({ id: `contract-obligation:${item.id}`, title: `${item.responsibleParty} obligation`, content: item.action, metadata: { kind: 'contract-obligation' as const, contractAnalysisId: contractAnalysis.id, locationQuote: contractAnalysis.clauses.find((clause) => clause.id === item.clauseId)?.text, updatedAt: contractAnalysis.analyzedAt, topics: [item.priority, item.status, 'contract obligation'] } })),
+      ...contractAnalysis.dates.map((date) => ({ id: `contract-date:${date.id}`, title: date.label, content: `${date.value} ${date.type}`, metadata: { kind: 'contract-date' as const, contractAnalysisId: contractAnalysis.id, contractDateType: date.type, locationQuote: date.value, updatedAt: contractAnalysis.analyzedAt, topics: [date.type, 'contract date'] } })),
+    ] : []
+    return [...current, ...findings, ...contractInputs, ...sources, ...historyInputs]
+  }, [api, complianceFindings, contractAnalysis, documentTick, historyInputs, knowledgeSources, redactions, workflow?.status])
 
   const executeSearch = useCallback(async (
     nextQuery = query,

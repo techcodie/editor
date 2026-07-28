@@ -9,6 +9,8 @@ import type {
   ComplianceReport,
   ComplianceRecommendation,
 } from '../../compliance/types/compliance'
+import { ContractToolbarControl } from '../../contract/components/ContractToolbarControl'
+import type { ContractAnalysis } from '../../contract/types/contract'
 import { ComparisonToolbarControl } from '../../comparison/components/ComparisonToolbar'
 import { ExportToolbarControl } from '../../export/components/ExportToolbarControl'
 import { FormBuilderToolbarControl } from '../../forms/components/FormBuilderToolbarControl'
@@ -141,6 +143,11 @@ const RedactionPanel = lazy(async () => {
   return { default: module.RedactionPanel }
 })
 
+const ContractPanel = lazy(async () => {
+  const module = await import('../../contract/components/ContractPanel')
+  return { default: module.ContractPanel }
+})
+
 /**
  * Owns the editor instance and wires it to its UI: it creates the editor, binds
  * the public {@link EditorApi} for the toolbar, and renders the editing surface.
@@ -200,6 +207,9 @@ export function EditorWorkspace({
   const [isRedactionOpen, setIsRedactionOpen] = useState(false)
   const [isRedactionLoaded, setIsRedactionLoaded] = useState(false)
   const [redactionRecords, setRedactionRecords] = useState<RedactionRecord[]>([])
+  const [isContractOpen, setIsContractOpen] = useState(false)
+  const [isContractLoaded, setIsContractLoaded] = useState(false)
+  const [contractAnalysis, setContractAnalysis] = useState<ContractAnalysis | null>(null)
   const [searchKnowledgeSources, setSearchKnowledgeSources] = useState<KnowledgeSource[]>([])
   const [complianceReport, setComplianceReport] = useState<ComplianceReport | null>(null)
   const [collaborationLayoutTick, setCollaborationLayoutTick] = useState(0)
@@ -874,6 +884,50 @@ export function EditorWorkspace({
     window.requestAnimationFrame(() => document.getElementById('redaction-trigger')?.focus())
   }, [])
 
+  const openContract = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
+    setIsExportOpen(false)
+    setIsIntelligenceOpen(false)
+    setIsComplianceOpen(false)
+    setIsFormBuilderOpen(false)
+    setIsHistoryOpen(false)
+    setIsWorkflowOpen(false)
+    setIsSearchOpen(false)
+    setIsRedactionOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    cancelPlacement()
+    closeComposer()
+    setIsContractLoaded(true)
+    setIsContractOpen(true)
+  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+
+  const closeContract = useCallback(() => {
+    setIsContractOpen(false)
+    window.requestAnimationFrame(() => document.getElementById('contract-trigger')?.focus())
+  }, [])
+
+  useEffect(() => {
+    if (
+      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode || isSuggestionMode ||
+      isComparisonOpen || isPageLayoutOpen || isWatermarkOpen || isExportOpen ||
+      isIntelligenceOpen || isComplianceOpen || isFormBuilderOpen || isHistoryOpen ||
+      isWorkflowOpen || isSearchOpen || isRedactionOpen
+    ) setIsContractOpen(false)
+  }, [
+    isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
+    isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
+    isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
+    isWorkflowOpen, isSearchOpen, isRedactionOpen,
+  ])
+
   useEffect(() => {
     if (
       isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
@@ -1048,7 +1102,7 @@ export function EditorWorkspace({
   }, [openAskDocument])
 
   const openSearchDocument = useCallback((document: IndexedDocument) => {
-    if (document.metadata.kind === 'current-document' || document.metadata.kind === 'compliance-finding') {
+    if (document.metadata.kind === 'current-document' || document.metadata.kind === 'compliance-finding' || document.metadata.kind.startsWith('contract-')) {
       const quote = document.metadata.locationQuote ?? document.content
         .split(/\r?\n/)
         .map((line) => line.trim())
@@ -1311,6 +1365,14 @@ export function EditorWorkspace({
                       else openRedaction()
                     }}
                   />
+                  <ContractToolbarControl
+                    isOpen={isContractOpen}
+                    riskScore={contractAnalysis?.overallRiskScore}
+                    onToggle={() => {
+                      if (isContractOpen) closeContract()
+                      else openContract()
+                    }}
+                  />
                 </>
               }
             />
@@ -1411,6 +1473,23 @@ export function EditorWorkspace({
         </div>
       </div>
       <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">
+        {isContractLoaded && (
+          <ErrorBoundary compact title="Contract intelligence needs a retry">
+            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[32rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[31rem] lg:rounded-lg lg:border" role="status" aria-label="Loading contract intelligence"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+              <ContractPanel
+                isOpen={isContractOpen}
+                api={api}
+                namespace={documentHistoryNamespace}
+                author={currentAuthor}
+                playbook={config.contractPlaybook}
+                complianceFindings={complianceReport?.findings ?? []}
+                aiEndpoint={config.ai ? config.ai.contractEndpoint : undefined}
+                onClose={closeContract}
+                onAnalysisChange={setContractAnalysis}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        )}
         {isRedactionLoaded && (
           <ErrorBoundary compact title="Redaction review needs a retry">
             <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[30rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[29rem] lg:rounded-lg lg:border" role="status" aria-label="Loading redaction review"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
@@ -1443,6 +1522,7 @@ export function EditorWorkspace({
                 onAddKnowledgeSource={addSearchKnowledgeSource}
                 onAskAI={askAIAboutSearchResults}
                 redactions={redactionRecords}
+                contractAnalysis={contractAnalysis}
               />
             </Suspense>
           </ErrorBoundary>
@@ -1459,6 +1539,7 @@ export function EditorWorkspace({
                 comments={comments}
                 onClose={closeWorkflow}
                 onChange={setCurrentWorkflow}
+                contractAnalysis={contractAnalysis}
               />
             </Suspense>
           </ErrorBoundary>
@@ -1652,7 +1733,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
       </div>
-      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && !isSearchOpen && !isRedactionOpen && (
+      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && !isSearchOpen && !isRedactionOpen && !isContractOpen && (
         <ErrorBoundary compact title="Selection AI needs a retry">
           <SelectionAi
             api={api}

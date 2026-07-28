@@ -14,7 +14,10 @@ export async function loadWorkflow(namespace: string): Promise<Workflow | null> 
     const value = window.localStorage.getItem(keyFor(namespace))
     if (!value) return null
     const payload = JSON.parse(value) as Partial<WorkflowStoragePayload>
-    return payload.formatVersion === 1 && isWorkflow(payload.workflow) ? structuredClone(payload.workflow) : null
+    if (payload.formatVersion !== 1 || !isWorkflow(payload.workflow)) return null
+    const workflow = structuredClone(payload.workflow)
+    workflow.metadata.contractRiskGate = workflow.metadata.contractRiskGate ?? false
+    return workflow
   } catch { return null }
 }
 

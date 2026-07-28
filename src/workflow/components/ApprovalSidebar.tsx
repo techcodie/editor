@@ -39,6 +39,10 @@ export function ApprovalSidebar({ workflow, validation, busy, onPolicyChange }: 
             <span><span className="block text-[10px] font-semibold text-neutral-800 dark:text-neutral-200">Block on critical compliance findings</span><span className="mt-0.5 block text-[9px] leading-4 text-neutral-500">Critical findings must be resolved before approval.</span></span>
           </label>
           <label className="flex cursor-pointer items-start gap-3 bg-white p-3 dark:bg-neutral-950">
+            <input type="checkbox" checked={workflow.metadata.contractRiskGate} disabled={busy} onChange={(event) => onPolicyChange({ contractRiskGate: event.target.checked })} className="mt-0.5 h-3.5 w-3.5 accent-indigo-600" />
+            <span><span className="block text-[10px] font-semibold text-neutral-800 dark:text-neutral-200">Block on high contract risks</span><span className="mt-0.5 block text-[9px] leading-4 text-neutral-500">High and critical advisory findings must be reviewed.</span></span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-3 bg-white p-3 dark:bg-neutral-950">
             <input type="checkbox" checked={workflow.metadata.requireResolvedSuggestions} disabled={busy} onChange={(event) => onPolicyChange({ requireResolvedSuggestions: event.target.checked })} className="mt-0.5 h-3.5 w-3.5 accent-indigo-600" />
             <span><span className="block text-[10px] font-semibold text-neutral-800 dark:text-neutral-200">Require resolved suggestions</span><span className="mt-0.5 block text-[9px] leading-4 text-neutral-500">Pending tracked changes must be accepted or rejected.</span></span>
           </label>

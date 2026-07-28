@@ -23,6 +23,7 @@ export interface WorkflowStage {
 export interface WorkflowMetadata {
   complianceGate: boolean
   requireResolvedSuggestions: boolean
+  contractRiskGate: boolean
   archivedFrom?: Exclude<WorkflowStatus, 'archived'>
 }
 
@@ -46,7 +47,7 @@ export interface WorkflowValidationIssue {
   title: string
   description: string
   severity: WorkflowValidationSeverity
-  source: 'workflow' | 'compliance' | 'track-changes'
+  source: 'workflow' | 'compliance' | 'track-changes' | 'contract'
 }
 
 export interface WorkflowValidation {
@@ -54,6 +55,8 @@ export interface WorkflowValidation {
   checking: boolean
   criticalFindings: number
   unresolvedSuggestions: number
+  contractRiskScore: number
+  contractHighRisks: number
   issues: WorkflowValidationIssue[]
   checkedAt?: number
 }

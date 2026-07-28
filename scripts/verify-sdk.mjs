@@ -11,22 +11,27 @@ const expectedRuntimeExports = [
   'DocumentEditor',
   'SELECTION_AI_ACTIONS',
   'clearDetectionCache',
+  'clearContractAnalysisCache',
   'createBroadcastChannelTransport',
   'createEditor',
   'createLocalEmbeddingProvider',
   'createRedaction',
   'createSearchEngine',
   'createWebSocketTransport',
+  'analyzeContract',
+  'compareContractAnalyses',
   'detectSensitiveData',
   'excludeRedactedText',
   'getDefaultDocumentEditorTheme',
+  'fingerprintContract',
   'isSelectionAiAction',
   'replacementFor',
   'resolveDocumentEditorConfig',
   'sanitizeTextForExport',
   'summarizeRedactions',
+  'validatePlaybook',
   'validateDocumentEditorConfig',
-]
+].sort()
 
 assert.deepEqual(Object.keys(sdk).sort(), expectedRuntimeExports)
 assert.deepEqual(Object.keys(packageJson.exports).sort(), [

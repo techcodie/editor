@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Archive, Check, Download, FileCheck2, LoaderCircle, MessageSquarePlus, Plus, RotateCcw, Send, SkipForward, Trash2, UserRoundCheck, X } from 'lucide-react'
 import type { EditorApi } from '../../lib/editor-api'
+import type { ContractAnalysis } from '../../contract/types/contract'
 import type { Comment, CommentAuthor } from '../../review/types/comment'
 import { useWorkflow } from '../hooks/useWorkflow'
 import { serializeWorkflow } from '../services/workflowSerializer'
@@ -26,6 +27,7 @@ interface WorkflowPanelProps {
   comments: Comment[]
   onClose: () => void
   onChange: (workflow: Workflow | null) => void
+  contractAnalysis?: ContractAnalysis | null
 }
 
 type PanelTab = 'overview' | 'reviewers' | 'history'
@@ -40,12 +42,12 @@ function downloadWorkflow(workflow: Workflow) {
   URL.revokeObjectURL(url)
 }
 
-export function WorkflowPanel({ isOpen, api, author, namespace, unresolvedSuggestions, comments, onClose, onChange }: WorkflowPanelProps) {
+export function WorkflowPanel({ isOpen, api, author, namespace, unresolvedSuggestions, comments, onClose, onChange, contractAnalysis }: WorkflowPanelProps) {
   const panelRef = useRef<HTMLElement>(null)
   const [tab, setTab] = useState<PanelTab>('overview')
   const [dialog, setDialog] = useState<ApprovalDialogMode | null>(null)
   const [newName, setNewName] = useState('Document approval')
-  const workflowState = useWorkflow({ active: isOpen, api, namespace, author, unresolvedSuggestions, onChange })
+  const workflowState = useWorkflow({ active: isOpen, api, namespace, author, unresolvedSuggestions, onChange, contractAnalysis })
   const { workflow, currentStage, stageReviewers, loaded, saving, error, validation } = workflowState
 
   useEffect(() => {

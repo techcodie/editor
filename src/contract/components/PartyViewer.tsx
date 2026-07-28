@@ -1,0 +1,6 @@
+import { Building2, UserRound } from 'lucide-react'
+import type { ContractParty } from '../types/contract'
+
+export function PartyViewer({ parties, onJump }: { parties: ContractParty[]; onJump: (party: ContractParty) => void }) {
+  return <section className="p-3" aria-label="Contract parties">{parties.length ? <div className="space-y-2">{parties.map((party) => { const Icon = party.entityType === 'organisation' ? Building2 : UserRound; return <button key={party.id} type="button" onClick={() => onJump(party)} className="flex w-full items-center gap-3 rounded-md border border-neutral-200 p-3 text-left hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 dark:border-neutral-800 dark:hover:bg-neutral-900"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-neutral-100 text-neutral-500 dark:bg-neutral-800"><Icon size={14} aria-hidden /></span><span className="min-w-0"><span className="block truncate text-[10px] font-semibold text-neutral-900 dark:text-neutral-100">{party.name}</span><span className="mt-0.5 block text-[9px] text-neutral-400">{party.role} · {Math.round(party.confidence * 100)}%</span></span></button> })}</div> : <p className="px-5 py-12 text-center text-[10px] text-neutral-400">No parties were confidently detected.</p>}</section>
+}

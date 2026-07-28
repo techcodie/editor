@@ -55,6 +55,7 @@ export function createWorkflow(name: string, actor: WorkflowActor): Workflow {
     metadata: {
       complianceGate: false,
       requireResolvedSuggestions: true,
+      contractRiskGate: false,
     },
   }
 }

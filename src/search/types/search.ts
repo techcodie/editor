@@ -11,6 +11,9 @@ export type SearchDocumentKind =
   | 'knowledge-source'
   | 'version'
   | 'compliance-finding'
+  | 'contract-clause'
+  | 'contract-obligation'
+  | 'contract-date'
 
 export interface SearchDocumentMetadata {
   kind: SearchDocumentKind
@@ -27,6 +30,9 @@ export interface SearchDocumentMetadata {
   findingId?: string
   severity?: string
   locationQuote?: string
+  contractAnalysisId?: string
+  contractClauseType?: string
+  contractDateType?: string
 }
 
 export interface SearchSection {

@@ -156,7 +156,7 @@ registry, dependency injection, UI, runtime service, or global state.
 ### Current AI Request Flow
 
 ```text
-Ask Document UI / Selection AI UI / Compliance Engine
+Ask Document UI / Selection AI UI / Compliance Engine / Contract Intelligence
                 |
                 v
         Frontend AI Service
@@ -168,15 +168,17 @@ Ask Document UI / Selection AI UI / Compliance Engine
           Groq Provider
 ```
 
-The three current AI workflows are:
+The four current AI workflows are:
 
 - Ask Document: current document, explicitly active Knowledge Sources, question,
   and recent conversation history.
 - Selection AI: selected text, action, and optional current-document context.
 - Compliance AI: current document and prioritized deterministic findings for
   optional recommendation enrichment.
+- Contract AI: deterministic clauses, obligations, dates, risks, configured
+  playbook gaps, and current document content for optional summary refinement.
 
-All three workflows use the shared streaming transport and return server-sent events.
+All four workflows use the shared streaming transport and return server-sent events.
 The Groq API key remains server-only.
 
 Frontend stream updates are buffered to animation frames before React state is
@@ -1286,6 +1288,62 @@ legal hold, selective disclosure, role-based visibility, and document labels.
 Permission enforcement, approval-gated exports, realtime monitoring, and cloud
 DLP are intentionally deferred.
 
+### Enterprise Contract Intelligence Flow
+
+```text
+Contract Toolbar
+        |
+        v
+Contract Intelligence Panel
+        |
+        v
+Deterministic Analysis Pipeline
+        |
+  +-----+--------+----------+---------+
+  v              v          v         v
+Clauses       Entities   Obligations  Dates
+  |              |          |         |
+  +--------------+----------+---------+
+                 |
+                 v
+       Playbook and Risk Engine
+                 |
+        +--------+---------+
+        v                  v
+ Optional Contract AI   Local Summary
+        |                  |
+        +--------+---------+
+                 v
+ Search / Workflow / History / Export
+```
+
+Contract Intelligence Phase 1 extracts and classifies clauses, identifies
+parties and contract entities, maps obligations and key dates, tracks renewal
+terms, scores advisory risks, and prepares a local summary. Hosts may provide a
+configuration-only `contractPlaybook` for required, forbidden, custom, and
+recommended-language checks. No legal requirements are built into the SDK.
+
+Optional Groq refinement uses `DocumentEditorAiConfig.contractEndpoint` and the
+shared streaming transport. Invalid or unavailable AI output falls back to the
+deterministic local summary. Analysis is cancellable, fingerprint-cached,
+incrementally refreshed while its panel is active, and retained in bounded
+document-scoped browser history. The original document is never changed.
+
+Clause, obligation, and date results feed the existing Semantic Search and
+Knowledge Graph index. High-priority advisory risks can participate in the
+existing Approval Workflow when its contract gate is explicitly enabled.
+Users can create labeled Version History checkpoints and export standalone
+summary, risk, clause, and obligation reports. All document navigation uses the
+Editor API.
+
+### Future Contract Architecture
+
+The public playbook, analysis, risk, entity, and clause contracts are the
+boundaries for future host-provided LLM legal analysis, jurisdiction-specific
+rules, clause recommendations, negotiation workflows, CLM integrations, and
+enterprise legal AI. Legal advice, automatic negotiation, external legal APIs,
+e-signatures, billing, and matter management remain intentionally deferred.
+
 ---
 
 ## Tech Stack
@@ -1327,12 +1385,16 @@ server/
   ai-response.ts         Shared AI streaming response handling
   ask-document.ts        Ask Document endpoint
   selection-ai.ts        Selection AI endpoint
+  compliance.ts          Compliance AI endpoint
+  contract.ts            Contract summary endpoint
   http.ts                Shared request validation and errors
   prompts.ts             Centralized AI prompts
 
 shared/
   ai.ts                  Shared AI and Selection AI contracts
   ask-document.ts        Ask Document contracts
+  compliance.ts          Compliance AI contracts
+  contract.ts            Contract AI summary contracts
 
 src/
   assets/
@@ -1423,6 +1485,11 @@ src/
     hooks/               Cancellable scanning and instance-local redaction review state
     services/            Pattern, entity, classification, review, rendering, and export sanitization
     types/               Detection, classification, redaction, audit, and provider contracts
+  contract/
+    components/          Contract panel, clauses, parties, duties, dates, risk, and comparison UI
+    hooks/               Cancellable analysis and clause-search composition
+    services/            Extraction, classification, entity, obligation, renewal, playbook, risk, summary, comparison, and orchestration
+    types/               Contract, clause, entity, obligation, renewal, risk, and playbook contracts
   hooks/
     useSpeechRecognition.ts  Native browser speech recognition lifecycle
   services/              Shared AI transport and frame-batched stream updates
@@ -1462,7 +1529,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise AI Redaction and Sensitive Data Protection Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Contract Intelligence Phase 1 Complete**
 
 Completed:
 
@@ -1666,6 +1733,28 @@ Completed:
 - Semantic Search exclusion for approved redacted ranges
 - Framework-neutral redaction types, detector, sanitizer, and engine helpers in
   the public SDK surface
+- Enterprise Contract Intelligence panel with cancellable background analysis,
+  responsive views, keyboard dismissal, focus restoration, and editor navigation
+- Clause extraction and classification across termination, confidentiality,
+  indemnity, liability, payment, warranty, IP, force majeure, governing law,
+  assignment, data privacy, general, and host-defined custom clause types
+- Party and contract entity detection for organisations, people, addresses,
+  dates, amounts, currencies, jurisdictions, and document references
+- Obligation ownership, action, due-date, status, priority, dependency, key-date,
+  renewal, notice-period, and termination-window extraction
+- Configuration-only contract playbooks for required, forbidden, custom, and
+  recommended-language checks without bundled legal requirements
+- Confidence-scored advisory risk findings and overall contract risk score with
+  deterministic local summaries and optional Groq summary refinement
+- Fingerprint-cached analysis, debounced active-panel updates, bounded local
+  analysis history, previous-result comparison, and explicit cancellation
+- Semantic Search and Knowledge Graph indexing for contract clauses,
+  obligations, and dates with Editor API navigation
+- Optional contract-risk Approval Workflow guard and Contract-labeled Version
+  History checkpoints
+- Standalone contract summary, risk, clause, and obligation report exports
+- Framework-neutral contract analysis, clause, entity, obligation, date, risk,
+  playbook, and comparison contracts in the public SDK surface
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -1741,6 +1830,13 @@ index, embeddings, query cache, graph, pinned results, and saved searches remain
 local to the editor instance or document-scoped browser storage. The default
 embedding provider is deterministic local retrieval infrastructure, not an AI
 model or hosted vector service. No new production dependency was added.
+Contract Intelligence composes the existing Editor API, Compliance, Semantic
+Search, Knowledge Graph, Approval Workflow, Version History, Export, and shared
+AI transport. Its deterministic engines operate on document text and
+framework-neutral contracts; only the Editor API performs document navigation.
+Playbooks remain host-owned configuration, AI enrichment is optional, reports
+are advisory, and no automatic content editing or legal-service integration was
+introduced. No new production dependency was added.
 
 ### Version 1.0 Release Notes
 
@@ -1798,7 +1894,6 @@ These are not missing. Do not implement unless requested.
 - Industry-specific compliance rule packs for GDPR, HIPAA, ISO, SOC 2, custom
   company policies, and legal domains
 - Legal certification and cloud compliance services
-- Contract intelligence
 - Microsoft Purview, Google DLP, AWS Macie, and cloud DLP providers
 - Realtime sensitive-data monitoring and automatic deletion
 - Redaction permission enforcement, legal hold, selective disclosure, and
@@ -1843,7 +1938,12 @@ These are not missing. Do not implement unless requested.
 - Realtime OCR and background upload queues
 - Multi-language OCR selection and automatic language detection
 - Persistent compliance reports and realtime collaborative analysis
-- Contract, invoice, and form-specific extraction
+- Invoice-specific extraction
+- Host-provided LLM legal analysis and external legal APIs
+- Custom enterprise playbook services and jurisdiction-specific rule packs
+- Clause recommendations, negotiation workflows, and CLM integrations
+- Automatic contract negotiation, legal advice, e-signatures, billing, and
+  matter management
 - Cloud vector databases including Pinecone, Weaviate, Qdrant, and pgvector
 - OpenSearch and Azure AI Search providers
 - GraphRAG, Enterprise RAG, federated search, and cross-workspace retrieval

@@ -84,6 +84,9 @@ export type {
 export { detectSensitiveData, clearDetectionCache } from './redaction/services/detectionEngine'
 export { sanitizeTextForExport, excludeRedactedText } from './redaction/services/exportSanitizer'
 export { createRedaction, replacementFor, summarizeRedactions } from './redaction/services/redactionEngine'
+export { analyzeContract, clearContractAnalysisCache, fingerprintContract } from './contract/services/contractAnalysis'
+export { compareContractAnalyses } from './contract/services/comparisonEngine'
+export { validatePlaybook } from './contract/services/playbookEngine'
 export type {
   AiDetectionProvider,
   CustomDetectionPattern,
@@ -103,6 +106,40 @@ export type {
   RedactionStyle,
   RedactionSummary,
 } from './redaction/types/redaction'
+export type {
+  ClauseClassificationRule,
+  ClauseType,
+  ContractClause,
+  ContractTextRange,
+  StandardClauseType,
+} from './contract/types/clause'
+export type {
+  ClauseChange,
+  ContractAnalysis,
+  ContractAnalysisComparison,
+  ContractAnalysisHistoryEntry,
+  ContractAnalysisOptions,
+  ContractAnalysisProgress,
+  ContractAnalysisStage,
+  ContractComplianceFinding,
+  ContractDate,
+  ContractDateType,
+  ContractEntity,
+  ContractEntityType,
+  ContractObligation,
+  ContractParty,
+  ContractPlaybook,
+  ContractPlaybookRule,
+  ContractRisk,
+  ContractRiskCategory,
+  ContractRiskLevel,
+  ContractSummary,
+  ObligationPriority,
+  ObligationStatus,
+  PlaybookDeviation,
+  PlaybookDeviationType,
+  RenewalTerm,
+} from './contract/types/contract'
 export type {
   EditorApi,
   EditorAssetInsertion,

@@ -14,6 +14,7 @@ import type {
   CollaborationTransport,
   ResolvedCollaborationConfig,
 } from '../collaboration/types/collaboration'
+import type { ContractPlaybook } from '../contract/types/contract'
 
 const DEFAULT_THEME: DocumentEditorTheme = {
   colors: {
@@ -51,6 +52,7 @@ const DEFAULT_AI: Omit<Required<DocumentEditorAiConfig>, 'redactionDetector'> = 
   askDocumentEndpoint: '/api/ask-document',
   selectionEndpoint: '/api/selection-ai',
   complianceEndpoint: '/api/compliance-analysis',
+  contractEndpoint: '/api/contract-analysis',
 }
 
 const CONFIG_KEYS = new Set([
@@ -68,6 +70,7 @@ const CONFIG_KEYS = new Set([
   'keyboardShortcuts',
   'commandPalette',
   'collaboration',
+  'contractPlaybook',
   'callbacks',
   'plugins',
 ])
@@ -266,10 +269,30 @@ function resolveAi(value: unknown, warnings: string[]): ResolvedDocumentEditorCo
       'ai.complianceEndpoint',
       warnings,
     ),
+    contractEndpoint: validString(
+      ai.contractEndpoint,
+      DEFAULT_AI.contractEndpoint,
+      'ai.contractEndpoint',
+      warnings,
+    ),
     redactionDetector: typeof ai.redactionDetector?.detect === 'function'
       ? ai.redactionDetector
       : undefined,
   }
+}
+
+function resolveContractPlaybook(value: unknown, warnings: string[]): ContractPlaybook | null {
+  if (value === undefined) return null
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    warn('"contractPlaybook" must be an object and was ignored.', warnings)
+    return null
+  }
+  const playbook = value as Partial<ContractPlaybook>
+  if (typeof playbook.id !== 'string' || !playbook.id.trim() || typeof playbook.name !== 'string' || !playbook.name.trim() || !Array.isArray(playbook.rules)) {
+    warn('"contractPlaybook" requires id, name, and rules and was ignored.', warnings)
+    return null
+  }
+  return value as ContractPlaybook
 }
 
 function resolveCallbacks(value: unknown, warnings: string[]): DocumentEditorCallbacks {
@@ -430,6 +453,7 @@ export function validateDocumentEditorConfig(value: unknown): DocumentEditorConf
         warnings,
       ),
       collaboration: resolveCollaboration(input.collaboration, warnings),
+      contractPlaybook: resolveContractPlaybook(input.contractPlaybook, warnings),
       callbacks: resolveCallbacks(input.callbacks, warnings),
       plugins,
     },

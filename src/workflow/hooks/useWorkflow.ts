@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { EditorApi } from '../../lib/editor-api'
 import type { CommentAuthor } from '../../review/types/comment'
+import type { ContractAnalysis } from '../../contract/types/contract'
 import {
   addWorkflowNote,
   applyApprovalDecision,
@@ -38,6 +39,7 @@ interface UseWorkflowOptions {
   author: CommentAuthor
   unresolvedSuggestions: number
   onChange?: (workflow: Workflow | null) => void
+  contractAnalysis?: ContractAnalysis | null
 }
 
 const EMPTY_VALIDATION: WorkflowValidation = {
@@ -45,6 +47,8 @@ const EMPTY_VALIDATION: WorkflowValidation = {
   checking: false,
   criticalFindings: 0,
   unresolvedSuggestions: 0,
+  contractRiskScore: 0,
+  contractHighRisks: 0,
   issues: [],
 }
 
@@ -52,7 +56,7 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'The workflow action could not be completed.'
 }
 
-export function useWorkflow({ active, api, namespace, author, unresolvedSuggestions, onChange }: UseWorkflowOptions) {
+export function useWorkflow({ active, api, namespace, author, unresolvedSuggestions, onChange, contractAnalysis }: UseWorkflowOptions) {
   const [workflow, setWorkflow] = useState<Workflow | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -76,17 +80,18 @@ export function useWorkflow({ active, api, namespace, author, unresolvedSuggesti
 
   useEffect(() => {
     if (!active || !workflow) {
-      setValidation((current) => validateWorkflow(workflow, unresolvedSuggestions, current.criticalFindings))
+      setValidation((current) => validateWorkflow(workflow, unresolvedSuggestions, current.criticalFindings, false, contractAnalysis?.overallRiskScore ?? 0, contractAnalysis?.risks.filter((risk) => ['high', 'critical'].includes(risk.level)).length ?? 0))
       return
     }
     let cancelled = false
     let timeout: number | undefined
     const inspect = () => {
-      setValidation((current) => validateWorkflow(workflow, unresolvedSuggestions, current.criticalFindings, true))
+      const contractHighRisks = contractAnalysis?.risks.filter((risk) => ['high', 'critical'].includes(risk.level)).length ?? 0
+      setValidation((current) => validateWorkflow(workflow, unresolvedSuggestions, current.criticalFindings, true, contractAnalysis?.overallRiskScore ?? 0, contractHighRisks))
       void inspectWorkflowDocument(api).then((criticalFindings) => {
-        if (!cancelled) setValidation(validateWorkflow(workflow, unresolvedSuggestions, criticalFindings))
+        if (!cancelled) setValidation(validateWorkflow(workflow, unresolvedSuggestions, criticalFindings, false, contractAnalysis?.overallRiskScore ?? 0, contractHighRisks))
       }).catch(() => {
-        if (!cancelled) setValidation(validateWorkflow(workflow, unresolvedSuggestions, 0))
+        if (!cancelled) setValidation(validateWorkflow(workflow, unresolvedSuggestions, 0, false, contractAnalysis?.overallRiskScore ?? 0, contractHighRisks))
       })
     }
     inspect()
@@ -95,7 +100,7 @@ export function useWorkflow({ active, api, namespace, author, unresolvedSuggesti
       timeout = window.setTimeout(inspect, 900)
     })
     return () => { cancelled = true; window.clearTimeout(timeout); unsubscribe?.() }
-  }, [active, api, unresolvedSuggestions, workflow])
+  }, [active, api, contractAnalysis, unresolvedSuggestions, workflow])
 
   const persist = useCallback(async (next: Workflow | null) => {
     await saveWorkflow(namespace, next)

@@ -9,6 +9,7 @@ import type {
 import type { Collaborator } from '../collaboration/types/presence'
 import type { SearchMode } from '../search/types/search'
 import type { AiDetectionProvider } from '../redaction/types/detection'
+import type { ContractPlaybook } from '../contract/types/contract'
 import type {
   EditorApi,
   EditorInsertionTarget,
@@ -17,7 +18,7 @@ import type {
 
 export type DocumentEditorContent = string | Record<string, unknown>
 export type DocumentEditorIcon = ComponentType<SVGProps<SVGSVGElement>>
-export type AiWorkflow = 'ask-document' | 'selection' | 'compliance'
+export type AiWorkflow = 'ask-document' | 'selection' | 'compliance' | 'contract'
 
 export interface DocumentEditorAiConfig {
   /** Endpoint used by Ask Document. */
@@ -26,6 +27,8 @@ export interface DocumentEditorAiConfig {
   selectionEndpoint?: string
   /** Endpoint used to enrich local compliance findings. */
   complianceEndpoint?: string
+  /** Endpoint used to refine deterministic contract summaries. */
+  contractEndpoint?: string
   /** Optional host-provided detector used after local redaction rules. */
   redactionDetector?: AiDetectionProvider
 }
@@ -34,6 +37,7 @@ export interface ResolvedDocumentEditorAiConfig {
   askDocumentEndpoint: string
   selectionEndpoint: string
   complianceEndpoint: string
+  contractEndpoint: string
   redactionDetector?: AiDetectionProvider
 }
 
@@ -208,6 +212,8 @@ export interface DocumentEditorConfig {
   keyboardShortcuts?: boolean
   commandPalette?: boolean
   collaboration?: boolean | CollaborationConfig
+  /** Optional host-owned clause requirements and language rules. */
+  contractPlaybook?: ContractPlaybook
   callbacks?: DocumentEditorCallbacks
   plugins?: DocumentEditorPlugin[]
 }
@@ -227,6 +233,7 @@ export interface ResolvedDocumentEditorConfig {
   keyboardShortcuts: boolean
   commandPalette: boolean
   collaboration: false | ResolvedCollaborationConfig
+  contractPlaybook: ContractPlaybook | null
   callbacks: DocumentEditorCallbacks
   plugins: readonly DocumentEditorPlugin[]
 }
