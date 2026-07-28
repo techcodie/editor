@@ -2,6 +2,7 @@ import type { EditorDocumentNode } from '../../lib/editor-api'
 import { resolvePageMetrics } from '../../layout/services/pageMetrics'
 import { paginateBlocks } from '../../layout/services/paginationEngine'
 import { serializeAsset } from './assetSerializer'
+import { normalizeSerializedField } from '../../forms/services/formSerializer'
 import type {
   ExportRequest,
   RenderedBlock,
@@ -143,6 +144,17 @@ function parseNode(
     return
   }
 
+  if (node.type === 'formField') {
+    const block = createBlock(node, request, state, 'formField', level)
+    const field = normalizeSerializedField(node.attrs?.field)
+    if (field) {
+      block.formField = field
+      block.text = `${field.label || field.type}: ${field.placeholder || ''}`.trim()
+    }
+    state.blocks.push(block)
+    return
+  }
+
   if (node.type === 'image') {
     const block = createBlock(node, request, state, 'image', level)
     block.asset = request.options.includeAssets ? imageAsset(node) ?? undefined : undefined
@@ -165,6 +177,7 @@ function parseNode(
 }
 
 function estimateBlockHeight(block: RenderedBlock, contentWidth: number): number {
+  if (block.formField) return Math.max(48, Math.min(180, block.formField.height)) + 12
   if (block.asset) {
     const scale = Math.min(1, contentWidth / Math.max(1, block.asset.width))
     return block.asset.height * scale + 20

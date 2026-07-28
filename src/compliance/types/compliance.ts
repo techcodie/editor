@@ -1,4 +1,5 @@
 import type { DocumentModel } from '../../intelligence/types/documentModel'
+import type { FormField } from '../../forms/types/field'
 
 export type ComplianceSeverity = 'low' | 'medium' | 'high' | 'critical'
 export type ComplianceFindingType =
@@ -11,6 +12,10 @@ export type ComplianceFindingType =
   | 'broken-reference'
   | 'missing-signature'
   | 'long-paragraph'
+  | 'missing-required-field'
+  | 'duplicate-form-field'
+  | 'invalid-field-validation'
+  | 'empty-field-label'
 
 export interface ComplianceLocation {
   label: string
@@ -92,6 +97,7 @@ export interface ComplianceEngineOptions {
 export interface ComplianceAnalysisInput {
   model: DocumentModel
   documentFingerprint: string
+  formFields?: FormField[]
 }
 
 export type ComplianceSeverityFilter = 'all' | ComplianceSeverity

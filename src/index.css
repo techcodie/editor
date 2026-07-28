@@ -252,6 +252,22 @@
   color: color-mix(in srgb, var(--document-editor-text) 58%, #dc2626);
 }
 
+.document-editor-sdk .form-builder-panel :where(.bg-neutral-50, .bg-neutral-100) {
+  background-color: color-mix(
+    in srgb,
+    var(--document-editor-surface) 94%,
+    var(--document-editor-text)
+  );
+}
+
+.document-editor-sdk .form-builder-panel :where(.text-neutral-600, .text-neutral-700, .text-neutral-800) {
+  color: color-mix(
+    in srgb,
+    var(--document-editor-text) 76%,
+    var(--document-editor-muted-text)
+  );
+}
+
 .knowledge-preview-content {
   color: #40403d;
   font-size: 0.9375rem;

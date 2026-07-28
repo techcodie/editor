@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/react'
 import { Fragment } from '@tiptap/pm/model'
+import { NodeSelection } from '@tiptap/pm/state'
 import type {
   EditorApi,
   EditorAssetInsertion,
@@ -9,6 +10,9 @@ import type {
   EditorTextSelection,
   EditorTrackChangeInteraction,
 } from './editor-api'
+import { normalizeSerializedField } from '../forms/services/formSerializer'
+import { updateFormField as applyFormFieldPatch } from '../forms/services/formEngine'
+import type { FormField, FormFieldDocumentEntry } from '../forms/types/field'
 import { resolvePageMetrics } from '../layout/services/pageMetrics'
 import { paginateBlocks } from '../layout/services/paginationEngine'
 import type { PageLayout } from '../layout/types/layout'
@@ -501,6 +505,27 @@ export function createEditorApi(editor: Editor): EditorApi {
     }
   }
 
+  const getFormFields = (): FormFieldDocumentEntry[] => {
+    const fields: FormFieldDocumentEntry[] = []
+    editor.state.doc.descendants((node, position) => {
+      if (node.type.name !== 'formField') return
+      const field = normalizeSerializedField(node.attrs.field)
+      if (field) fields.push({ field, from: position, to: position + node.nodeSize })
+    })
+    return fields
+  }
+
+  const getFormField = (fieldId: string): FormFieldDocumentEntry | null =>
+    getFormFields().find((entry) => entry.field.id === fieldId) ?? null
+
+  const setFormField = (entry: FormFieldDocumentEntry, field: FormField): boolean => {
+    const node = editor.state.doc.nodeAt(entry.from)
+    if (!node || node.type.name !== 'formField') return false
+    const transaction = editor.state.tr.setNodeMarkup(entry.from, undefined, { field })
+    editor.view.dispatch(transaction)
+    return true
+  }
+
   return {
     undo: () => {
       editor.chain().focus().undo().run()
@@ -606,6 +631,10 @@ export function createEditorApi(editor: Editor): EditorApi {
             taskItem: ({ node }) => `- [${node.attrs.checked ? 'x' : ' '}] ${node.textContent}`,
             horizontalRule: () => '---',
             hardBreak: () => '\n',
+            formField: ({ node }) => {
+              const field = normalizeSerializedField(node.attrs.field)
+              return field ? `[Form field: ${field.label || field.type}]` : '[Form field]'
+            },
           },
         })
         .replace(/[ \t]+\n/g, '\n')
@@ -614,6 +643,43 @@ export function createEditorApi(editor: Editor): EditorApi {
     getDocumentSnapshot: () => structuredClone(editor.getJSON()) as EditorDocumentNode,
     insertStructuredContent,
     insertAsset,
+    insertFormField: (field) => {
+      const normalized = normalizeSerializedField(field)
+      if (!normalized || getFormField(normalized.id)) return false
+      const didInsert = editor.chain().focus().insertContent({
+        type: 'formField',
+        attrs: { field: normalized },
+      }).run()
+      if (didInsert) queueMicrotask(() => {
+        const entry = getFormField(normalized.id)
+        if (entry) editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, entry.from)))
+      })
+      return didInsert
+    },
+    updateFormField: (fieldId, patch) => {
+      const entry = getFormField(fieldId)
+      return entry ? setFormField(entry, applyFormFieldPatch(entry.field, patch)) : false
+    },
+    removeFormField: (fieldId) => {
+      const entry = getFormField(fieldId)
+      if (!entry) return false
+      editor.view.dispatch(editor.state.tr.delete(entry.from, entry.to))
+      return true
+    },
+    getFormFields,
+    getSelectedFormField: () => {
+      const selection = editor.state.selection
+      if (!(selection instanceof NodeSelection) || selection.node.type.name !== 'formField') return null
+      const field = normalizeSerializedField(selection.node.attrs.field)
+      return field ? { field, from: selection.from, to: selection.to } : null
+    },
+    focusFormField: (fieldId) => {
+      const entry = getFormField(fieldId)
+      if (!entry) return false
+      editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, entry.from)).scrollIntoView())
+      editor.view.focus()
+      return true
+    },
     addCommentAnchor,
     removeCommentAnchor,
     focusCommentAnchor,

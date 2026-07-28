@@ -23,6 +23,8 @@
     "dist-sdk/types/src/sdk/types.d.ts.map",
     "dist-sdk/types/src/lib/editor-api.d.ts",
     "dist-sdk/types/src/lib/editor-api.d.ts.map",
+    "dist-sdk/types/src/forms/types/*.d.ts",
+    "dist-sdk/types/src/forms/types/*.d.ts.map",
     "dist-sdk/types/shared/ai.d.ts",
     "dist-sdk/types/shared/ai.d.ts.map",
     "README.md",

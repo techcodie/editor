@@ -4,6 +4,7 @@ import type { PaginationSnapshot } from '../../layout/types/page'
 import type { Comment } from '../../review/types/comment'
 import type { TrackChange } from '../../review/trackChanges/types/trackChange'
 import type { Watermark } from '../../watermark/types/watermark'
+import type { FormField } from '../../forms/types/field'
 
 export type ExportFormat = 'pdf' | 'docx' | 'html'
 export type ExportStatus =
@@ -91,6 +92,7 @@ export interface RenderedBlock {
   checked?: boolean
   asset?: RenderedAsset
   rows?: RenderedTableCell[][]
+  formField?: FormField
 }
 
 export interface RenderedPage {

@@ -46,6 +46,23 @@ export type {
   HeadingLevel,
   TextAlignment,
 } from './lib/editor-api'
+export type {
+  FormField,
+  FormFieldDocumentEntry,
+  FormFieldOption,
+  FormFieldPatch,
+  FormFieldPosition,
+  FormFieldType,
+  FormFieldValidation,
+  FormFieldValue,
+  FormFieldVisibility,
+} from './forms/types/field'
+export type {
+  CustomFormValidator,
+  FormDefinition,
+  FormPreviewState,
+  FormValidationError,
+} from './forms/types/form'
 export {
   SELECTION_AI_ACTIONS,
   isSelectionAiAction,

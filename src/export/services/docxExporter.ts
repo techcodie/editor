@@ -62,6 +62,19 @@ function headingLevel(level: number): (typeof HeadingLevel)[keyof typeof Heading
 }
 
 async function blockToDocx(block: RenderedBlock): Promise<Paragraph | Table> {
+  if (block.formField) {
+    const field = block.formField
+    const marker = JSON.stringify({ techcodieFormField: field })
+    return new Paragraph({
+      children: [
+        new TextRun({ text: `${field.label || field.type}${field.required ? ' *' : ''}`, bold: true }),
+        new TextRun({ text: `\n${field.placeholder || 'Enter a value'}`, color: '737373' }),
+        new TextRun({ text: marker, vanish: true }),
+      ],
+      border: { bottom: { style: 'single', size: 4, color: 'A3A3A3' } },
+      spacing: { before: 80, after: 180 },
+    })
+  }
   if (block.asset) {
     const bytes = await rasterizeSvg(block.asset.svg, block.asset.width, block.asset.height)
     const maxWidth = Math.min(520, block.asset.width)

@@ -103,7 +103,7 @@ export async function analyzeCompliance(
   notify(options, 'preparing', 6, 'Preparing structured document')
   await yieldToBrowser(options.signal)
   notify(options, 'rules', 28, 'Checking document risks')
-  const findings = detectRisks(input.model)
+  const findings = detectRisks(input.model, input.formFields)
   await yieldToBrowser(options.signal)
   notify(options, 'clauses', 54, 'Reviewing clause coverage')
   findings.push(...analyzeClauses(input.model))

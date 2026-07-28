@@ -1,5 +1,10 @@
 import type { PageLayout } from '../layout/types/layout'
 import type { PaginationSnapshot } from '../layout/types/page'
+import type {
+  FormField,
+  FormFieldDocumentEntry,
+  FormFieldPatch,
+} from '../forms/types/field'
 
 export type HeadingLevel = 1 | 2 | 3
 export type TextAlignment = 'left' | 'center' | 'right' | 'justify'
@@ -132,6 +137,13 @@ export interface EditorApi {
   getDocumentSnapshot(): EditorDocumentNode
   insertStructuredContent(insertion: EditorStructuredInsertion): boolean
   insertAsset(asset: EditorAssetInsertion): boolean
+
+  insertFormField(field: FormField): boolean
+  updateFormField(fieldId: string, patch: FormFieldPatch): boolean
+  removeFormField(fieldId: string): boolean
+  getFormFields(): FormFieldDocumentEntry[]
+  getSelectedFormField(): FormFieldDocumentEntry | null
+  focusFormField(fieldId: string): boolean
 
   addCommentAnchor(selection: EditorTextSelection, commentId: string): boolean
   removeCommentAnchor(commentId: string): boolean

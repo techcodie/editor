@@ -10,6 +10,7 @@ import type {
 } from '../../compliance/types/compliance'
 import { ComparisonToolbarControl } from '../../comparison/components/ComparisonToolbar'
 import { ExportToolbarControl } from '../../export/components/ExportToolbarControl'
+import { FormBuilderToolbarControl } from '../../forms/components/FormBuilderToolbarControl'
 import { DocumentIntelligenceToolbarControl } from '../../intelligence/components/DocumentIntelligenceToolbarControl'
 import type { PreparedKnowledgeSource } from '../../knowledge/types/source'
 import { PageIndicator } from '../../layout/components/PageIndicator'
@@ -97,6 +98,11 @@ const CompliancePanel = lazy(async () => {
   return { default: module.CompliancePanel }
 })
 
+const FormBuilderPanel = lazy(async () => {
+  const module = await import('../../forms/components/FormBuilderPanel')
+  return { default: module.FormBuilderPanel }
+})
+
 /**
  * Owns the editor instance and wires it to its UI: it creates the editor, binds
  * the public {@link EditorApi} for the toolbar, and renders the editing surface.
@@ -142,6 +148,9 @@ export function EditorWorkspace({
   const [isIntelligenceLoaded, setIsIntelligenceLoaded] = useState(false)
   const [isComplianceOpen, setIsComplianceOpen] = useState(false)
   const [isComplianceLoaded, setIsComplianceLoaded] = useState(false)
+  const [isFormBuilderOpen, setIsFormBuilderOpen] = useState(false)
+  const [isFormBuilderLoaded, setIsFormBuilderLoaded] = useState(false)
+  const [formFieldCount, setFormFieldCount] = useState(0)
   const [comparisonInitialDocument, setComparisonInitialDocument] = useState('')
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [askDocumentCommand, setAskDocumentCommand] =
@@ -273,6 +282,16 @@ export function EditorWorkspace({
   }, [api, onApiChange])
 
   useEffect(() => {
+    if (!api) {
+      setFormFieldCount(0)
+      return
+    }
+    const sync = () => setFormFieldCount(api.getFormFields().length)
+    sync()
+    return api.subscribe(sync)
+  }, [api])
+
+  useEffect(() => {
     if (!api) return
 
     const notifyChanges = () => {
@@ -358,6 +377,7 @@ export function EditorWorkspace({
   }, [api, isSuggestionMode])
 
   const openAskDocument = useCallback(() => {
+    setIsFormBuilderOpen(false)
     setIsComplianceOpen(false)
     setIsComparisonOpen(false)
     setIsPageLayoutOpen(false)
@@ -378,6 +398,7 @@ export function EditorWorkspace({
   }, [])
 
   const openAssetLibrary = useCallback(() => {
+    setIsFormBuilderOpen(false)
     setIsComplianceOpen(false)
     setIsComparisonOpen(false)
     setIsPageLayoutOpen(false)
@@ -393,6 +414,7 @@ export function EditorWorkspace({
   }, [setIsPageLayoutOpen, setIsWatermarkOpen])
 
   const openReviewMode = useCallback(() => {
+    setIsFormBuilderOpen(false)
     setIsComplianceOpen(false)
     setIsComparisonOpen(false)
     setIsPageLayoutOpen(false)
@@ -417,6 +439,7 @@ export function EditorWorkspace({
   }, [closeComposer])
 
   const openSuggestionMode = useCallback(() => {
+    setIsFormBuilderOpen(false)
     setIsComplianceOpen(false)
     setIsComparisonOpen(false)
     setIsPageLayoutOpen(false)
@@ -442,6 +465,7 @@ export function EditorWorkspace({
   }, [])
 
   const openComparison = useCallback(() => {
+    setIsFormBuilderOpen(false)
     setIsComplianceOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
@@ -466,6 +490,7 @@ export function EditorWorkspace({
   }, [])
 
   const openPageLayout = useCallback(() => {
+    setIsFormBuilderOpen(false)
     setIsComplianceOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
@@ -489,6 +514,7 @@ export function EditorWorkspace({
   }, [setIsPageLayoutOpen])
 
   const openWatermark = useCallback(() => {
+    setIsFormBuilderOpen(false)
     setIsComplianceOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
@@ -512,6 +538,7 @@ export function EditorWorkspace({
   }, [setIsWatermarkOpen])
 
   const openExport = useCallback(() => {
+    setIsFormBuilderOpen(false)
     setIsComplianceOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
@@ -537,6 +564,7 @@ export function EditorWorkspace({
   }, [])
 
   const openIntelligence = useCallback(() => {
+    setIsFormBuilderOpen(false)
     setIsComplianceOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
@@ -563,6 +591,7 @@ export function EditorWorkspace({
   }, [])
 
   const openCompliance = useCallback(() => {
+    setIsFormBuilderOpen(false)
     setIsAskDocumentOpen(false)
     setIsAssetLibraryOpen(false)
     setIsReviewMode(false)
@@ -585,6 +614,33 @@ export function EditorWorkspace({
     setIsComplianceOpen(false)
     window.requestAnimationFrame(() => {
       document.getElementById('compliance-trigger')?.focus()
+    })
+  }, [])
+
+  const openFormBuilder = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
+    setIsExportOpen(false)
+    setIsIntelligenceOpen(false)
+    setIsComplianceOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    cancelPlacement()
+    closeComposer()
+    setIsFormBuilderLoaded(true)
+    setIsFormBuilderOpen(true)
+  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+
+  const closeFormBuilder = useCallback(() => {
+    setIsFormBuilderOpen(false)
+    window.requestAnimationFrame(() => {
+      document.getElementById('form-builder-trigger')?.focus()
     })
   }, [])
 
@@ -854,6 +910,14 @@ export function EditorWorkspace({
                       else openCompliance()
                     }}
                   />
+                  <FormBuilderToolbarControl
+                    isOpen={isFormBuilderOpen}
+                    fieldCount={formFieldCount}
+                    onToggle={() => {
+                      if (isFormBuilderOpen) closeFormBuilder()
+                      else openFormBuilder()
+                    }}
+                  />
                 </>
               }
             />
@@ -943,6 +1007,18 @@ export function EditorWorkspace({
         </div>
       </div>
       <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">
+        {isFormBuilderLoaded && (
+          <ErrorBoundary compact title="Form builder needs a retry">
+            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[28rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[27rem] lg:rounded-lg lg:border" role="status" aria-label="Loading form builder"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+              <FormBuilderPanel
+                isOpen={isFormBuilderOpen}
+                api={api}
+                currentPage={pagination.currentPage}
+                onClose={closeFormBuilder}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        )}
         {isComplianceLoaded && (
           <ErrorBoundary compact title="Compliance analysis needs a retry">
             <Suspense
@@ -1100,7 +1176,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
       </div>
-      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && (
+      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && (
         <ErrorBoundary compact title="Selection AI needs a retry">
           <SelectionAi
             api={api}

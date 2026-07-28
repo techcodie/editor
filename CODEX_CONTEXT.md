@@ -589,6 +589,54 @@ produce the current finding model instead of introducing format-specific
 analysis paths. Legal certification, cloud compliance services, persistent
 analysis, and realtime collaborative analysis remain separate capabilities.
 
+### Enterprise Form Builder Flow
+
+```text
+Form Builder Toolbar Control
+        |
+        v
+Field Palette / Properties / Preview
+        |
+        v
+Field Registry / Validation Engine
+        |
+        v
+Editor API
+        |
+        v
+Protected Form Field Node / Page Layout
+```
+
+Form Builder Phase 1 adds text, paragraph, number, email, phone, date, time,
+checkbox, radio group, dropdown, signature placeholder, file-upload
+placeholder, initials, and currency fields. Each field definition stores a
+stable ID, label, placeholder, required and readonly state, default value,
+help text, validation, options, page, width, height, visibility, position, and
+host metadata in an atomic document node. Normal text editing cannot modify a
+field definition.
+
+Builder UI communicates only through the Editor API. The API owns field
+insertion, updates, deletion, enumeration, node selection, and range focus.
+The responsive panel provides a memoized registry palette, selected-field
+properties, validation rules, and an interactive local preview. Preview values
+and errors are instance-local and are never submitted or persisted.
+
+The shared export renderer preserves form definitions. PDF renders fixed visual
+placeholders, DOCX renders editable-looking placeholders with hidden Techcodie
+field metadata, and standalone HTML emits native interactive controls with
+validation attributes. Compliance analysis consumes the same serialized field
+definitions to flag empty labels, duplicates, invalid validation, and forms
+without required fields.
+
+### Future Form Submission Architecture
+
+Submission APIs, databases, authentication, workflow automation, approval
+routing, electronic signatures, conditional fields, calculations, repeating
+sections, dynamic visibility, analytics, OCR field mapping, and backend
+validation remain host-owned future integrations. They must consume the
+current `FormDefinition` and `FormField` contracts rather than introducing a
+second field model.
+
 ### Future Print Architecture
 
 The current layout, watermark model, preview, and export renderer establish
@@ -701,6 +749,10 @@ access Tiptap or ProseMirror.
 Page Layout UI also remains framework-neutral. It uses Editor API methods for
 visual pagination, page-break commands, page navigation state, and readonly
 preview mode; no layout component imports Tiptap or ProseMirror.
+
+Form Builder UI also remains framework-neutral. It uses Editor API methods for
+protected field insertion, configuration, deletion, enumeration, and focus.
+Only the internal form-field node and Editor API adapter access Tiptap.
 
 ---
 
@@ -972,6 +1024,11 @@ same workspace. The editor mark owns transaction interpretation; React owns
 only the review records and visible panel state. No new global store or context
 has been introduced.
 
+Form Builder derives definitions from protected nodes in the current editor
+document. Builder selection, preview values, validation messages, and panel
+state remain local to the editor workspace; no global form store or submission
+state has been introduced.
+
 ---
 
 ## Tech Stack
@@ -1066,6 +1123,12 @@ src/
     hooks/               Instance-local export job lifecycle
     services/            Renderer pipeline, serializers, manager, and adapters
     types/               Export jobs, options, results, and rendered document model
+  forms/
+    components/          Builder panel, field palette, properties, validation, and preview
+    editor/              Internal protected form-field node and node view
+    hooks/               Instance-local field list and selection composition
+    services/            Registry, defaults, validation, rendering, and serialization
+    types/               Form definition, field, validation, and preview contracts
   comparison/
     components/          Workspace, toolbar, summary, viewers, sidebar, and navigation
     hooks/               Instance-local comparison lifecycle and decisions
@@ -1122,7 +1185,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Compliance & Risk Analysis Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Form Builder Phase 1 Complete**
 
 Completed:
 
@@ -1253,6 +1316,18 @@ Completed:
 - Explicit compliance handoffs to comments, pending tracked suggestions, and
   grounded Ask Document questions
 - Standalone advisory compliance report export
+- Enterprise Form Builder with fourteen field types, field palette, and live
+  document insertion
+- Protected selectable form-field nodes with Editor API configuration, focus,
+  deletion, and structured snapshot preservation
+- Field properties for labels, placeholders, required and readonly state,
+  defaults, help text, options, width, visibility, and validation rules
+- Responsive interactive form preview with accessible native controls and
+  required, length, regex, email, phone, numeric, date, and custom-hook validation
+- PDF visual field placeholders, DOCX field metadata preservation, and
+  interactive standalone HTML form controls
+- Compliance findings for empty labels, duplicate fields, invalid validation,
+  and missing required-field configuration
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -1297,6 +1372,12 @@ an industry rule pack or legal certification. The direct tracked-insertion
 Editor API command reuses the existing `trackChange` mark and suggestion
 registry for document-level proposed clauses without creating parallel review
 state. No new production dependency was added.
+Form Builder stores its definitions in protected document nodes and reaches
+those nodes only through the Editor API. The registry, validation engine,
+preview, serializer, export adapters, and compliance checks consume
+framework-neutral field contracts. Preview values remain local and no backend
+submission, authentication, approval, signature, or workflow behavior was
+introduced. No new production dependency was added.
 
 ### Version 1.0 Release Notes
 
@@ -1345,6 +1426,10 @@ These are not missing. Do not implement unless requested.
 - Dynamic watermark fields, QR codes, security hashes, and generated watermarks
 - Page-level background image layout
 - Track-change author and permission providers
+- Backend form submissions and submission persistence
+- Form authentication, approval routing, and workflow automation
+- Conditional fields, calculations, repeating sections, and dynamic visibility
+- Electronic signatures, form analytics, and OCR field mapping
 - Industry-specific compliance rule packs for GDPR, HIPAA, ISO, SOC 2, custom
   company policies, and legal domains
 - Legal certification and cloud compliance services

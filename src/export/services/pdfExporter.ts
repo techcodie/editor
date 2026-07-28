@@ -204,6 +204,15 @@ async function drawBlock(
   y: number,
   width: number,
 ): Promise<number> {
+  if (block.formField) {
+    const field = block.formField
+    if (field.visibility === 'hidden') return y
+    const height = Math.max(30, Math.min(90, field.height * 0.65))
+    page.drawText(pdfText(`${field.label || field.type}${field.required ? ' *' : ''}`), { x, y, size: 9, font: fonts.bold, color: rgb(0.12, 0.12, 0.12) })
+    page.drawRectangle({ x, y: y - height - 6, width: width * (field.width / 100), height, borderWidth: 0.7, borderColor: rgb(0.62, 0.62, 0.62), color: rgb(0.99, 0.99, 0.99) })
+    page.drawText(pdfText(field.placeholder || 'Enter a value'), { x: x + 7, y: y - 21, size: 8, font: fonts.regular, color: rgb(0.48, 0.48, 0.48) })
+    return y - height - 20
+  }
   if (block.asset) return drawAsset(pdf, page, block, x, y, width)
   if (block.type === 'horizontalRule') {
     page.drawLine({ start: { x, y: y - 4 }, end: { x: x + width, y: y - 4 }, thickness: 0.75, color: rgb(0.7, 0.7, 0.7) })

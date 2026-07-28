@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createDocumentModelFromText } from '../../intelligence/services/documentIntelligence'
 import type { EditorApi } from '../../lib/editor-api'
 import type { InternalDocumentEditorEvents } from '../../sdk/events'
+import { extractFormFields } from '../../forms/services/formSerializer'
 import {
   analyzeCompliance,
   fingerprintDocument,
@@ -39,13 +40,14 @@ export function useCompliance({ api, active, aiEndpoint, events }: UseCompliance
   const analyze = useCallback(async (force = false) => {
     if (!api) return
     const text = api.getDocumentText().trim()
-    if (!text) {
+    const formFields = extractFormFields(api.getDocumentSnapshot())
+    if (!text && formFields.length === 0) {
       setReport(null)
       setError('Add document content before running compliance analysis.')
       setProgress(IDLE_PROGRESS)
       return
     }
-    const documentFingerprint = fingerprintDocument(text)
+    const documentFingerprint = fingerprintDocument(`${text}\n${JSON.stringify(formFields)}`)
     if (!force && documentFingerprint === lastFingerprintRef.current) return
     controllerRef.current?.abort()
     const controller = new AbortController()
@@ -55,9 +57,9 @@ export function useCompliance({ api, active, aiEndpoint, events }: UseCompliance
     setError(null)
     events.emit('aiRequest', { workflow: 'compliance', requestId })
     try {
-      const model = createDocumentModelFromText(text)
+      const model = createDocumentModelFromText(text || 'Interactive form')
       const nextReport = await analyzeCompliance(
-        { model, documentFingerprint },
+        { model, documentFingerprint, formFields },
         {
           signal: controller.signal,
           aiEndpoint,

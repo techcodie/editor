@@ -5,6 +5,8 @@ import type {
   ComplianceFindingType,
   ComplianceSeverity,
 } from '../types/compliance'
+import { analyzeFieldDefinitions } from '../../forms/services/validationEngine'
+import type { FormField } from '../../forms/types/field'
 
 const PLACEHOLDER_PATTERN = /\b(?:TBD|TODO|FIXME|XXX|lorem ipsum|placeholder)\b|\[(?:insert|add|complete|describe)[^\]]*\]|<[^>]*(?:insert|placeholder)[^>]*>/gi
 const DATE_PATTERNS = [
@@ -219,7 +221,40 @@ function detectLongParagraphs(model: DocumentModel): ComplianceFinding[] {
   })
 }
 
-export function detectRisks(model: DocumentModel): ComplianceFinding[] {
+function detectFormRisks(fields: FormField[]): ComplianceFinding[] {
+  const byId = new Map(fields.map((field) => [field.id, field]))
+  const typeMap = {
+    'empty-label': 'empty-field-label',
+    'duplicate-field': 'duplicate-form-field',
+    'invalid-validation': 'invalid-field-validation',
+    'missing-required-field': 'missing-required-field',
+  } as const
+  return analyzeFieldDefinitions(fields).map((issue) => {
+    const field = byId.get(issue.fieldId)
+    const title = {
+      'empty-label': 'Form field has no label',
+      'duplicate-field': 'Duplicate form field',
+      'invalid-validation': 'Invalid field validation',
+      'missing-required-field': 'No required fields defined',
+    }[issue.type]
+    return {
+      id: crypto.randomUUID(),
+      type: typeMap[issue.type],
+      title,
+      description: issue.message,
+      severity: issue.type === 'invalid-validation' || issue.type === 'empty-label' ? 'high' : 'medium',
+      location: {
+        label: field ? `Form field: ${field.label || field.type}` : 'Form definition',
+      },
+      confidence: 0.99,
+      recommendation: issue.type === 'missing-required-field'
+        ? 'Mark fields that are mandatory for a complete response as required.'
+        : 'Review the field definition in Form Builder and correct its configuration.',
+    }
+  })
+}
+
+export function detectRisks(model: DocumentModel, formFields: FormField[] = []): ComplianceFinding[] {
   return [
     ...detectPlaceholders(model),
     ...detectEmptySections(model),
@@ -229,5 +264,6 @@ export function detectRisks(model: DocumentModel): ComplianceFinding[] {
     ...detectBrokenReferences(model),
     ...detectMissingSignature(model),
     ...detectLongParagraphs(model),
+    ...detectFormRisks(formFields),
   ]
 }

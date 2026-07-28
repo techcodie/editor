@@ -1,0 +1,26 @@
+import { Plus, Trash2, X } from 'lucide-react'
+import { getFieldDefinition } from '../services/fieldRegistry'
+import type { FormField, FormFieldOption, FormFieldPatch } from '../types/field'
+import { ValidationPanel } from './ValidationPanel'
+
+const inputClass = 'h-9 w-full rounded-md border border-neutral-200 bg-white px-2.5 text-[11px] text-neutral-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15'
+
+interface FieldPropertiesProps { field: FormField; onChange: (patch: FormFieldPatch) => void; onDelete: () => void }
+
+export function FieldProperties({ field, onChange, onDelete }: FieldPropertiesProps) {
+  const definition = getFieldDefinition(field.type)
+  const updateOptions = (options: FormFieldOption[]) => onChange({ options })
+  return (
+    <div className="space-y-4 p-4">
+      <div className="flex items-center justify-between"><div><h3 className="text-xs font-semibold text-neutral-950">{definition.label} field</h3><p className="text-[9px] text-neutral-500">Protected document element</p></div><button type="button" onClick={onDelete} aria-label="Delete selected field" title="Delete field" className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-400 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"><Trash2 size={14} aria-hidden /></button></div>
+      <label className="block text-[10px] font-medium text-neutral-600">Label<input className={`${inputClass} mt-1`} value={field.label} onChange={(event) => onChange({ label: event.target.value })} /></label>
+      <label className="block text-[10px] font-medium text-neutral-600">Placeholder<input className={`${inputClass} mt-1`} value={field.placeholder} onChange={(event) => onChange({ placeholder: event.target.value })} /></label>
+      <label className="block text-[10px] font-medium text-neutral-600">Help text<textarea className="mt-1 min-h-16 w-full resize-y rounded-md border border-neutral-200 bg-white px-2.5 py-2 text-[11px] leading-4 text-neutral-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15" value={field.helpText} onChange={(event) => onChange({ helpText: event.target.value })} /></label>
+      {!['checkbox', 'signature', 'initials', 'file-upload'].includes(field.type) && <label className="block text-[10px] font-medium text-neutral-600">Default value<input className={`${inputClass} mt-1`} value={String(field.defaultValue)} onChange={(event) => onChange({ defaultValue: event.target.value })} /></label>}
+      {definition.supportsOptions && <section><div className="mb-2 flex items-center justify-between"><h4 className="text-[10px] font-semibold text-neutral-700">Options</h4><button type="button" onClick={() => updateOptions([...field.options, { id: crypto.randomUUID(), label: `Option ${field.options.length + 1}`, value: `option-${field.options.length + 1}` }])} className="flex h-7 items-center gap-1 rounded px-2 text-[9px] font-semibold text-indigo-700 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"><Plus size={11} />Add</button></div><div className="space-y-1.5">{field.options.map((option, index) => <div key={option.id} className="flex items-center gap-1.5"><input aria-label={`Option ${index + 1} label`} className={inputClass} value={option.label} onChange={(event) => updateOptions(field.options.map((item) => item.id === option.id ? { ...item, label: event.target.value, value: event.target.value.toLocaleLowerCase().replace(/\s+/g, '-') } : item))} /><button type="button" aria-label={`Remove ${option.label}`} onClick={() => updateOptions(field.options.filter((item) => item.id !== option.id))} className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-neutral-400 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"><X size={12} /></button></div>)}</div></section>}
+      <div className="grid grid-cols-2 gap-2"><label className="text-[10px] font-medium text-neutral-600">Width<input className={`${inputClass} mt-1`} type="number" min="25" max="100" value={field.width} onChange={(event) => onChange({ width: Number(event.target.value) })} /></label><label className="text-[10px] font-medium text-neutral-600">Visibility<select className={`${inputClass} mt-1`} value={field.visibility} onChange={(event) => onChange({ visibility: event.target.value as FormField['visibility'] })}><option value="visible">Visible</option><option value="hidden">Hidden</option></select></label></div>
+      <div className="grid grid-cols-2 gap-2"><label className="flex items-center gap-2 rounded-md border border-neutral-200 px-2.5 py-2 text-[10px] font-medium text-neutral-700"><input type="checkbox" checked={field.required} onChange={(event) => onChange({ required: event.target.checked })} className="h-3.5 w-3.5 accent-indigo-600" />Required</label><label className="flex items-center gap-2 rounded-md border border-neutral-200 px-2.5 py-2 text-[10px] font-medium text-neutral-700"><input type="checkbox" checked={field.readonly} onChange={(event) => onChange({ readonly: event.target.checked })} className="h-3.5 w-3.5 accent-indigo-600" />Read only</label></div>
+      <ValidationPanel field={field} onChange={onChange} />
+    </div>
+  )
+}
