@@ -2,6 +2,7 @@ import type { HistoryStorageAdapter, HistoryStoragePayload } from '../types/hist
 import type { Version } from '../types/version'
 
 const STORAGE_PREFIX = 'techcodie:editor:history:v1'
+export const HISTORY_STORAGE_EVENT = 'techcodie:history-storage'
 
 function validVersions(value: unknown): Version[] {
   if (!value || typeof value !== 'object' || !('versions' in value)) return []
@@ -35,6 +36,7 @@ export function createHistoryStorage(namespace = 'default'): HistoryStorageAdapt
       }
       try {
         window.localStorage.setItem(key, JSON.stringify(payload))
+        window.dispatchEvent(new CustomEvent(HISTORY_STORAGE_EVENT, { detail: { key } }))
       } catch (error) {
         if (error instanceof DOMException && error.name === 'QuotaExceededError') {
           throw new Error('Local version storage is full. Export or remove older versions.')
@@ -44,6 +46,7 @@ export function createHistoryStorage(namespace = 'default'): HistoryStorageAdapt
     async clear() {
       memory = []
       try { window.localStorage.removeItem(key) } catch { /* Memory remains available. */ }
+      window.dispatchEvent(new CustomEvent(HISTORY_STORAGE_EVENT, { detail: { key } }))
     },
   }
 }

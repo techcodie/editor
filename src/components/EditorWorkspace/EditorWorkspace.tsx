@@ -40,6 +40,9 @@ import {
   WatermarkToolbarControl,
 } from '../../watermark/components/WatermarkPanel'
 import { useWatermark } from '../../watermark/hooks/useWatermark'
+import { WorkflowToolbarControl } from '../../workflow/components/WorkflowToolbarControl'
+import { loadWorkflow } from '../../workflow/services/workflowSerializer'
+import type { Workflow } from '../../workflow/types/workflow'
 import { useDocumentEditor } from '../../hooks/useDocumentEditor'
 import { useEditorApi } from '../../hooks/useEditorApi'
 import { cn } from '../../lib/cn'
@@ -111,6 +114,11 @@ const HistoryPanel = lazy(async () => {
   return { default: module.HistoryPanel }
 })
 
+const WorkflowPanel = lazy(async () => {
+  const module = await import('../../workflow/components/WorkflowPanel')
+  return { default: module.WorkflowPanel }
+})
+
 /**
  * Owns the editor instance and wires it to its UI: it creates the editor, binds
  * the public {@link EditorApi} for the toolbar, and renders the editing surface.
@@ -162,6 +170,9 @@ export function EditorWorkspace({
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const [isHistoryLoaded, setIsHistoryLoaded] = useState(false)
   const [historyVersionCount, setHistoryVersionCount] = useState(0)
+  const [isWorkflowOpen, setIsWorkflowOpen] = useState(false)
+  const [isWorkflowLoaded, setIsWorkflowLoaded] = useState(false)
+  const [currentWorkflow, setCurrentWorkflow] = useState<Workflow | null>(null)
   const [comparisonInitialDocument, setComparisonInitialDocument] = useState('')
   const [comparisonInitialLeft, setComparisonInitialLeft] = useState<ComparisonDocument>()
   const [comparisonInitialRight, setComparisonInitialRight] = useState<ComparisonDocument>()
@@ -186,6 +197,14 @@ export function EditorWorkspace({
     () => historyNamespace(JSON.stringify(config.initialContent ?? 'document')),
     [config.initialContent],
   )
+
+  useEffect(() => {
+    let active = true
+    void loadWorkflow(documentHistoryNamespace).then((workflow) => {
+      if (active) setCurrentWorkflow(workflow)
+    })
+    return () => { active = false }
+  }, [documentHistoryNamespace])
 
   const recordRecentAsset = useCallback((asset: Asset) => {
     setRecentAssetIds((current) => [
@@ -691,12 +710,39 @@ export function EditorWorkspace({
     })
   }, [])
 
+  const openWorkflow = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
+    setIsExportOpen(false)
+    setIsIntelligenceOpen(false)
+    setIsComplianceOpen(false)
+    setIsFormBuilderOpen(false)
+    setIsHistoryOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    cancelPlacement()
+    closeComposer()
+    setIsWorkflowLoaded(true)
+    setIsWorkflowOpen(true)
+  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+
+  const closeWorkflow = useCallback(() => {
+    setIsWorkflowOpen(false)
+    window.requestAnimationFrame(() => document.getElementById('workflow-trigger')?.focus())
+  }, [])
+
   useEffect(() => {
     if (
       isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
       isSuggestionMode || isComparisonOpen || isPageLayoutOpen ||
       isWatermarkOpen || isExportOpen || isIntelligenceOpen ||
-      isComplianceOpen || isFormBuilderOpen
+      isComplianceOpen || isFormBuilderOpen || isWorkflowOpen
     ) setIsHistoryOpen(false)
   }, [
     isAskDocumentOpen,
@@ -710,6 +756,20 @@ export function EditorWorkspace({
     isIntelligenceOpen,
     isComplianceOpen,
     isFormBuilderOpen,
+    isWorkflowOpen,
+  ])
+
+  useEffect(() => {
+    if (
+      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
+      isSuggestionMode || isComparisonOpen || isPageLayoutOpen ||
+      isWatermarkOpen || isExportOpen || isIntelligenceOpen ||
+      isComplianceOpen || isFormBuilderOpen || isHistoryOpen
+    ) setIsWorkflowOpen(false)
+  }, [
+    isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
+    isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
+    isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
   ])
 
   const hideSuggestionSidebar = useCallback(() => {
@@ -994,6 +1054,14 @@ export function EditorWorkspace({
                       else openHistory()
                     }}
                   />
+                  <WorkflowToolbarControl
+                    isOpen={isWorkflowOpen}
+                    status={currentWorkflow?.status}
+                    onToggle={() => {
+                      if (isWorkflowOpen) closeWorkflow()
+                      else openWorkflow()
+                    }}
+                  />
                 </>
               }
             />
@@ -1083,6 +1151,22 @@ export function EditorWorkspace({
         </div>
       </div>
       <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">
+        {isWorkflowLoaded && (
+          <ErrorBoundary compact title="Approval workflow needs a retry">
+            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[30rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[29rem] lg:rounded-lg lg:border" role="status" aria-label="Loading approval workflow"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+              <WorkflowPanel
+                isOpen={isWorkflowOpen}
+                api={api}
+                author={currentAuthor}
+                namespace={documentHistoryNamespace}
+                unresolvedSuggestions={changes.filter((change) => change.status === 'pending').length}
+                comments={comments}
+                onClose={closeWorkflow}
+                onChange={setCurrentWorkflow}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        )}
         {isHistoryLoaded && (
           <ErrorBoundary compact title="Version history needs a retry">
             <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[29rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[28rem] lg:rounded-lg lg:border" role="status" aria-label="Loading version history"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
@@ -1270,7 +1354,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
       </div>
-      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && (
+      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && (
         <ErrorBoundary compact title="Selection AI needs a retry">
           <SelectionAi
             api={api}
@@ -1365,6 +1449,7 @@ export function EditorWorkspace({
               watermark={watermark}
               comments={comments}
               trackChanges={changes}
+              workflow={currentWorkflow}
               onClose={closeExport}
             />
           </Suspense>

@@ -5,7 +5,7 @@ export interface VersionAuthor {
   name: string
 }
 
-export type VersionSource = 'manual' | 'recovery'
+export type VersionSource = 'manual' | 'recovery' | 'workflow'
 export type SnapshotEncoding = 'full' | 'delta'
 export type SnapshotCompression = 'gzip' | 'none'
 

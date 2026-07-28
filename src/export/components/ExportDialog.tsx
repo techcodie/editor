@@ -6,6 +6,7 @@ import type { PaginationSnapshot } from '../../layout/types/page'
 import type { Comment } from '../../review/types/comment'
 import type { TrackChange } from '../../review/trackChanges/types/trackChange'
 import type { Watermark } from '../../watermark/types/watermark'
+import type { Workflow } from '../../workflow/types/workflow'
 import { useExport } from '../hooks/useExport'
 import { formatBytes } from '../services/exportManager'
 import {
@@ -28,6 +29,7 @@ interface ExportDialogProps {
   watermark: Watermark | null
   comments: Comment[]
   trackChanges: TrackChange[]
+  workflow: Workflow | null
   onClose: () => void
 }
 
@@ -44,6 +46,7 @@ export function ExportDialog({
   watermark,
   comments,
   trackChanges,
+  workflow,
   onClose,
 }: ExportDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -73,6 +76,7 @@ export function ExportDialog({
         watermark,
         comments,
         trackChanges,
+        workflow,
       },
     }
   }
@@ -159,6 +163,7 @@ export function ExportDialog({
             commentCount={comments.length}
             trackChangeCount={trackChanges.length}
             hasWatermark={Boolean(watermark)}
+            hasWorkflow={Boolean(workflow)}
             onChange={setOptions}
           />
           {visibleJob && <ExportProgress job={visibleJob} />}

@@ -82,6 +82,25 @@ export type {
   HistoryState,
   VersionGroup,
 } from './history/types/history'
+export type {
+  ApprovalDecision,
+  ApprovalRequest,
+  ApprovalReviewer,
+  ReviewerStatus,
+  WorkflowAction,
+  WorkflowHistoryEntry,
+} from './workflow/types/approval'
+export type {
+  Workflow,
+  WorkflowMetadata,
+  WorkflowStage,
+  WorkflowStageStatus,
+  WorkflowStatus,
+  WorkflowStoragePayload,
+  WorkflowValidation,
+  WorkflowValidationIssue,
+  WorkflowValidationSeverity,
+} from './workflow/types/workflow'
 export {
   SELECTION_AI_ACTIONS,
   isSelectionAiAction,

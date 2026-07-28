@@ -5,6 +5,7 @@ import type { Comment } from '../../review/types/comment'
 import type { TrackChange } from '../../review/trackChanges/types/trackChange'
 import type { Watermark } from '../../watermark/types/watermark'
 import type { FormField } from '../../forms/types/field'
+import type { Workflow } from '../../workflow/types/workflow'
 
 export type ExportFormat = 'pdf' | 'docx' | 'html'
 export type ExportStatus =
@@ -22,6 +23,7 @@ export interface ExportOptions {
   includeAssets: boolean
   flattenSuggestions: boolean
   exportMetadata: boolean
+  includeWorkflowSummary: boolean
 }
 
 export interface ExportResult {
@@ -51,6 +53,7 @@ export interface ExportSource {
   watermark: Watermark | null
   comments: Comment[]
   trackChanges: TrackChange[]
+  workflow: Workflow | null
 }
 
 export interface ExportRequest {
@@ -111,6 +114,7 @@ export interface RenderedDocument {
   blocks: RenderedBlock[]
   comments: Comment[]
   trackChanges: TrackChange[]
+  workflow: Workflow | null
 }
 
 export const DEFAULT_EXPORT_OPTIONS: ExportOptions = {
@@ -120,6 +124,7 @@ export const DEFAULT_EXPORT_OPTIONS: ExportOptions = {
   includeAssets: true,
   flattenSuggestions: true,
   exportMetadata: true,
+  includeWorkflowSummary: true,
 }
 
 export const EXPORT_FORMAT_LABELS: Record<ExportFormat, string> = {

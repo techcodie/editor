@@ -259,6 +259,12 @@ async function drawBlock(
 
 function appendixLines(document: RenderedDocument): string[] {
   const lines: string[] = []
+  if (document.workflow) {
+    lines.push('APPROVAL WORKFLOW', `${document.workflow.name} - ${document.workflow.status.replaceAll('-', ' ')}`, 'STAGES')
+    for (const stage of document.workflow.stages) lines.push(`${stage.name} - ${stage.status} (${stage.reviewerIds.length} reviewers)`, stage.description)
+    lines.push('AUDIT TIMELINE')
+    for (const entry of document.workflow.history) lines.push(`${entry.actorName} - ${entry.action.replaceAll('-', ' ')} - ${new Date(entry.timestamp).toLocaleString()}`, entry.reason)
+  }
   if (document.comments.length) {
     lines.push('COMMENTS')
     for (const comment of document.comments) {
@@ -307,7 +313,7 @@ export async function exportPdf(document: RenderedDocument): Promise<ExportResul
     let page = pdf.addPage(size)
     let y = page.getHeight() - top
     for (const line of appendix) {
-      const isTitle = line === 'COMMENTS' || line === 'TRACKED CHANGES'
+      const isTitle = line === 'COMMENTS' || line === 'TRACKED CHANGES' || line === 'APPROVAL WORKFLOW' || line === 'STAGES' || line === 'AUDIT TIMELINE'
       const font = isTitle ? bold : regular
       const fontSize = isTitle ? 14 : 9
       for (const wrapped of wrapText(line, font, fontSize, page.getWidth() - left - right)) {

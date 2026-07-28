@@ -1034,6 +1034,12 @@ workspace. Timeline filters, restore previews, and comparison state remain
 local to the history panel. Snapshots are document-scoped and do not introduce
 a global store, cloud service, or collaboration state.
 
+Approval Workflow uses a document-scoped local workflow record composed by the
+editor workspace. Stage configuration, reviewer decisions, validation, and
+audit history remain local to the workflow panel. It coordinates existing
+History, Compliance, Review, Track Changes, and Export services without a
+global store or React Context.
+
 ### Enterprise Version History Flow
 
 ```text
@@ -1074,6 +1080,51 @@ Saved-version comparisons call the existing Document Comparison Engine and can
 open the existing full comparison workspace with seeded version documents.
 History does not introduce another diff implementation and does not replace
 editor undo or redo.
+
+### Enterprise Approval Workflow Flow
+
+```text
+Workflow Toolbar Control
+        |
+        v
+Approval Panel / Review Stages
+        |
+        v
+Workflow Engine / Validator
+        |
+   +----+----------------+----------------+
+   v                     v                v
+Version Snapshot   Compliance Guard   Review Annotations
+        |                     |                |
+        +---------------------+----------------+
+                              |
+                              v
+                     Immutable Audit Timeline
+```
+
+Approval Workflow Phase 1 provides Draft, In Review, Changes Requested,
+Approved, Rejected, and Archived document states. Draft workflows support
+ordered stages, descriptions, due dates, reviewer assignment, reassignment,
+removal, and local reviewer notes. Active stages support explicit approval,
+rejection, change requests, stage skipping, review notes, and linked existing
+comments. Every transition records the acting reviewer, time, previous and next
+status, stage, reason, notes, linked comment IDs, and related snapshot ID.
+
+Every approval decision creates a document snapshot through the existing
+Version History manager before changing workflow state. Approval can optionally
+block on critical Compliance findings and can require all tracked suggestions
+to be resolved. Validation runs in the background while the panel is active.
+PDF, DOCX, and HTML exports can include the workflow status, stages, reviewers,
+and audit timeline. The panel and services do not access Tiptap directly.
+
+### Future Workflow Automation
+
+The stage, reviewer, decision, guard, audit-entry, snapshot, and serialization
+contracts are the boundaries for future authentication, role permissions,
+server persistence, notifications, electronic signatures, conditional routing,
+parallel approvals, delegated approvals, and organization policy templates.
+Phase 1 is local and single-user; future automation must coordinate these
+contracts rather than introduce a second workflow model.
 
 ### Future Collaboration Layer
 
@@ -1189,6 +1240,11 @@ src/
     hooks/               Instance-local history lifecycle and persistence composition
     services/            Version manager, compressed snapshots, storage, and diff adapter
     types/               Version, metadata, snapshot, storage, filter, and timeline contracts
+  workflow/
+    components/          Approval panel, stages, reviewers, decisions, guards, and audit UI
+    hooks/               Document-scoped workflow lifecycle and background validation
+    services/            State transitions, decisions, snapshots, validation, storage, and history
+    types/               Workflow, stage, reviewer, decision, and audit contracts
   comparison/
     components/          Workspace, toolbar, summary, viewers, sidebar, and navigation
     hooks/               Instance-local comparison lifecycle and decisions
@@ -1245,7 +1301,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Version History Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Approval Workflow Phase 1 Complete**
 
 Completed:
 
@@ -1397,6 +1453,18 @@ Completed:
   Comparison Engine and full comparison workspace
 - Portable version, timeline, and comparison-report exports
 - Instance-scoped browser storage adapter with in-memory fallback
+- Enterprise Approval Workflow with Draft, In Review, Changes Requested,
+  Approved, Rejected, and Archived states
+- Ordered review stages with descriptions, due dates, reviewer assignment,
+  reassignment, removal, notes, and per-reviewer decisions
+- Explicit approve, reject, request-changes, skip-stage, note, submit, resubmit,
+  archive, and restore actions
+- Immutable workflow audit timeline with actors, reasons, notes, linked comments,
+  status transitions, stages, and snapshot references
+- Automatic Version History snapshot before every workflow decision
+- Optional critical Compliance gate and resolved-suggestion approval guard
+- Workflow summaries in PDF, DOCX, and standalone HTML exports
+- Framework-neutral approval and workflow contracts in the public SDK types
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -1453,6 +1521,12 @@ and comparison adapter consume framework-neutral contracts. Restore always
 creates a recovery point first, while comparisons reuse the existing engine.
 Snapshots remain local to the document instance and no cloud or collaborative
 service was introduced. No new production dependency was added.
+Approval Workflow coordinates those existing services through framework-neutral
+contracts. Decisions snapshot the document before transition, validation reads
+existing compliance and suggestion state, comments remain references to the
+existing review model, and exports consume a cloned workflow summary. No
+authentication, permission, notification, signature, cloud, or realtime layer
+was added. No new production dependency was added.
 
 ### Version 1.0 Release Notes
 
@@ -1484,7 +1558,7 @@ These are not missing. Do not implement unless requested.
 - Persisted and server-backed comment threads
 - Realtime comment collaboration
 - Comment mentions and notifications
-- Governed review and suggestion workflows
+- Server-backed governed review and suggestion workflows
 - Comment author and permission providers
 - Persisted and server-backed tracked changes
 - Realtime suggestion collaboration and conflict handling
@@ -1502,7 +1576,7 @@ These are not missing. Do not implement unless requested.
 - Page-level background image layout
 - Track-change author and permission providers
 - Backend form submissions and submission persistence
-- Form authentication, approval routing, and workflow automation
+- Form authentication and automatic workflow routing
 - Conditional fields, calculations, repeating sections, and dynamic visibility
 - Electronic signatures, form analytics, and OCR field mapping
 - Industry-specific compliance rule packs for GDPR, HIPAA, ISO, SOC 2, custom
@@ -1555,6 +1629,10 @@ These are not missing. Do not implement unless requested.
 - Cloud history and multi-user editing
 - Governed version workflows, branching, and conflict resolution
 - Server-side snapshot compaction and retention policies
+- Workflow authentication, role permissions, and organization policy templates
+- Conditional and parallel approval routing, delegated approvals, and escalations
+- Workflow notifications, email integration, realtime synchronization, and cloud persistence
+- Electronic signatures and approval certificates
 
 ---
 

@@ -180,6 +180,14 @@ function footerChildren(document: RenderedDocument): Paragraph[] {
 
 function appendix(document: RenderedDocument): Paragraph[] {
   const children: Paragraph[] = []
+  if (document.workflow) {
+    children.push(new Paragraph({ text: 'Approval workflow', heading: HeadingLevel.HEADING_1 }))
+    children.push(new Paragraph({ children: [new TextRun({ text: `${document.workflow.name}: `, bold: true }), new TextRun(document.workflow.status.replaceAll('-', ' '))] }))
+    children.push(new Paragraph({ text: 'Stages', heading: HeadingLevel.HEADING_2 }))
+    for (const stage of document.workflow.stages) children.push(new Paragraph({ children: [new TextRun({ text: `${stage.name} - ${stage.status}`, bold: true }), new TextRun(stage.description ? `\n${stage.description}` : '')] }))
+    children.push(new Paragraph({ text: 'Audit timeline', heading: HeadingLevel.HEADING_2 }))
+    for (const entry of document.workflow.history) children.push(new Paragraph({ children: [new TextRun({ text: `${entry.actorName} - ${entry.action.replaceAll('-', ' ')}: `, bold: true }), new TextRun(`${entry.reason} (${new Date(entry.timestamp).toLocaleString()})`)] }))
+  }
   if (document.comments.length) {
     children.push(new Paragraph({ text: 'Comments', heading: HeadingLevel.HEADING_1 }))
     for (const comment of document.comments) {

@@ -260,5 +260,8 @@ export function renderDocument(request: ExportRequest): RenderedDocument {
     trackChanges: request.options.includeTrackChanges
       ? structuredClone(request.source.trackChanges)
       : [],
+    workflow: request.options.includeWorkflowSummary && request.source.workflow
+      ? structuredClone(request.source.workflow)
+      : null,
   }
 }

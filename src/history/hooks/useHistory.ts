@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { DocumentComparison } from '../../comparison/types/comparison'
 import type { EditorApi } from '../../lib/editor-api'
+import { HISTORY_STORAGE_EVENT } from '../services/historyStorage'
 import {
   compareVersionToCurrent,
   compareVersions,
@@ -35,6 +36,11 @@ export function useHistory({ api, storage, author }: UseHistoryOptions) {
 
   useEffect(() => {
     let active = true
+    const reload = () => {
+      void storage.load().then((stored) => {
+        if (active) setVersions(stored.toSorted((left, right) => right.createdAt - left.createdAt))
+      })
+    }
     setLoaded(false)
     void storage.load().then((stored) => {
       if (!active) return
@@ -45,7 +51,8 @@ export function useHistory({ api, storage, author }: UseHistoryOptions) {
       setError(messageFrom(reason))
       setLoaded(true)
     })
-    return () => { active = false }
+    window.addEventListener(HISTORY_STORAGE_EVENT, reload)
+    return () => { active = false; window.removeEventListener(HISTORY_STORAGE_EVENT, reload) }
   }, [storage])
 
   const persist = useCallback(async (next: Version[]) => {

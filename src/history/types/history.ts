@@ -1,6 +1,6 @@
 import type { Version } from './version'
 
-export type HistoryFilter = 'all' | 'bookmarked' | 'favorites' | 'manual' | 'recovery'
+export type HistoryFilter = 'all' | 'bookmarked' | 'favorites' | 'manual' | 'recovery' | 'workflow'
 export type HistorySort = 'newest' | 'oldest' | 'name'
 
 export interface HistoryState {

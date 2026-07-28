@@ -5,6 +5,7 @@ interface ExportOptionsProps {
   commentCount: number
   trackChangeCount: number
   hasWatermark: boolean
+  hasWorkflow: boolean
   onChange: (options: ExportOptionsModel) => void
 }
 
@@ -20,6 +21,7 @@ export function ExportOptions({
   commentCount,
   trackChangeCount,
   hasWatermark,
+  hasWorkflow,
   onChange,
 }: ExportOptionsProps) {
   const options: OptionDefinition[] = [
@@ -27,6 +29,7 @@ export function ExportOptions({
     { key: 'includeAssets', label: 'Include assets', description: 'Render images and document stamps' },
     { key: 'includeComments', label: 'Include comments', description: `${commentCount} review threads`, disabled: commentCount === 0 },
     { key: 'includeTrackChanges', label: 'Include tracked changes', description: `${trackChangeCount} suggestions`, disabled: trackChangeCount === 0 },
+    { key: 'includeWorkflowSummary', label: 'Include approval workflow', description: 'Status, stages, reviewers, and audit events', disabled: !hasWorkflow },
     { key: 'flattenSuggestions', label: 'Flatten suggestions', description: 'Use the proposed final wording', disabled: trackChangeCount === 0 },
     { key: 'exportMetadata', label: 'Export metadata', description: 'Title, creation time, and generator' },
   ]
