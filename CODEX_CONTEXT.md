@@ -118,7 +118,8 @@ Version 1.0 exposes one package root, `@techcodie/editor`, with:
 - `createEditor(config)` for creating an instance-scoped controller.
 - Configuration validation and default-theme helpers.
 - Framework-neutral Editor API types.
-- Typed configuration, event, plugin, theme, AI, and knowledge-source contracts.
+- Typed configuration, event, plugin, theme, AI, knowledge-source, and
+  collaboration contracts.
 - Selection AI action constants and validation.
 
 Package export maps allow only the root API, `styles.css`, and package metadata.
@@ -131,7 +132,8 @@ shaking, and externalized runtime dependencies.
 
 `DocumentEditorConfig` supports initial content, placeholder, theme, readonly
 mode, toolbar, voice, AI endpoints, Knowledge Sources, preview, streaming,
-animations, keyboard shortcuts, command palette, callbacks, and plugins.
+animations, keyboard shortcuts, command palette, collaboration, callbacks, and
+plugins.
 Configuration is resolved once per controller instance. Runtime validation
 provides prefixed warnings, ignores unknown options, and safely falls back for
 invalid nested values.
@@ -139,7 +141,8 @@ invalid nested values.
 Each controller owns a typed event target. Public callbacks and `events.on`
 cover editor readiness and changes, selection changes, AI request and response
 lifecycle, insertions, Knowledge Source add/remove/activation, preview open and
-close, and errors. Events expose public data contracts only.
+close, collaboration status and presence changes, and errors. Events expose
+public data contracts only.
 
 ### Plugin Architecture
 
@@ -1040,6 +1043,12 @@ audit history remain local to the workflow panel. It coordinates existing
 History, Compliance, Review, Track Changes, and Export services without a
 global store or React Context.
 
+Real-time Collaboration uses one instance-scoped engine composed by the editor
+workspace. Presence, awareness, transport, operation sync, and conflict state
+remain inside that editor instance. It shares document, comment, suggestion,
+and workflow updates through typed transport messages without React Context or
+a global collaboration store.
+
 ### Enterprise Version History Flow
 
 ```text
@@ -1126,14 +1135,53 @@ parallel approvals, delegated approvals, and organization policy templates.
 Phase 1 is local and single-user; future automation must coordinate these
 contracts rather than introduce a second workflow model.
 
-### Future Collaboration Layer
+### Enterprise Real-time Collaboration Flow
 
-The storage adapter, snapshot envelope, author metadata, document hash, and
-version manager are the boundaries for future server-backed history,
-multi-user editing, governed workflows, branching, audit services, and
-conflict resolution. Phase 1 remains local and single-user; those capabilities
-must build on these contracts without moving editor access outside the Editor
-API.
+```text
+Editor / Review / Workflow
+        |
+        v
+Collaboration Engine
+        |
+   +----+------------------+
+   v                       v
+Sync Engine          Awareness Engine
+   |                       |
+   +-----------+-----------+
+               v
+       Transport Adapter
+               |
+               v
+ Browser Channel or Host WebSocket
+```
+
+Collaboration Phase 1 provides live presence, cursors, selections, typing
+state, connection quality, batched document synchronization, comment and
+suggestion identity, workflow status updates, and automatic collaborative
+history checkpoints. The Editor API now reports document-change origin and
+provides framework-neutral selection geometry; collaboration UI and services
+never access Tiptap directly. Remote document updates are marked at the adapter
+boundary so they are not echoed as new local operations.
+
+The default demo transport uses the browser `BroadcastChannel` API for multiple
+tabs. SDK hosts may inject the exported native WebSocket transport or implement
+the transport contract for their own backend. Phase 1 operations carry complete
+validated structured snapshots with revisions, batching, duplicate rejection,
+and deterministic concurrent-update reconciliation. Authentication,
+authorization, and server persistence remain host responsibilities.
+
+Collaboration code is grouped under `src/collaboration/` into components,
+hooks, services, and types. Review comments, Track Changes, Workflow, History,
+and the editor remain their existing modules and integrate through their public
+contracts rather than moving into the collaboration module.
+
+### Future CRDT Integration
+
+The transport, operation, awareness, presence, and conflict contracts are the
+replacement boundaries for a future CRDT-backed sync adapter. Yjs, Liveblocks,
+Automerge, offline queues, presence recording, playback, and session replay can
+be added behind those contracts without moving editor access outside the
+Editor API or creating a parallel review model.
 
 ---
 
@@ -1301,7 +1349,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Approval Workflow Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Real-time Collaboration Phase 1 Complete**
 
 Completed:
 
@@ -1465,6 +1513,18 @@ Completed:
 - Optional critical Compliance gate and resolved-suggestion approval guard
 - Workflow summaries in PDF, DOCX, and standalone HTML exports
 - Framework-neutral approval and workflow contracts in the public SDK types
+- Instance-scoped real-time Collaboration Engine with injectable transport
+  adapters and no global state
+- Browser-tab collaboration through `BroadcastChannel` and an exported native
+  WebSocket transport for host backends
+- Live collaborator presence, avatars, cursors, selections, typing state,
+  connection quality, and synchronization status
+- Batched structured-document operations with origin tracking, duplicate
+  rejection, deterministic conflict reconciliation, and recovery feedback
+- Live comment, tracked-suggestion, and approval-workflow metadata sharing
+- Automatic deduplicated Version History checkpoints after remote edits settle
+- Public collaboration configuration, presence and status events, transport
+  contracts, and framework-neutral editor selection geometry
 
 Architecture is verified. Ask Document and Selection AI both preserve the
 Editor API boundary. Knowledge Sources remains browser-memory state and uses a
@@ -1527,6 +1587,13 @@ existing compliance and suggestion state, comments remain references to the
 existing review model, and exports consume a cloned workflow summary. No
 authentication, permission, notification, signature, cloud, or realtime layer
 was added. No new production dependency was added.
+Real-time Collaboration composes the Editor API, Review, Track Changes,
+Workflow, and History contracts through one instance engine. The engine batches
+local structured snapshots, tags remote applications, throttles awareness,
+shares annotation metadata, and schedules checkpoint snapshots. Its default
+browser channel is demo and local-development infrastructure; production
+identity, permissions, persistence, and WebSocket routing remain host-owned. No
+new production dependency was added.
 
 ### Version 1.0 Release Notes
 
@@ -1554,14 +1621,16 @@ These are not missing. Do not implement unless requested.
 - Headless and non-React adapters
 - Upload providers
 - Storage providers
-- Collaboration
 - Persisted and server-backed comment threads
-- Realtime comment collaboration
 - Comment mentions and notifications
 - Server-backed governed review and suggestion workflows
 - Comment author and permission providers
 - Persisted and server-backed tracked changes
-- Realtime suggestion collaboration and conflict handling
+- CRDT-backed character-level collaboration and advanced conflict handling
+- Yjs, Liveblocks, or Automerge provider adapters
+- Offline collaboration queues and reconnect replay
+- Presence recording, playback, and collaboration session replay
+- Server-persisted collaboration rooms and operation logs
 - Server-backed version history and legal audit records
 - Persisted comparison sessions across devices
 - Three-way document comparison and move detection

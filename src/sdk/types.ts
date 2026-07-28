@@ -1,6 +1,13 @@
 import type { ComponentType, CSSProperties, SVGProps } from 'react'
 import type { SelectionAiAction } from '../../shared/ai'
 import type {
+  CollaborationConfig,
+  CollaborationConnectionStatus,
+  CollaborationSyncStatus,
+  ResolvedCollaborationConfig,
+} from '../collaboration/types/collaboration'
+import type { Collaborator } from '../collaboration/types/presence'
+import type {
   EditorApi,
   EditorInsertionTarget,
   EditorTextSelection,
@@ -102,8 +109,14 @@ export interface DocumentEditorEventMap {
   }
   previewOpen: { source: KnowledgeSourceEventData }
   previewClose: { source: KnowledgeSourceEventData }
+  collaborationStatus: {
+    roomId: string
+    connectionStatus: CollaborationConnectionStatus
+    syncStatus: CollaborationSyncStatus
+  }
+  collaboratorsChange: { collaborators: Collaborator[] }
   error: {
-    scope: 'configuration' | 'plugin' | 'editor' | 'ai' | 'knowledge' | 'preview' | 'compliance'
+    scope: 'configuration' | 'plugin' | 'editor' | 'ai' | 'knowledge' | 'preview' | 'compliance' | 'collaboration'
     message: string
     cause?: unknown
   }
@@ -137,6 +150,8 @@ export interface DocumentEditorCallbacks {
   onKnowledgeSourceActivated?: DocumentEditorEventHandler<'knowledgeSourceActivated'>
   onPreviewOpen?: DocumentEditorEventHandler<'previewOpen'>
   onPreviewClose?: DocumentEditorEventHandler<'previewClose'>
+  onCollaborationStatus?: DocumentEditorEventHandler<'collaborationStatus'>
+  onCollaboratorsChange?: DocumentEditorEventHandler<'collaboratorsChange'>
   onError?: DocumentEditorEventHandler<'error'>
 }
 
@@ -168,6 +183,7 @@ export interface DocumentEditorConfig {
   animations?: boolean
   keyboardShortcuts?: boolean
   commandPalette?: boolean
+  collaboration?: boolean | CollaborationConfig
   callbacks?: DocumentEditorCallbacks
   plugins?: DocumentEditorPlugin[]
 }
@@ -186,6 +202,7 @@ export interface ResolvedDocumentEditorConfig {
   animations: boolean
   keyboardShortcuts: boolean
   commandPalette: boolean
+  collaboration: false | ResolvedCollaborationConfig
   callbacks: DocumentEditorCallbacks
   plugins: readonly DocumentEditorPlugin[]
 }

@@ -5,6 +5,7 @@ import type {
   EditorApi,
   EditorAssetInsertion,
   EditorCommentInteraction,
+  EditorDocumentChange,
   EditorDocumentNode,
   EditorStructuredInsertion,
   EditorTextSelection,
@@ -30,6 +31,7 @@ import {
  * place `editor.chain()` / `editor.isActive()` / `editor.can()` may appear.
  */
 export function createEditorApi(editor: Editor): EditorApi {
+  const REMOTE_DOCUMENT_META = 'techcodieCollaborationRemote'
   const trackChangesStorage = (
     editor.storage as unknown as { trackChange: TrackChangesStorage }
   ).trackChange
@@ -39,6 +41,7 @@ export function createEditorApi(editor: Editor): EditorApi {
   let manualPageBreaks: { id: string; position: number }[] = []
   let resizeObserver: ResizeObserver | null = null
   const paginationListeners = new Set<(snapshot: PaginationSnapshot) => void>()
+  const documentChangeListeners = new Set<(change: EditorDocumentChange) => void>()
   let paginationSnapshot: PaginationSnapshot = {
     pages: [{
       id: 'page-1',
@@ -174,6 +177,14 @@ export function createEditorApi(editor: Editor): EditorApi {
       }))
     }
     if (pageLayout) schedulePagination()
+    if (transaction.docChanged || transaction.selectionSet) {
+      const change: EditorDocumentChange = {
+        origin: transaction.getMeta(REMOTE_DOCUMENT_META) ? 'remote' : 'local',
+        docChanged: transaction.docChanged,
+        selectionChanged: transaction.selectionSet,
+      }
+      for (const listener of documentChangeListeners) listener(change)
+    }
   })
   editor.on('destroy', () => {
     resizeObserver?.disconnect()
@@ -641,9 +652,12 @@ export function createEditorApi(editor: Editor): EditorApi {
         .replace(/\n{3,}/g, '\n\n')
         .trim(),
     getDocumentSnapshot: () => structuredClone(editor.getJSON()) as EditorDocumentNode,
-    replaceDocumentSnapshot: (snapshot) => editor
+    replaceDocumentSnapshot: (snapshot, options) => editor
       .chain()
-      .focus()
+      .command(({ tr }) => {
+        if (options?.origin === 'remote') tr.setMeta(REMOTE_DOCUMENT_META, true)
+        return true
+      })
       .setContent(snapshot, { emitUpdate: true, errorOnInvalidContent: true })
       .run(),
     insertStructuredContent,
@@ -902,6 +916,15 @@ export function createEditorApi(editor: Editor): EditorApi {
         bounds: selectionBounds(from, to),
       }
     },
+    getSelectionRange: () => {
+      const { from, to } = editor.state.selection
+      return { from, to }
+    },
+    getRangeBounds: (from, to) => {
+      const documentEnd = editor.state.doc.content.size
+      if (from < 0 || to < 0 || from > documentEnd || to > documentEnd) return null
+      return selectionBounds(Math.min(from, to), Math.max(from, to))
+    },
     findTextSelection: (text) => {
       const trimmed = text.trim()
       const candidates = [
@@ -959,6 +982,10 @@ export function createEditorApi(editor: Editor): EditorApi {
       return () => {
         editor.off('transaction', listener)
       }
+    },
+    subscribeDocumentChanges: (listener) => {
+      documentChangeListeners.add(listener)
+      return () => documentChangeListeners.delete(listener)
     },
     getSnapshot: () => editor.state,
   }

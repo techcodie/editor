@@ -46,6 +46,14 @@ export function Example() {
     animations: true,
     keyboardShortcuts: true,
     commandPalette: true,
+    collaboration: {
+      roomId: 'quarterly-planning-demo',
+      user: {
+        id: 'example-editor',
+        name: 'Example Editor',
+        color: '#0f766e',
+      },
+    },
     theme: {
       colors: {
         background: '#f3f5f7',
@@ -66,6 +74,8 @@ export function Example() {
         setStatus(`AI response completed in ${responseTime} ms`),
       onKnowledgeSourceAdded: ({ source }) =>
         setStatus(`${source.name} added as a knowledge source`),
+      onCollaborationStatus: ({ connectionStatus, syncStatus }) =>
+        setStatus(`${connectionStatus} · ${syncStatus}`),
       onError: ({ message }) => setStatus(message),
     },
   }), [])

@@ -184,7 +184,9 @@ An imperative source provider API is not part of the public surface.
 Runtime exports:
 
 - `DocumentEditor`
+- `createBroadcastChannelTransport`
 - `createEditor`
+- `createWebSocketTransport`
 - `validateDocumentEditorConfig`
 - `resolveDocumentEditorConfig`
 - `getDefaultDocumentEditorTheme`
@@ -192,5 +194,6 @@ Runtime exports:
 - `isSelectionAiAction`
 
 Type exports include configuration, controller, component, theme, event,
-plugin, selection action, and `EditorApi` contracts. Package exports prevent
-supported imports from reaching internal implementation modules.
+plugin, selection action, collaboration transport, presence, and `EditorApi`
+contracts. Package exports prevent supported imports from reaching internal
+implementation modules.

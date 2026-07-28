@@ -1,5 +1,5 @@
 import { DocumentEditor } from './index'
 
 export default function App() {
-  return <DocumentEditor />
+  return <DocumentEditor config={{ collaboration: true }} />
 }

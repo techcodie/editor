@@ -10,7 +10,9 @@ const sdk = await import(new URL('../dist-sdk/index.js', import.meta.url))
 const expectedRuntimeExports = [
   'DocumentEditor',
   'SELECTION_AI_ACTIONS',
+  'createBroadcastChannelTransport',
   'createEditor',
+  'createWebSocketTransport',
   'getDefaultDocumentEditorTheme',
   'isSelectionAiAction',
   'resolveDocumentEditorConfig',

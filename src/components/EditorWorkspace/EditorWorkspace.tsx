@@ -41,8 +41,15 @@ import {
 } from '../../watermark/components/WatermarkPanel'
 import { useWatermark } from '../../watermark/hooks/useWatermark'
 import { WorkflowToolbarControl } from '../../workflow/components/WorkflowToolbarControl'
-import { loadWorkflow } from '../../workflow/services/workflowSerializer'
+import { loadWorkflow, saveWorkflow } from '../../workflow/services/workflowSerializer'
 import type { Workflow } from '../../workflow/types/workflow'
+import { ConflictBanner } from '../../collaboration/components/ConflictBanner'
+import { CursorLayer } from '../../collaboration/components/CursorLayer'
+import { PresenceBar } from '../../collaboration/components/PresenceBar'
+import { SelectionLayer } from '../../collaboration/components/SelectionLayer'
+import { useCollaboration } from '../../collaboration/hooks/useCollaboration'
+import { renderCollaboratorDecorations } from '../../collaboration/services/collaborationRenderer'
+import type { CollaborationEntityState } from '../../collaboration/services/collaborationEngine'
 import { useDocumentEditor } from '../../hooks/useDocumentEditor'
 import { useEditorApi } from '../../hooks/useEditorApi'
 import { cn } from '../../lib/cn'
@@ -173,6 +180,7 @@ export function EditorWorkspace({
   const [isWorkflowOpen, setIsWorkflowOpen] = useState(false)
   const [isWorkflowLoaded, setIsWorkflowLoaded] = useState(false)
   const [currentWorkflow, setCurrentWorkflow] = useState<Workflow | null>(null)
+  const [collaborationLayoutTick, setCollaborationLayoutTick] = useState(0)
   const [comparisonInitialDocument, setComparisonInitialDocument] = useState('')
   const [comparisonInitialLeft, setComparisonInitialLeft] = useState<ComparisonDocument>()
   const [comparisonInitialRight, setComparisonInitialRight] = useState<ComparisonDocument>()
@@ -220,6 +228,7 @@ export function EditorWorkspace({
   } = useAssetInsertion({ api, onInserted: recordRecentAsset })
   const {
     comments,
+    removedComments,
     commentsById,
     currentAuthor,
     addComment,
@@ -228,14 +237,63 @@ export function EditorWorkspace({
     setResolved,
     deleteComment,
     jumpToComment,
-  } = useComments(api)
+    applyRemoteComments,
+  } = useComments(api, config.collaboration ? config.collaboration.user : undefined)
   const {
     changes,
     changesById,
     decide: decideTrackChange,
     decideAll: decideAllTrackChanges,
     jumpToChange,
+    applyRemoteTrackChanges,
   } = useTrackChanges(api, currentAuthor)
+
+  const handleCollaborativeState = useCallback((state: CollaborationEntityState) => {
+    applyRemoteComments(state.comments, state.removedComments)
+    applyRemoteTrackChanges(state.trackChanges)
+    setCurrentWorkflow(state.workflow)
+    if (config.collaboration) {
+      void saveWorkflow(documentHistoryNamespace, state.workflow).catch((cause) => {
+        events.emit('error', {
+          scope: 'collaboration',
+          message: 'A remote workflow update could not be stored locally.',
+          cause,
+        })
+      })
+    }
+  }, [applyRemoteComments, applyRemoteTrackChanges, config.collaboration, documentHistoryNamespace, events])
+  const collaborationSharedState = useMemo(() => ({
+    comments,
+    removedComments,
+    trackChanges: changes,
+    workflow: currentWorkflow,
+  }), [changes, comments, currentWorkflow, removedComments])
+  const collaboration = useCollaboration({
+    api,
+    config: config.collaboration,
+    sharedState: collaborationSharedState,
+    historyNamespace: documentHistoryNamespace,
+    events,
+    onSharedState: handleCollaborativeState,
+  })
+  const collaboratorDecorations = renderCollaboratorDecorations(
+    api,
+    collaboration.collaborators.filter((collaborator) =>
+      !config.collaboration || collaborator.id !== config.collaboration.user.id,
+    ),
+  )
+  void collaborationLayoutTick
+
+  useEffect(() => {
+    if (!config.collaboration) return
+    const update = () => setCollaborationLayoutTick((value) => value + 1)
+    window.addEventListener('scroll', update, { capture: true, passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update, true)
+      window.removeEventListener('resize', update)
+    }
+  }, [config.collaboration])
 
   const handleCommentCreated = useCallback((comment: Comment) => {
     setSelectedCommentId(comment.id)
@@ -1113,6 +1171,17 @@ export function EditorWorkspace({
               />
             </button>
           )}
+          {config.collaboration && (
+            <PresenceBar
+              collaborators={collaboration.onlineCollaborators}
+              currentUser={config.collaboration.user}
+              connectionStatus={collaboration.connectionStatus}
+              syncStatus={collaboration.syncStatus}
+              activeEditor={collaboration.activeEditor}
+              workflow={currentWorkflow}
+              onReconnect={collaboration.reconnect}
+            />
+          )}
         </div>
         <div className="relative pt-3.5 sm:pt-4">
           {pendingAsset && (
@@ -1509,6 +1578,13 @@ export function EditorWorkspace({
           onClose={() => setIsCommandPaletteOpen(false)}
           onSelect={runWorkspaceCommand}
         />
+      )}
+      {config.collaboration && (
+        <>
+          <SelectionLayer decorations={collaboratorDecorations} />
+          <CursorLayer decorations={collaboratorDecorations} />
+          <ConflictBanner conflict={collaboration.conflict} onDismiss={collaboration.dismissConflict} />
+        </>
       )}
     </div>
   )

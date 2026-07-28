@@ -8,6 +8,12 @@ import type {
   DocumentEditorThemeOverrides,
   ResolvedDocumentEditorConfig,
 } from './types'
+import { createGuestCollaborationUser } from '../collaboration/services/collaborationRegistry'
+import type {
+  CollaborationConfig,
+  CollaborationTransport,
+  ResolvedCollaborationConfig,
+} from '../collaboration/types/collaboration'
 
 const DEFAULT_THEME: DocumentEditorTheme = {
   colors: {
@@ -61,6 +67,7 @@ const CONFIG_KEYS = new Set([
   'animations',
   'keyboardShortcuts',
   'commandPalette',
+  'collaboration',
   'callbacks',
   'plugins',
 ])
@@ -87,6 +94,8 @@ const CALLBACK_KEYS = new Set([
   'onKnowledgeSourceActivated',
   'onPreviewOpen',
   'onPreviewClose',
+  'onCollaborationStatus',
+  'onCollaboratorsChange',
   'onError',
 ])
 
@@ -280,6 +289,63 @@ function resolveCallbacks(value: unknown, warnings: string[]): DocumentEditorCal
   return result as DocumentEditorCallbacks
 }
 
+function validTransport(value: unknown): value is CollaborationTransport {
+  return Boolean(
+    value &&
+    typeof value === 'object' &&
+    typeof (value as CollaborationTransport).connect === 'function' &&
+    typeof (value as CollaborationTransport).send === 'function' &&
+    typeof (value as CollaborationTransport).disconnect === 'function',
+  )
+}
+
+function resolveCollaboration(
+  value: unknown,
+  warnings: string[],
+): false | ResolvedCollaborationConfig {
+  if (value === false || value === undefined) return false
+  const fallbackUser = createGuestCollaborationUser()
+  if (value === true) {
+    return {
+      roomId: 'document-editor-demo',
+      user: fallbackUser,
+      awarenessThrottleMs: 80,
+      syncBatchMs: 120,
+    }
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    warn('"collaboration" must be a boolean or configuration object. Collaboration remains disabled.', warnings)
+    return false
+  }
+  const input = value as CollaborationConfig
+  const user = input.user && typeof input.user === 'object' ? input.user : fallbackUser
+  if (!input.user) warn('"collaboration.user" was not provided. A local guest identity is being used.', warnings)
+  const transport = input.transport === undefined || validTransport(input.transport)
+    ? input.transport
+    : undefined
+  if (input.transport !== undefined && !transport) {
+    warn('"collaboration.transport" is invalid. The browser transport will be used.', warnings)
+  }
+  return {
+    roomId: validString(input.roomId, 'document-editor-demo', 'collaboration.roomId', warnings),
+    user: {
+      id: validString(user.id, fallbackUser.id, 'collaboration.user.id', warnings),
+      name: validString(user.name, fallbackUser.name, 'collaboration.user.name', warnings),
+      color: validString(user.color, fallbackUser.color, 'collaboration.user.color', warnings),
+      ...(typeof user.avatarUrl === 'string' && user.avatarUrl.trim()
+        ? { avatarUrl: user.avatarUrl }
+        : {}),
+    },
+    transport,
+    awarenessThrottleMs: typeof input.awarenessThrottleMs === 'number' && input.awarenessThrottleMs >= 40
+      ? input.awarenessThrottleMs
+      : 80,
+    syncBatchMs: typeof input.syncBatchMs === 'number' && input.syncBatchMs >= 50
+      ? input.syncBatchMs
+      : 120,
+  }
+}
+
 export interface DocumentEditorConfigValidation {
   config: ResolvedDocumentEditorConfig
   warnings: string[]
@@ -358,6 +424,7 @@ export function validateDocumentEditorConfig(value: unknown): DocumentEditorConf
         'commandPalette',
         warnings,
       ),
+      collaboration: resolveCollaboration(input.collaboration, warnings),
       callbacks: resolveCallbacks(input.callbacks, warnings),
       plugins,
     },

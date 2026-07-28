@@ -16,6 +16,7 @@ export function useComments(
   currentAuthor: CommentAuthor = DEFAULT_AUTHOR,
 ) {
   const [comments, setComments] = useState<Comment[]>([])
+  const [removedComments, setRemovedComments] = useState<Record<string, number>>({})
 
   const addComment = useCallback(
     (selection: EditorTextSelection, text: string): Comment | null => {
@@ -81,6 +82,7 @@ export function useComments(
       if (!comment || comment.author.id !== currentAuthor.id) return false
       api?.removeCommentAnchor(commentId)
       setComments((current) => current.filter((item) => item.id !== commentId))
+      setRemovedComments((current) => ({ ...current, [commentId]: Date.now() }))
       return true
     },
     [api, comments, currentAuthor.id],
@@ -96,8 +98,19 @@ export function useComments(
     [comments],
   )
 
+  const applyRemoteComments = useCallback((
+    next: Comment[],
+    nextRemovedComments: Record<string, number>,
+  ) => {
+    setRemovedComments(structuredClone(nextRemovedComments))
+    setComments(structuredClone(next).filter(
+      (comment) => comment.updatedAt > (nextRemovedComments[comment.id] ?? 0),
+    ))
+  }, [])
+
   return {
     comments,
+    removedComments,
     commentsById,
     currentAuthor,
     addComment,
@@ -106,5 +119,6 @@ export function useComments(
     setResolved,
     deleteComment,
     jumpToComment,
+    applyRemoteComments,
   }
 }

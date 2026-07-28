@@ -26,6 +26,8 @@ const CALLBACK_EVENTS = {
   onKnowledgeSourceActivated: 'knowledgeSourceActivated',
   onPreviewOpen: 'previewOpen',
   onPreviewClose: 'previewClose',
+  onCollaborationStatus: 'collaborationStatus',
+  onCollaboratorsChange: 'collaboratorsChange',
   onError: 'error',
 } as const satisfies Record<keyof DocumentEditorCallbacks, DocumentEditorEventName>
 

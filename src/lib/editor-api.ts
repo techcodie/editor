@@ -89,6 +89,18 @@ export interface EditorDocumentNode {
   content?: EditorDocumentNode[]
 }
 
+export type EditorDocumentChangeOrigin = 'local' | 'remote'
+
+export interface EditorDocumentChange {
+  origin: EditorDocumentChangeOrigin
+  docChanged: boolean
+  selectionChanged: boolean
+}
+
+export interface ReplaceDocumentSnapshotOptions {
+  origin?: EditorDocumentChangeOrigin
+}
+
 /**
  * Framework-neutral editor command surface used by SDK UI and host applications.
  */
@@ -135,7 +147,10 @@ export interface EditorApi {
 
   getDocumentText(): string
   getDocumentSnapshot(): EditorDocumentNode
-  replaceDocumentSnapshot(snapshot: EditorDocumentNode): boolean
+  replaceDocumentSnapshot(
+    snapshot: EditorDocumentNode,
+    options?: ReplaceDocumentSnapshotOptions,
+  ): boolean
   insertStructuredContent(insertion: EditorStructuredInsertion): boolean
   insertAsset(asset: EditorAssetInsertion): boolean
 
@@ -180,6 +195,8 @@ export interface EditorApi {
   setPrintPreviewMode(enabled: boolean): void
 
   getTextSelection(): EditorTextSelection | null
+  getSelectionRange(): { from: number; to: number } | null
+  getRangeBounds(from: number, to: number): EditorSelectionBounds | null
   findTextSelection(text: string): EditorTextSelection | null
   focusTextSelection(selection: EditorTextSelection): boolean
   replaceTextSelection(selection: EditorTextSelection, replacement: string): boolean
@@ -187,5 +204,8 @@ export interface EditorApi {
   focus(): void
 
   subscribe(listener: () => void): () => void
+  subscribeDocumentChanges(
+    listener: (change: EditorDocumentChange) => void,
+  ): () => void
   getSnapshot(): unknown
 }

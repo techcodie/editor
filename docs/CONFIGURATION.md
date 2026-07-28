@@ -19,6 +19,7 @@ All options are optional and validated once during initialization.
 | `animations` | `true` | Enables SDK motion unless the OS requests reduced motion |
 | `keyboardShortcuts` | `true` | Enables SDK keyboard shortcuts |
 | `commandPalette` | `true` | Shows the command palette control |
+| `collaboration` | `false` | Enables collaboration or supplies room, user, and transport configuration |
 | `callbacks` | `{}` | Typed lifecycle and interaction callbacks |
 | `plugins` | `[]` | Instance-scoped plugins |
 
@@ -65,6 +66,26 @@ const config: DocumentEditorConfig = {
 The host should add authentication, authorization, rate limits, audit behavior,
 and provider credentials at those server endpoints.
 
+### Collaboration transport
+
+```ts
+import { createWebSocketTransport } from '@techcodie/editor'
+
+const config: DocumentEditorConfig = {
+  collaboration: {
+    roomId: documentId,
+    user: { id: user.id, name: user.name, color: user.color },
+    transport: createWebSocketTransport({
+      url: (roomId) => `wss://editor.example.com/rooms/${roomId}`,
+    }),
+  },
+}
+```
+
+`collaboration: true` uses a local browser channel for demos and multiple-tab
+development. Production hosts should provide authenticated identity and a
+transport backed by their own WebSocket service.
+
 ## Events
 
 Events are synchronous, typed, and scoped to one controller. Calling `on`
@@ -91,7 +112,9 @@ stop()
 | `knowledgeSourceActivated` | `onKnowledgeSourceActivated` | Source context state changed |
 | `previewOpen` | `onPreviewOpen` | Source preview opened |
 | `previewClose` | `onPreviewClose` | Source preview closed |
-| `error` | `onError` | Configuration, plugin, editor, AI, source, or preview error |
+| `collaborationStatus` | `onCollaborationStatus` | Connection or sync state changed |
+| `collaboratorsChange` | `onCollaboratorsChange` | Live presence list changed |
+| `error` | `onError` | Configuration, plugin, editor, AI, source, preview, or collaboration error |
 
 Callbacks and `events.on` use the same event target. Throwing inside a
 non-error handler emits an `error` event rather than breaking the editor.

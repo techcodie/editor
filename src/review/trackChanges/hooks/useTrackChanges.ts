@@ -76,6 +76,10 @@ export function useTrackChanges(
     [changes],
   )
 
+  const applyRemoteTrackChanges = useCallback((next: TrackChange[]) => {
+    setChanges(structuredClone(next))
+  }, [])
+
   return {
     changes,
     changesById,
@@ -83,5 +87,6 @@ export function useTrackChanges(
     decide,
     decideAll,
     jumpToChange,
+    applyRemoteTrackChanges,
   }
 }

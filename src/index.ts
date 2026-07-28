@@ -27,12 +27,38 @@ export type {
   KnowledgeSourceEventData,
   ResolvedDocumentEditorConfig,
 } from './sdk/types'
+export {
+  createBroadcastChannelTransport,
+  createWebSocketTransport,
+} from './collaboration/services/transportAdapter'
+export type {
+  CollaborationConfig,
+  CollaborationConflict,
+  CollaborationConnectionStatus,
+  CollaborationMessage,
+  CollaborationOperation,
+  CollaborationSharedState,
+  CollaborationSyncStatus,
+  CollaborationTransport,
+  CollaborationTransportHandlers,
+  ResolvedCollaborationConfig,
+} from './collaboration/types/collaboration'
+export type { WebSocketTransportOptions } from './collaboration/services/transportAdapter'
+export type {
+  AwarenessState,
+  Collaborator,
+  CollaboratorStatus,
+  CollaborationRange,
+  CollaborationUser,
+} from './collaboration/types/presence'
 export type {
   EditorApi,
   EditorAssetInsertion,
   EditorCommentInteraction,
   EditorCommentInteractionType,
   EditorDocumentMark,
+  EditorDocumentChange,
+  EditorDocumentChangeOrigin,
   EditorDocumentNode,
   EditorInsertionProvenance,
   EditorInsertionTarget,
@@ -44,6 +70,7 @@ export type {
   EditorTrackChangeInteraction,
   EditorTrackChangeType,
   HeadingLevel,
+  ReplaceDocumentSnapshotOptions,
   TextAlignment,
 } from './lib/editor-api'
 export type {
