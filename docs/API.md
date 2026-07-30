@@ -37,6 +37,21 @@ Each mounted SDK instance owns:
 
 There is no global editor store or global plugin registry.
 
+Document viewing and form-sharing helpers are available from the package root:
+
+```ts
+import {
+  createFormShareHtml,
+  createGoogleSearchUrl,
+  createViewerPages,
+  DOCUMENT_VIEW_MODES,
+} from '@techcodie/editor'
+```
+
+Generated form submissions are delivered through `onFormSubmit` or the
+instance-scoped `formSubmit` event. The host remains responsible for storage,
+authentication, and publishing durable links.
+
 ## Package Entry Points
 
 The package exposes two supported entry points:

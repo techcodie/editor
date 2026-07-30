@@ -91,6 +91,29 @@ export { analyzeWriting, clearWritingAnalysisCache } from './writing/services/wr
 export { createLocalRewrite } from './writing/services/rewriteEngine'
 export { WRITING_REWRITE_ACTIONS, isWritingRewriteAction } from '../shared/writing'
 export type { WritingRewriteAction } from '../shared/writing'
+export {
+  DOCUMENT_VIEW_MODES,
+  VIEWER_ZOOM_LEVELS,
+  createGoogleSearchUrl,
+  createViewerPages,
+} from './viewer/services/viewManager'
+export {
+  FORM_SUBMISSION_MESSAGE,
+  createFormShareArtifact,
+  createFormShareHtml,
+  isFormSubmissionMessage,
+  normalizeSubmissionValues,
+  revokeFormShareArtifact,
+} from './viewer/services/shareEngine'
+export type {
+  DocumentViewMode,
+  FormShareArtifact,
+  FormShareOptions,
+  FormSubmission,
+  FormSubmissionMessage,
+  ViewerPage,
+  ViewerZoom,
+} from './viewer/types/viewer'
 export type {
   AiDetectionProvider,
   CustomDetectionPattern,
@@ -207,6 +230,23 @@ export type {
   FormPreviewState,
   FormValidationError,
 } from './forms/types/form'
+export type {
+  HeaderFooterContent,
+  MarginPreset,
+  PageAlignment,
+  PageLayout,
+  PageMargins,
+  PageNumberPosition,
+  PageNumberSettings,
+  PageOrientation,
+  PaperSize,
+  PrintZoom,
+} from './layout/types/layout'
+export type {
+  Page,
+  PageBreak,
+  PaginationSnapshot,
+} from './layout/types/page'
 export type {
   CreateVersionInput,
   SnapshotCompression,

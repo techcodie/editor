@@ -119,8 +119,11 @@ Version 1.0 exposes one package root, `@techcodie/editor`, with:
 - Configuration validation and default-theme helpers.
 - Framework-neutral Editor API types.
 - Typed configuration, event, plugin, theme, AI, knowledge-source,
-  collaboration, search, embedding, and knowledge-graph contracts.
+  collaboration, search, embedding, knowledge-graph, viewer, and form-sharing
+  contracts.
 - Selection AI action constants and validation.
+- Framework-neutral view-mode, page-preparation, Google Search, and standalone
+  HTML form-share helpers.
 
 Package export maps allow only the root API, `styles.css`, and package metadata.
 Internal components, Tiptap adapters, services, hooks, and knowledge parsers are
@@ -141,8 +144,8 @@ invalid nested values.
 Each controller owns a typed event target. Public callbacks and `events.on`
 cover editor readiness and changes, selection changes, AI request and response
 lifecycle, insertions, Knowledge Source add/remove/activation, preview open and
-close, collaboration status and presence changes, and errors. Events expose
-public data contracts only. Semantic Search also emits index-size and
+close, collaboration status and presence changes, HTML form submissions, and
+errors. Events expose public data contracts only. Semantic Search also emits index-size and
 completed-query events without exposing indexed document content.
 
 ### Plugin Architecture
@@ -422,6 +425,43 @@ the Editor API. The API owns page-surface measurement, visual block offsets,
 cursor-page calculation, manual-break mapping, pagination subscriptions, and
 temporary readonly preview mode. The print preview is lazy-loaded and renders
 content only for the current page and its immediate neighbors.
+
+### Enterprise Document Experience Flow
+
+```text
+View Switcher / Selected Text / Form Share
+        |
+        v
+Viewer State / Google Search / Share Engine
+        |
+        v
+Existing Pagination / Form Definitions
+        |
+        v
+Editor API
+        |
+        v
+Editor Surface / Readonly Viewer / Host Callback
+```
+
+The Document Experience Pack composes Editor View, the existing PDF-style
+print preview, a horizontally snapping page carousel, responsive two-page Book
+View, and Reading Mode over the current pagination contracts. Viewer switching
+is instance-local and does not rewrite content, layout metadata, or export
+state. Carousel and Book View use stable page shells, lazy nearby rendering,
+zoom, keyboard navigation, and a single-page mobile fallback.
+
+Reading Mode hides editing chrome and temporarily uses the Editor API readonly
+lifecycle. Selected-text Google Search reads the existing Editor API selection,
+opens an encoded Google query in a new tab, and never clears or rewrites the
+selection. Mobile composition adds a bottom action bar, touch-safe spacing, and
+room for the existing floating AI actions.
+
+The form share engine serializes existing protected Form Builder definitions
+into escaped, standalone HTML. The document template remains read-only while
+native form controls remain interactive. Forms opened from the editor report a
+validated `formSubmit` event and `onFormSubmit` callback; persistence, hosting,
+authentication, and durable public URLs remain host-owned.
 
 ### Enterprise Watermark Flow
 
@@ -760,6 +800,11 @@ Form Builder UI also remains framework-neutral. It uses Editor API methods for
 protected field insertion, configuration, deletion, enumeration, and focus.
 Only the internal form-field node and Editor API adapter access Tiptap.
 
+Document Experience UI remains framework-neutral. Google Search consumes the
+Editor API selection and Reading Mode consumes its readonly preview lifecycle.
+Carousel, Book, PDF Preview, and HTML form sharing read existing pagination,
+document snapshot, and form contracts without importing Tiptap or ProseMirror.
+
 ---
 
 ## AI Capabilities
@@ -926,6 +971,26 @@ system.
 - Page layout and manual breaks are session-local. Printing, export, persisted
   layout metadata, sections, columns, and image layout are not included in Page
   Layout Phase 1. Watermarks are provided by the separate overlay layer below.
+
+### Enterprise Document Experience
+
+- Adds instant Editor, PDF Preview, Horizontal Carousel, Book, and Reading view
+  switching without changing document content or pagination state.
+- Provides smooth horizontal page snapping, 50-150% zoom, nearby-page lazy
+  rendering, and keyboard page navigation.
+- Provides a responsive two-page book spread with subtle page-turn motion and
+  an automatic single-page mobile fallback.
+- Provides a focused readonly Reading Mode with hidden editing chrome and the
+  `Cmd/Ctrl + Shift + R` keyboard shortcut.
+- Adds selected-text Google Search without clearing the editor selection.
+- Adds a mobile bottom action bar, touch-safe spacing, and non-overlapping
+  Selection AI and Google Search actions.
+- Generates escaped standalone HTML forms from existing protected form fields,
+  with session links, HTML copy, download, local preview, and typed host-owned
+  submission callbacks.
+- Viewer state and generated links are session-local. Durable hosting, backend
+  submissions, authentication, analytics, and public-link permissions are not
+  included.
 
 ### Enterprise Watermarks
 
@@ -1497,6 +1562,11 @@ src/
     hooks/               Debounced analysis, grammar, rewrite, and history composition
     services/            Grammar, spelling, style, tone, readability, scoring, suggestion, rewrite, and analysis engines
     types/               Writing analysis, score, tone, readability, rewrite, and suggestion contracts
+  viewer/
+    components/          View switcher, reading, carousel, book, Google Search, mobile, and form-share UI
+    hooks/               Instance-local view mode, zoom, and Reading Mode lifecycle
+    services/            Page preparation, Google query, and standalone HTML form-share engines
+    types/               View mode, page, zoom, share artifact, and form submission contracts
   hooks/
     useSpeechRecognition.ts  Native browser speech recognition lifecycle
   services/              Shared AI transport and frame-batched stream updates
@@ -1536,7 +1606,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Grammar and Writing Assistant Phase 1 Complete**
+**Version 1.0 Complete; Enterprise Document Experience Pack Complete**
 
 Completed:
 
@@ -1631,6 +1701,14 @@ Completed:
 - Responsive Page Layout controls, live page indicators, and current-page state
 - Lazy readonly print preview with zoom, mini pages, keyboard navigation, focus
   restoration, and nearby-page rendering
+- Instant Editor, PDF Preview, Horizontal Carousel, Book, and Reading modes
+- Smooth horizontal page snapping, viewer zoom, lazy nearby pages, and keyboard
+  navigation
+- Responsive two-page Book View with page-turn motion and single-page mobile
+  fallback
+- Focused readonly Reading Mode with hidden editing chrome and keyboard shortcut
+- Selected-text Google Search that preserves editor selection
+- Mobile bottom action bar with touch-safe page and floating-action spacing
 - Text, PNG, SVG, and company-logo watermark overlays
 - Watermark presets, custom text, font, color, opacity, position, rotation,
   image sizing, scale, and placement locking
@@ -1679,6 +1757,8 @@ Completed:
   interactive standalone HTML form controls
 - Compliance findings for empty labels, duplicate fields, invalid validation,
   and missing required-field configuration
+- Standalone HTML form share artifacts with session links, preview, copy,
+  download, read-only document templates, and typed host submission callbacks
 - Enterprise Version History with named snapshots, timeline grouping, search,
   filters, sorting, bookmarks, favourites, rename, deletion, and audit metadata
 - Gzip-compressed full snapshots and size-aware incremental delta snapshots
@@ -1868,6 +1948,11 @@ Version History, Semantic Search, and shared AI transport. Deterministic
 analysis remains framework-neutral and locally cached; optional AI is limited
 to user-requested rewrite previews. Neither path automatically accepts document
 changes, and no external grammar service or new production dependency was added.
+Document Experience composes the existing Editor API, pagination, print
+preview, and protected form definitions. Views and share artifacts remain
+instance-local, generated HTML is escaped, and form submissions are returned
+through typed host callbacks. Export behavior and pagination internals remain
+unchanged, and no new production dependency was added.
 
 ### Enterprise Writing Assistant Flow
 
@@ -1975,6 +2060,7 @@ These are not missing. Do not implement unless requested.
 - Page-level background image layout
 - Track-change author and permission providers
 - Backend form submissions and submission persistence
+- Durable hosted form URLs, link expiry, access controls, and submission inboxes
 - Form authentication and automatic workflow routing
 - Conditional fields, calculations, repeating sections, and dynamic visibility
 - Electronic signatures, form analytics, and OCR field mapping

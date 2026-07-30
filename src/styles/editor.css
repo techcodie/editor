@@ -308,3 +308,71 @@
     var(--page-height) - var(--page-margin-top) - var(--page-margin-bottom)
   );
 }
+
+.reader-document-surface {
+  border-color: transparent;
+  box-shadow: none;
+  cursor: text;
+}
+
+.reader-document-surface:focus-within {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.reader-document-surface .tiptap {
+  max-width: 44rem;
+  margin-inline: auto;
+  font-size: 1.075rem;
+  line-height: 1.82;
+}
+
+.viewer-scroll {
+  scrollbar-color: #a3a3a3 transparent;
+  scrollbar-width: thin;
+}
+
+@keyframes book-page-next {
+  from {
+    opacity: 0.72;
+    transform: perspective(1600px) rotateY(-3deg) translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1600px) rotateY(0) translateX(0);
+  }
+}
+
+@keyframes book-page-previous {
+  from {
+    opacity: 0.72;
+    transform: perspective(1600px) rotateY(3deg) translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1600px) rotateY(0) translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book-page-turn {
+    animation: none !important;
+  }
+
+  .viewer-scroll {
+    scroll-behavior: auto;
+  }
+}
+
+@media (max-width: 639px) {
+  .reader-workspace .reader-document-surface {
+    padding: 2rem 1.15rem 6rem;
+    border-radius: 0;
+  }
+
+  .reader-document-surface .tiptap {
+    min-height: calc(100vh - 11rem);
+    font-size: 1.025rem;
+    line-height: 1.8;
+  }
+}

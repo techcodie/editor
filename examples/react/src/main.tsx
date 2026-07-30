@@ -78,6 +78,8 @@ export function Example() {
         setStatus(`${connectionStatus} · ${syncStatus}`),
       onSearch: ({ total, durationMs }) =>
         setStatus(`${total} search results in ${durationMs} ms`),
+      onFormSubmit: ({ values }) =>
+        setStatus(`${Object.keys(values).length} form values received`),
       onError: ({ message }) => setStatus(message),
     },
   }), [])

@@ -31,7 +31,7 @@ export function SelectionToolbar({ bounds, onSelect }: SelectionToolbarProps) {
       role="toolbar"
       aria-label="AI actions for selected text"
       style={style}
-      className="fixed left-[var(--selection-ai-left)] top-[var(--selection-ai-top)] z-50 flex -translate-x-1/2 -translate-y-full items-center gap-1 rounded-lg border border-neutral-200 bg-white p-1 shadow-[0_1px_2px_rgba(20,20,20,0.05),0_16px_36px_-18px_rgba(20,20,20,0.4)] [animation:selection-ai-in_150ms_ease-out] max-sm:bottom-3 max-sm:left-3 max-sm:right-3 max-sm:top-auto max-sm:translate-x-0 max-sm:translate-y-0 max-sm:p-1.5"
+      className="fixed left-[var(--selection-ai-left)] top-[var(--selection-ai-top)] z-50 flex -translate-x-1/2 -translate-y-full items-center gap-1 rounded-lg border border-neutral-200 bg-white p-1 shadow-[0_1px_2px_rgba(20,20,20,0.05),0_16px_36px_-18px_rgba(20,20,20,0.4)] [animation:selection-ai-in_150ms_ease-out] max-sm:bottom-[4.5rem] max-sm:left-3 max-sm:right-3 max-sm:top-auto max-sm:translate-x-0 max-sm:translate-y-0 max-sm:p-1.5"
     >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-neutral-900 text-white shadow-sm" aria-hidden>
         <WandSparkles size={15} strokeWidth={1.9} />

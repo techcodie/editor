@@ -102,6 +102,7 @@ const CALLBACK_KEYS = new Set([
   'onCollaboratorsChange',
   'onSearchIndexChange',
   'onSearch',
+  'onFormSubmit',
   'onError',
 ])
 

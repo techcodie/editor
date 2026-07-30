@@ -30,6 +30,7 @@ const CALLBACK_EVENTS = {
   onCollaboratorsChange: 'collaboratorsChange',
   onSearchIndexChange: 'searchIndexChange',
   onSearch: 'search',
+  onFormSubmit: 'formSubmit',
   onError: 'error',
 } as const satisfies Record<keyof DocumentEditorCallbacks, DocumentEditorEventName>
 

@@ -10,6 +10,7 @@ import type { Collaborator } from '../collaboration/types/presence'
 import type { SearchMode } from '../search/types/search'
 import type { AiDetectionProvider } from '../redaction/types/detection'
 import type { ContractPlaybook } from '../contract/types/contract'
+import type { FormSubmission } from '../viewer/types/viewer'
 import type {
   EditorApi,
   EditorInsertionTarget,
@@ -144,6 +145,7 @@ export interface DocumentEditorEventMap {
     total: number
     durationMs: number
   }
+  formSubmit: FormSubmission
   error: {
     scope: 'configuration' | 'plugin' | 'editor' | 'ai' | 'knowledge' | 'preview' | 'compliance' | 'collaboration' | 'search'
     message: string
@@ -183,6 +185,7 @@ export interface DocumentEditorCallbacks {
   onCollaboratorsChange?: DocumentEditorEventHandler<'collaboratorsChange'>
   onSearchIndexChange?: DocumentEditorEventHandler<'searchIndexChange'>
   onSearch?: DocumentEditorEventHandler<'search'>
+  onFormSubmit?: DocumentEditorEventHandler<'formSubmit'>
   onError?: DocumentEditorEventHandler<'error'>
 }
 

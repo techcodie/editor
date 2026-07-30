@@ -116,6 +116,7 @@ stop()
 | `collaboratorsChange` | `onCollaboratorsChange` | Live presence list changed |
 | `searchIndexChange` | `onSearchIndexChange` | Local document index or graph changed |
 | `search` | `onSearch` | Search completed with count and timing |
+| `formSubmit` | `onFormSubmit` | Shared HTML form returned values to the host |
 | `error` | `onError` | Configuration, plugin, editor, AI, source, preview, collaboration, or search error |
 
 Callbacks and `events.on` use the same event target. Throwing inside a

@@ -14,6 +14,19 @@ import type { ContractAnalysis } from '../../contract/types/contract'
 import { WritingAssistantToolbarControl } from '../../writing/components/WritingAssistantToolbarControl'
 import type { WritingSuggestion } from '../../writing/types/suggestion'
 import type { WritingAnalysis } from '../../writing/types/writing'
+import { GoogleSearchButton } from '../../viewer/components/GoogleSearchButton'
+import { MobileToolbar } from '../../viewer/components/MobileToolbar'
+import { ReadingMode } from '../../viewer/components/ReadingMode'
+import { ShareToolbarControl } from '../../viewer/components/ShareToolbarControl'
+import { ViewSwitcher } from '../../viewer/components/ViewSwitcher'
+import { useReadingMode } from '../../viewer/hooks/useReadingMode'
+import { useViewMode } from '../../viewer/hooks/useViewMode'
+import { createViewerPages } from '../../viewer/services/viewManager'
+import {
+  isFormSubmissionMessage,
+  normalizeSubmissionValues,
+} from '../../viewer/services/shareEngine'
+import type { DocumentViewMode } from '../../viewer/types/viewer'
 import { ComparisonToolbarControl } from '../../comparison/components/ComparisonToolbar'
 import { ExportToolbarControl } from '../../export/components/ExportToolbarControl'
 import { FormBuilderToolbarControl } from '../../forms/components/FormBuilderToolbarControl'
@@ -156,6 +169,21 @@ const WritingAssistantPanel = lazy(async () => {
   return { default: module.WritingAssistantPanel }
 })
 
+const CarouselView = lazy(async () => {
+  const module = await import('../../viewer/components/CarouselView')
+  return { default: module.CarouselView }
+})
+
+const BookView = lazy(async () => {
+  const module = await import('../../viewer/components/BookView')
+  return { default: module.BookView }
+})
+
+const ShareDialog = lazy(async () => {
+  const module = await import('../../viewer/components/ShareDialog')
+  return { default: module.ShareDialog }
+})
+
 /**
  * Owns the editor instance and wires it to its UI: it creates the editor, binds
  * the public {@link EditorApi} for the toolbar, and renders the editing surface.
@@ -221,6 +249,8 @@ export function EditorWorkspace({
   const [isWritingAssistantOpen, setIsWritingAssistantOpen] = useState(false)
   const [isWritingAssistantLoaded, setIsWritingAssistantLoaded] = useState(false)
   const [writingAnalysis, setWritingAnalysis] = useState<WritingAnalysis | null>(null)
+  const [isShareOpen, setIsShareOpen] = useState(false)
+  const [isShareLoaded, setIsShareLoaded] = useState(false)
   const [searchKnowledgeSources, setSearchKnowledgeSources] = useState<KnowledgeSource[]>([])
   const [complianceReport, setComplianceReport] = useState<ComplianceReport | null>(null)
   const [collaborationLayoutTick, setCollaborationLayoutTick] = useState(0)
@@ -231,6 +261,7 @@ export function EditorWorkspace({
   const [askDocumentCommand, setAskDocumentCommand] =
     useState<AskDocumentCommandRequest | null>(null)
   const askDocumentButtonRef = useRef<HTMLButtonElement>(null)
+  const validShareIdsRef = useRef<string[]>([])
   const lastDocumentTextRef = useRef<string | null>(null)
   const lastSelectionRef = useRef<string | null>(null)
   const AskDocumentIcon = config.theme.icons.askDocument ?? MessageSquareText
@@ -375,10 +406,22 @@ export function EditorWorkspace({
     setPrintZoom,
   } = usePageLayout()
   const {
+    mode: viewMode,
+    zoom: viewerZoom,
+    selectMode: selectViewMode,
+    closeViewer,
+    zoomIn: zoomViewerIn,
+    zoomOut: zoomViewerOut,
+  } = useViewMode()
+  const {
     snapshot: pagination,
     insertPageBreak,
     removePageBreak,
   } = usePagination(api, pageLayout)
+  const viewerPages = useMemo(
+    () => createViewerPages(api?.getDocumentText() ?? '', pageLayout, pagination),
+    [api, pageLayout, pagination],
+  )
   const {
     watermark,
     isPanelOpen: isWatermarkOpen,
@@ -1240,6 +1283,119 @@ export function EditorWorkspace({
     })
   }, [config.ai, openAskDocument])
 
+  const closeShare = useCallback(() => {
+    setIsShareOpen(false)
+  }, [])
+
+  const openShare = useCallback(() => {
+    setIsShareLoaded(true)
+    setIsShareOpen(true)
+  }, [])
+
+  const registerShareArtifact = useCallback((shareId: string) => {
+    validShareIdsRef.current = [
+      shareId,
+      ...validShareIdsRef.current.filter((id) => id !== shareId),
+    ].slice(0, 32)
+  }, [])
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (!isFormSubmissionMessage(event.data)) return
+      if (!validShareIdsRef.current.includes(event.data.payload.shareId)) return
+      events.emit('formSubmit', {
+        ...event.data.payload,
+        values: normalizeSubmissionValues(event.data.payload.values),
+      })
+    }
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [events])
+
+  const handleViewModeChange = useCallback((nextMode: DocumentViewMode) => {
+    setIsPrintPreviewOpen(nextMode === 'pdf-preview')
+    selectViewMode(nextMode)
+    if (nextMode === 'editor') return
+
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
+    setIsExportOpen(false)
+    setIsIntelligenceOpen(false)
+    setIsComplianceOpen(false)
+    setIsFormBuilderOpen(false)
+    setIsHistoryOpen(false)
+    setIsWorkflowOpen(false)
+    setIsSearchOpen(false)
+    setIsRedactionOpen(false)
+    setIsContractOpen(false)
+    setIsWritingAssistantOpen(false)
+    setIsShareOpen(false)
+    cancelPlacement()
+    if (pendingComment) closeComposer()
+  }, [
+    cancelPlacement,
+    closeComposer,
+    pendingComment,
+    selectViewMode,
+    setIsPageLayoutOpen,
+    setIsPrintPreviewOpen,
+    setIsWatermarkOpen,
+  ])
+
+  const closeDocumentViewer = useCallback(() => {
+    setIsPrintPreviewOpen(false)
+    closeViewer()
+  }, [closeViewer, setIsPrintPreviewOpen])
+
+  const toggleReadingMode = useCallback(() => {
+    handleViewModeChange(viewMode === 'reading' ? 'editor' : 'reading')
+  }, [handleViewModeChange, viewMode])
+
+  useReadingMode({
+    api,
+    active: viewMode === 'reading',
+    keyboardShortcuts: config.keyboardShortcuts,
+    onToggle: toggleReadingMode,
+  })
+
+  useEffect(() => {
+    if (viewMode !== 'reading') return
+    if (
+      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
+      isSuggestionMode || isComparisonOpen || isPageLayoutOpen ||
+      isWatermarkOpen || isExportOpen || isIntelligenceOpen ||
+      isComplianceOpen || isFormBuilderOpen || isHistoryOpen ||
+      isWorkflowOpen || isSearchOpen || isRedactionOpen ||
+      isContractOpen || isWritingAssistantOpen
+    ) selectViewMode('editor')
+  }, [
+    isAskDocumentOpen,
+    isAssetLibraryOpen,
+    isComparisonOpen,
+    isComplianceOpen,
+    isContractOpen,
+    isExportOpen,
+    isFormBuilderOpen,
+    isHistoryOpen,
+    isIntelligenceOpen,
+    isPageLayoutOpen,
+    isRedactionOpen,
+    isReviewMode,
+    isSearchOpen,
+    isSuggestionMode,
+    isWatermarkOpen,
+    isWorkflowOpen,
+    isWritingAssistantOpen,
+    selectViewMode,
+    viewMode,
+  ])
+
   const runWorkspaceCommand = useCallback(
     (command: WorkspaceCommandId) => {
       switch (command) {
@@ -1342,8 +1498,11 @@ export function EditorWorkspace({
   }, [closeSearch, config.keyboardShortcuts, isSearchOpen, openSearch])
 
   return (
-    <div className="document-editor-workspace mx-auto flex w-full max-w-[84rem] items-start justify-center px-3 py-4 sm:px-6 sm:py-7 lg:px-8 lg:py-6">
-      <div className="min-w-0 w-full max-w-[48rem]">
+    <div className="document-editor-workspace mx-auto flex w-full max-w-[84rem] items-start justify-center px-3 pb-20 pt-4 sm:px-6 sm:py-7 lg:px-8 lg:py-6">
+      <div className={cn('min-w-0 w-full max-w-[48rem]', viewMode === 'reading' && 'reader-workspace max-w-[54rem]')}>
+        {viewMode === 'reading' ? (
+          <ReadingMode mode={viewMode} onModeChange={handleViewModeChange} onExit={closeDocumentViewer} />
+        ) : (
         <div className="sticky top-3 z-30 flex items-start gap-2.5 sm:top-4">
           {config.toolbar && !config.readonly && (
             <Toolbar
@@ -1474,6 +1633,18 @@ export function EditorWorkspace({
               }
             />
           )}
+          <div className="hidden sm:block">
+            <ViewSwitcher mode={viewMode} onChange={handleViewModeChange} />
+          </div>
+          <div className="hidden sm:block">
+            <ShareToolbarControl
+              isOpen={isShareOpen}
+              onToggle={() => {
+                if (isShareOpen) closeShare()
+                else openShare()
+              }}
+            />
+          </div>
           {config.commandPalette && (
             <button
               type="button"
@@ -1533,6 +1704,7 @@ export function EditorWorkspace({
             />
           )}
         </div>
+        )}
         <div className="relative pt-3.5 sm:pt-4">
           {pendingAsset && (
             <div className="absolute left-1/2 top-6 z-20 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-[var(--document-editor-shadow-overlay)]" role="status">
@@ -1550,7 +1722,8 @@ export function EditorWorkspace({
           )}
           <DocumentEditor
             editor={editor}
-            placementActive={Boolean(pendingAsset)}
+            className={viewMode === 'reading' ? 'reader-document-surface' : undefined}
+            placementActive={viewMode === 'editor' && Boolean(pendingAsset)}
             onSurfaceClick={placePendingAsset}
             pageOverlay={
               <>
@@ -1559,11 +1732,13 @@ export function EditorWorkspace({
                   pages={watermarkPages}
                   currentPage={pagination.currentPage}
                 />
-                <PageIndicator
-                  layout={pageLayout}
-                  pagination={pagination}
-                  onRemoveBreak={removePageBreak}
-                />
+                {viewMode !== 'reading' && (
+                  <PageIndicator
+                    layout={pageLayout}
+                    pagination={pagination}
+                    onRemoveBreak={removePageBreak}
+                  />
+                )}
               </>
             }
           />
@@ -1720,7 +1895,7 @@ export function EditorWorkspace({
           pagination={pagination}
           onLayoutChange={setPageLayout}
           onInsertBreak={insertPageBreak}
-          onOpenPreview={() => setIsPrintPreviewOpen(true)}
+          onOpenPreview={() => handleViewModeChange('pdf-preview')}
           onClose={closePageLayout}
         />
         <WatermarkPanel
@@ -1849,7 +2024,26 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
       </div>
-      {config.ai && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && !isSearchOpen && !isRedactionOpen && !isContractOpen && !isWritingAssistantOpen && (
+      {(viewMode === 'editor' || viewMode === 'reading') && (
+        <MobileToolbar
+          mode={viewMode}
+          aiEnabled={Boolean(config.ai)}
+          onModeChange={handleViewModeChange}
+          onAskAi={openAskDocument}
+          onShare={openShare}
+        />
+      )}
+      <GoogleSearchButton
+        api={api}
+        enabled={
+          (viewMode === 'editor' || viewMode === 'reading') &&
+          !isShareOpen &&
+          !isComparisonOpen &&
+          !isExportOpen &&
+          !isIntelligenceOpen
+        }
+      />
+      {config.ai && viewMode === 'editor' && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && !isSearchOpen && !isRedactionOpen && !isContractOpen && !isWritingAssistantOpen && !isShareOpen && (
         <ErrorBoundary compact title="Selection AI needs a retry">
           <SelectionAi
             api={api}
@@ -1972,6 +2166,48 @@ export function EditorWorkspace({
           </Suspense>
         </ErrorBoundary>
       )}
+      {viewMode === 'carousel' && (
+        <ErrorBoundary compact title="Carousel view needs a retry">
+          <Suspense fallback={<div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#e8e8e5]" role="status" aria-label="Loading carousel view"><LoaderCircle size={22} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+            <CarouselView
+              pages={viewerPages}
+              layout={pageLayout}
+              zoom={viewerZoom}
+              onZoomIn={zoomViewerIn}
+              onZoomOut={zoomViewerOut}
+              onModeChange={handleViewModeChange}
+              onClose={closeDocumentViewer}
+            />
+          </Suspense>
+        </ErrorBoundary>
+      )}
+      {viewMode === 'book' && (
+        <ErrorBoundary compact title="Book view needs a retry">
+          <Suspense fallback={<div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#e8e8e5]" role="status" aria-label="Loading book view"><LoaderCircle size={22} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+            <BookView
+              pages={viewerPages}
+              layout={pageLayout}
+              zoom={viewerZoom}
+              onZoomIn={zoomViewerIn}
+              onZoomOut={zoomViewerOut}
+              onModeChange={handleViewModeChange}
+              onClose={closeDocumentViewer}
+            />
+          </Suspense>
+        </ErrorBoundary>
+      )}
+      {isShareLoaded && (
+        <ErrorBoundary compact title="Form sharing needs a retry">
+          <Suspense fallback={isShareOpen ? <div className="fixed inset-0 z-[100] flex items-center justify-center bg-neutral-950/35" role="status" aria-label="Loading form sharing"><LoaderCircle size={22} strokeWidth={1.8} className="animate-spin text-white" aria-hidden /></div> : null}>
+            <ShareDialog
+              isOpen={isShareOpen}
+              api={api}
+              onArtifactCreated={registerShareArtifact}
+              onClose={closeShare}
+            />
+          </Suspense>
+        </ErrorBoundary>
+      )}
       {isPrintPreviewOpen && api && (
         <ErrorBoundary compact title="Print preview needs a retry">
           <Suspense
@@ -1993,7 +2229,7 @@ export function EditorWorkspace({
               zoom={printZoom}
               watermark={watermark}
               onZoomChange={setPrintZoom}
-              onClose={() => setIsPrintPreviewOpen(false)}
+              onClose={closeDocumentViewer}
             />
           </Suspense>
         </ErrorBoundary>
