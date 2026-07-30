@@ -227,20 +227,25 @@ export function createEditorApi(editor: Editor): EditorApi {
       .run()
   }
 
-  const insertAsset = (asset: EditorAssetInsertion): boolean => {
+  const insertAsset = (
+    asset: EditorAssetInsertion,
+    target: EditorStructuredInsertion['target'] = 'cursor',
+  ): boolean => {
     if (!asset.assetId || !asset.title || !asset.renderer) return false
-
-    return editor
-      .chain()
-      .focus()
-      .insertContent({
-        type: 'enterpriseAsset',
-        attrs: {
-          ...asset,
-          instanceId: crypto.randomUUID(),
-        },
-      })
-      .run()
+    const content = {
+      type: 'enterpriseAsset',
+      attrs: { ...asset, instanceId: crypto.randomUUID() },
+    }
+    if (target === 'selection' && !editor.state.selection.empty) {
+      return editor.chain().focus().insertContentAt(
+        { from: editor.state.selection.from, to: editor.state.selection.to },
+        content,
+      ).run()
+    }
+    if (target === 'end') {
+      return editor.chain().focus().insertContentAt(editor.state.doc.content.size, content).run()
+    }
+    return editor.chain().focus().insertContent(content).run()
   }
 
   const findCommentRange = (commentId: string): { from: number; to: number } | null => {
@@ -662,6 +667,35 @@ export function createEditorApi(editor: Editor): EditorApi {
       .run(),
     insertStructuredContent,
     insertAsset,
+    insertTable: (rows = 3, columns = 3) => editor
+      .chain()
+      .focus()
+      .insertTable({
+        rows: Math.min(8, Math.max(1, Math.round(rows))),
+        cols: Math.min(8, Math.max(1, Math.round(columns))),
+        withHeaderRow: true,
+      })
+      .run(),
+    insertParagraph: () => editor.chain().focus().splitBlock().run(),
+    replaceTextOccurrences: (search, replacement) => {
+      if (!search || search === replacement) return 0
+      const ranges: Array<{ from: number; to: number }> = []
+      editor.state.doc.descendants((node, position) => {
+        if (!node.isText || !node.text) return
+        let offset = node.text.indexOf(search)
+        while (offset >= 0) {
+          ranges.push({ from: position + offset, to: position + offset + search.length })
+          offset = node.text.indexOf(search, offset + search.length)
+        }
+      })
+      if (ranges.length === 0) return 0
+      const transaction = editor.state.tr
+      for (const range of ranges.toReversed()) {
+        transaction.insertText(replacement, range.from, range.to)
+      }
+      editor.view.dispatch(transaction)
+      return ranges.length
+    },
     insertFormField: (field) => {
       const normalized = normalizeSerializedField(field)
       if (!normalized || getFormField(normalized.id)) return false

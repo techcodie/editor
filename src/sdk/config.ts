@@ -8,6 +8,7 @@ import type {
   DocumentEditorThemeOverrides,
   ResolvedDocumentEditorConfig,
 } from './types'
+import type { ProductivityProviderConfig } from '../productivity/types/provider'
 import { createGuestCollaborationUser } from '../collaboration/services/collaborationRegistry'
 import type {
   CollaborationConfig,
@@ -71,6 +72,7 @@ const CONFIG_KEYS = new Set([
   'keyboardShortcuts',
   'commandPalette',
   'collaboration',
+  'productivity',
   'contractPlaybook',
   'callbacks',
   'plugins',
@@ -303,6 +305,40 @@ function resolveContractPlaybook(value: unknown, warnings: string[]): ContractPl
   return value as ContractPlaybook
 }
 
+function resolveProductivity(
+  value: unknown,
+  warnings: string[],
+): false | ProductivityProviderConfig {
+  if (value === false) return false
+  if (value === undefined || value === true) return {}
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    warn('"productivity" must be a boolean or provider configuration. Local providers will be used.', warnings)
+    return {}
+  }
+  const input = value as Record<string, unknown>
+  const known = new Set(['imageProvider', 'grammarProvider', 'voiceProvider'])
+  for (const key of Object.keys(input)) {
+    if (!known.has(key)) warn(`Unknown productivity option "${key}" was ignored.`, warnings)
+  }
+  const result: ProductivityProviderConfig = {}
+  const image = input.imageProvider as ProductivityProviderConfig['imageProvider']
+  const grammar = input.grammarProvider as ProductivityProviderConfig['grammarProvider']
+  const voice = input.voiceProvider as ProductivityProviderConfig['voiceProvider']
+  if (image !== undefined) {
+    if (image?.kind === 'image' && typeof image.generate === 'function') result.imageProvider = image
+    else warn('"productivity.imageProvider" is invalid. The local mock provider will be used.', warnings)
+  }
+  if (grammar !== undefined) {
+    if (grammar?.kind === 'grammar' && typeof grammar.analyze === 'function') result.grammarProvider = grammar
+    else warn('"productivity.grammarProvider" is invalid. The local grammar provider will be used.', warnings)
+  }
+  if (voice !== undefined) {
+    if (voice?.kind === 'voice' && typeof voice.createSession === 'function') result.voiceProvider = voice
+    else warn('"productivity.voiceProvider" is invalid. The browser voice provider will be used.', warnings)
+  }
+  return result
+}
+
 function resolveCallbacks(value: unknown, warnings: string[]): DocumentEditorCallbacks {
   if (value === undefined) return {}
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -461,6 +497,7 @@ export function validateDocumentEditorConfig(value: unknown): DocumentEditorConf
         warnings,
       ),
       collaboration: resolveCollaboration(input.collaboration, warnings),
+      productivity: resolveProductivity(input.productivity, warnings),
       contractPlaybook: resolveContractPlaybook(input.contractPlaybook, warnings),
       callbacks: resolveCallbacks(input.callbacks, warnings),
       plugins,

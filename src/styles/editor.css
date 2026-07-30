@@ -166,6 +166,53 @@
   margin: 1.75em 0;
 }
 
+.tiptap .tableWrapper {
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: 6px;
+}
+
+.tiptap table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+.tiptap th,
+.tiptap td {
+  position: relative;
+  min-width: 7rem;
+  border: 1px solid #d4d4d4;
+  padding: 0.55rem 0.65rem;
+  vertical-align: top;
+}
+
+.tiptap th {
+  background: #f5f5f4;
+  color: #262626;
+  font-weight: 650;
+  text-align: left;
+}
+
+.tiptap .selectedCell::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  background: color-mix(in srgb, var(--document-editor-accent, #4f46e5) 14%, transparent);
+}
+
+.tiptap .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: -1px;
+  width: 4px;
+  background: var(--document-editor-accent, #4f46e5);
+  pointer-events: none;
+}
+
 .tiptap ::selection {
   background: var(--document-editor-selection, rgba(79, 70, 229, 0.2));
 }

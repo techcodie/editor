@@ -114,6 +114,40 @@ export type {
   ViewerPage,
   ViewerZoom,
 } from './viewer/types/viewer'
+export {
+  ProductivityProviderRegistry,
+  createProductivityProviderRegistry,
+} from './productivity/services/providerRegistry'
+export { MockImageProvider } from './productivity/services/mockImageProvider'
+export { LocalGrammarProvider } from './productivity/services/localGrammarProvider'
+export { BrowserVoiceProvider } from './productivity/services/browserVoiceProvider'
+export { VOICE_COMMANDS, matchVoiceCommand } from './productivity/services/voiceCommandEngine'
+export { parseTranscriptSpeakers } from './productivity/services/speakerEngine'
+export type {
+  GrammarProvider,
+  ImageProvider,
+  ProductivityProvider,
+  ProductivityProviderConfig,
+  ProductivityProviderKind,
+  VoiceProvider,
+  VoiceProviderSession,
+  VoiceSessionOptions,
+} from './productivity/types/provider'
+export type {
+  GeneratedImage,
+  ImageGenerationRequest,
+  ImageInsertionMode,
+  ProductivityHistoryItem,
+  ProductivityHistoryKind,
+  ProductivityTab,
+  SpeakerSegment,
+  TranscriptSpeaker,
+  VoiceCaptureStatus,
+  VoiceCommandId,
+  VoiceCommandMatch,
+  VoiceInsertionMode,
+  VoiceTranscriptUpdate,
+} from './productivity/types/productivity'
 export type {
   AiDetectionProvider,
   CustomDetectionPattern,

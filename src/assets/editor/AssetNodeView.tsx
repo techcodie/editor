@@ -26,6 +26,9 @@ export function AssetNodeView({ node, selected, updateAttributes }: ReactNodeVie
   const title = String(node.attrs.title || 'Document asset')
   const renderer = String(node.attrs.renderer || '')
   const renderData = node.attrs.renderData as Record<string, unknown>
+  const imageSource = renderer === 'generated-image' && typeof renderData.src === 'string'
+    ? renderData.src
+    : null
 
   const beginResize = useCallback(
     (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -108,6 +111,13 @@ export function AssetNodeView({ node, selected, updateAttributes }: ReactNodeVie
             rotation={rotation}
             title={title}
             className="block h-full w-full overflow-visible"
+          />
+        ) : imageSource ? (
+          <img
+            src={imageSource}
+            alt={typeof renderData.alt === 'string' ? renderData.alt : title}
+            draggable={false}
+            className="block h-full w-full rounded-md object-cover"
           />
         ) : (
           <div className="flex h-full min-h-16 items-center justify-center rounded-md border border-dashed border-neutral-300 bg-neutral-50 px-4 text-sm text-neutral-500">

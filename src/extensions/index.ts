@@ -3,6 +3,7 @@ import { Placeholder } from '@tiptap/extension-placeholder'
 import { TextAlign } from '@tiptap/extension-text-align'
 import { Highlight } from '@tiptap/extension-highlight'
 import { TaskList, TaskItem } from '@tiptap/extension-list'
+import { TableKit } from '@tiptap/extension-table'
 import type { Extensions } from '@tiptap/core'
 import type { DocumentEditorOptions } from '../types/editor'
 import { AssetNode } from '../assets/editor/AssetNode'
@@ -34,6 +35,7 @@ export function createEditorExtensions({ placeholder }: DocumentEditorOptions): 
     Highlight,
     TaskList,
     TaskItem.configure({ nested: true }),
+    TableKit.configure({ table: { resizable: true } }),
     AssetNode,
     FormFieldNode,
     CommentMark,

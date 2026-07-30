@@ -152,7 +152,10 @@ export interface EditorApi {
     options?: ReplaceDocumentSnapshotOptions,
   ): boolean
   insertStructuredContent(insertion: EditorStructuredInsertion): boolean
-  insertAsset(asset: EditorAssetInsertion): boolean
+  insertAsset(asset: EditorAssetInsertion, target?: EditorInsertionTarget): boolean
+  insertTable(rows?: number, columns?: number): boolean
+  insertParagraph(): boolean
+  replaceTextOccurrences(search: string, replacement: string): number
 
   insertFormField(field: FormField): boolean
   updateFormField(fieldId: string, patch: FormFieldPatch): boolean

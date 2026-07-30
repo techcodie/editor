@@ -34,6 +34,7 @@ Each mounted SDK instance owns:
 - One editor instance and `EditorApi`
 - Its own plugin setup and cleanup lifecycle
 - Browser-memory conversation, source, and preview state
+- One local-first productivity provider registry when enabled
 
 There is no global editor store or global plugin registry.
 
@@ -160,6 +161,10 @@ Each command has matching active-state methods where applicable.
 - `replaceTextSelection(selection, replacement)`
 - `clearTextSelection()`
 - `insertStructuredContent(insertion)`
+- `insertAsset(asset, target?)`
+- `insertTable(rows?, columns?)`
+- `insertParagraph()`
+- `replaceTextOccurrences(search, replacement)`
 - `focus()`
 
 ### Reactivity
@@ -183,6 +188,29 @@ ai: {
 
 Both endpoints use server-sent events and the request contracts implemented by
 the reference server. `ai: false` removes Ask Document and Selection AI UI.
+
+## Productivity Providers
+
+The Productivity Sidebar uses instance-scoped, framework-neutral provider
+contracts. Its free-first defaults generate local mock image previews, run the
+existing deterministic writing analysis, and use the browser Web Speech API.
+
+```ts
+import {
+  BrowserVoiceProvider,
+  LocalGrammarProvider,
+  MockImageProvider,
+  createProductivityProviderRegistry,
+  type GrammarProvider,
+  type ImageProvider,
+  type VoiceProvider,
+} from '@techcodie/editor'
+```
+
+Hosts can supply one or more adapters through `config.productivity`. Provider
+instances are not global, and the SDK does not own credentials, authentication,
+usage accounting, or billing. Image and grammar operations support
+cancellation; the voice contract exposes start, pause, resume, stop, and cancel.
 
 ## Knowledge Sources and Preview
 
@@ -234,15 +262,24 @@ Runtime exports:
 - `createBroadcastChannelTransport`
 - `createEditor`
 - `createLocalEmbeddingProvider`
+- `createProductivityProviderRegistry`
 - `createSearchEngine`
 - `createWebSocketTransport`
 - `validateDocumentEditorConfig`
 - `resolveDocumentEditorConfig`
 - `getDefaultDocumentEditorTheme`
+- `BrowserVoiceProvider`
+- `LocalGrammarProvider`
+- `MockImageProvider`
+- `ProductivityProviderRegistry`
+- `VOICE_COMMANDS`
+- `matchVoiceCommand`
+- `parseTranscriptSpeakers`
 - `SELECTION_AI_ACTIONS`
 - `isSelectionAiAction`
 
 Type exports include configuration, controller, component, theme, event,
 plugin, selection action, collaboration, semantic search, knowledge graph,
-embedding provider, and `EditorApi` contracts. Package exports prevent
+embedding provider, productivity provider, generated-image, speaker, voice,
+and `EditorApi` contracts. Package exports prevent
 supported imports from reaching internal implementation modules.

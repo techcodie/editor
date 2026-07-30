@@ -1,0 +1,6 @@
+import { CheckCircle2, CircleOff, KeyRound } from 'lucide-react'
+import type { ProductivityProvider } from '../types/provider'
+
+export function ProviderSettings({ providers }: { providers: ProductivityProvider[] }) {
+  return <div className="space-y-2.5 p-4">{providers.map((provider) => { const available = provider.isAvailable(); return <article key={provider.kind} className="rounded-md border border-neutral-200 bg-white p-3 shadow-sm"><div className="flex items-center gap-2">{available ? <CheckCircle2 size={16} className="text-emerald-600" aria-hidden /> : <CircleOff size={16} className="text-neutral-400" aria-hidden />}<div className="min-w-0 flex-1"><h3 className="truncate text-xs font-semibold text-neutral-900">{provider.name}</h3><p className="text-[10px] capitalize text-neutral-500">{provider.kind} provider</p></div><span className="rounded bg-neutral-100 px-2 py-1 text-[9px] font-semibold uppercase text-neutral-600">{provider.local ? 'Local' : 'Host'}</span></div><div className="mt-3 flex items-center gap-1.5 border-t border-neutral-100 pt-2 text-[10px] text-neutral-500"><KeyRound size={12} aria-hidden />{provider.requiresApiKey ? 'Host API key required' : 'No API key required'}</div></article>})}</div>
+}

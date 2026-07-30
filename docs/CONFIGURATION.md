@@ -20,6 +20,7 @@ All options are optional and validated once during initialization.
 | `keyboardShortcuts` | `true` | Enables SDK keyboard shortcuts |
 | `commandPalette` | `true` | Shows the command palette control |
 | `collaboration` | `false` | Enables collaboration or supplies room, user, and transport configuration |
+| `productivity` | Local providers | Enables Images, Grammar, Voice, Providers, and History or supplies provider adapters |
 | `callbacks` | `{}` | Typed lifecycle and interaction callbacks |
 | `plugins` | `[]` | Instance-scoped plugins |
 
@@ -85,6 +86,30 @@ const config: DocumentEditorConfig = {
 `collaboration: true` uses a local browser channel for demos and multiple-tab
 development. Production hosts should provide authenticated identity and a
 transport backed by their own WebSocket service.
+
+### Productivity providers
+
+```ts
+import {
+  BrowserVoiceProvider,
+  LocalGrammarProvider,
+  MockImageProvider,
+  type DocumentEditorConfig,
+} from '@techcodie/editor'
+
+const config: DocumentEditorConfig = {
+  productivity: {
+    imageProvider: new MockImageProvider(),
+    grammarProvider: new LocalGrammarProvider(),
+    voiceProvider: new BrowserVoiceProvider(),
+  },
+}
+```
+
+`productivity: true` uses the same free-first defaults. Hosts can replace any
+adapter independently with an implementation of `ImageProvider`,
+`GrammarProvider`, or `VoiceProvider`. Credentials and billing remain outside
+the SDK; the built-in providers do not require API keys.
 
 ## Events
 

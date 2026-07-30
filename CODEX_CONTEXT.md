@@ -119,8 +119,8 @@ Version 1.0 exposes one package root, `@techcodie/editor`, with:
 - Configuration validation and default-theme helpers.
 - Framework-neutral Editor API types.
 - Typed configuration, event, plugin, theme, AI, knowledge-source,
-  collaboration, search, embedding, knowledge-graph, viewer, and form-sharing
-  contracts.
+  collaboration, search, embedding, knowledge-graph, viewer, form-sharing, and
+  productivity-provider contracts.
 - Selection AI action constants and validation.
 - Framework-neutral view-mode, page-preparation, Google Search, and standalone
   HTML form-share helpers.
@@ -136,7 +136,8 @@ shaking, and externalized runtime dependencies.
 `DocumentEditorConfig` supports initial content, placeholder, theme, readonly
 mode, toolbar, voice, AI endpoints, Knowledge Sources, preview, streaming,
 animations, keyboard shortcuts, command palette, collaboration, callbacks, and
-plugins.
+plugins. Productivity tools are enabled by default with local providers and can
+be disabled or configured with host-supplied image, grammar, and voice adapters.
 Configuration is resolved once per controller instance. Runtime validation
 provides prefixed warnings, ignores unknown options, and safely falls back for
 invalid nested values.
@@ -183,6 +184,28 @@ The four current AI workflows are:
 
 All four workflows use the shared streaming transport and return server-sent events.
 The Groq API key remains server-only.
+
+### Productivity Provider Flow
+
+```text
+Productivity Sidebar
+        |
+        v
+Instance Provider Registry
+   |          |          |
+   v          v          v
+Image      Grammar      Voice
+Provider   Provider     Provider
+        |
+        v
+Editor API / Review / Track Changes / History
+```
+
+The default provider set is free-first: a local mock image generator, the
+existing deterministic writing analyzer, and the browser Web Speech API. Hosts
+can replace any adapter independently. The registry is scoped to one editor
+instance and does not own credentials, authentication, usage accounting, or
+billing.
 
 Frontend stream updates are buffered to animation frames before React state is
 updated. This preserves the existing transport while reducing render pressure
@@ -775,7 +798,9 @@ selection, or the document end. Each insertion uses one native history
 transaction so one Undo restores the previous document.
 
 The Editor API also owns generic asset insertion. Asset Library components send
-framework-neutral asset payloads and never access Tiptap directly.
+framework-neutral asset payloads and never access Tiptap directly. Productivity
+tools reuse this boundary for generated-image insertion and replacement, real
+table and paragraph voice commands, and global speaker-label replacement.
 
 The Editor API also owns review comment anchoring, anchor removal, range focus,
 active-comment lookup, review-mode visibility, and comment highlight
@@ -841,6 +866,25 @@ document snapshot, and form contracts without importing Tiptap or ProseMirror.
 - Verifies that the captured selection is still valid before replacement.
 - Translate currently targets English because prompt customization is deferred.
 
+### Enterprise AI Productivity Platform
+
+- Provides one responsive sidebar with Images, Grammar, Voice, Providers, and
+  History tabs.
+- Generates cancellable, cached local mock image previews and inserts or
+  replaces them explicitly as native editor assets with undo support.
+- Runs the existing local grammar, spelling, vocabulary, tone, readability, and
+  writing-quality analysis behind a public `GrammarProvider` contract.
+- Sends grammar findings to existing Review comments or pending Track Changes;
+  no suggestion is applied automatically.
+- Supports browser dictation at the cursor, over a captured selection, or at
+  the document end, with pause, resume, cancel, and native undo.
+- Recognizes explicit bold, italic, undo, redo, heading, list, table, and new
+  paragraph voice commands through the Editor API.
+- Parses speaker-labeled transcripts and supports rename, merge, split, global
+  replacement, statistics, colors, and segment navigation.
+- Exposes public image, grammar, and voice provider contracts with local defaults
+  and no bundled cloud credentials, authentication, or billing behavior.
+
 ### Knowledge Sources
 
 - Appears inside Ask Document without changing its conversation workflow.
@@ -878,8 +922,8 @@ system.
 
 - Normalizes assistant Markdown into schema-compatible headings, paragraphs,
   links, emphasis, lists, task lists, blockquotes, code, and horizontal rules.
-- Converts table rows to readable paragraphs because table nodes are not
-  registered in the current editor schema.
+- Converts AI Markdown table rows to readable paragraphs. Editable table nodes
+  are registered for explicit editor and voice commands.
 - Supports cursor insertion, validated selection replacement, and append-to-end
   through a reusable insertion service and hook.
 - Associates each inserted transaction with response ID, source IDs, and
@@ -1418,6 +1462,7 @@ e-signatures, billing, and matter management remain intentionally deferred.
 - Vite
 - Tailwind CSS v4
 - Tiptap v3
+- Tiptap Table extension
 - ProseMirror
 - Radix UI
 - Lucide Icons
@@ -1562,6 +1607,11 @@ src/
     hooks/               Debounced analysis, grammar, rewrite, and history composition
     services/            Grammar, spelling, style, tone, readability, scoring, suggestion, rewrite, and analysis engines
     types/               Writing analysis, score, tone, readability, rewrite, and suggestion contracts
+  productivity/
+    components/          Images, grammar, voice, speakers, providers, history, and sidebar UI
+    hooks/               Cancellable provider, speaker, and voice-command lifecycles
+    services/            Provider registry, free-first adapters, speaker parsing, and editor insertion
+    types/               Provider, image, transcript, speaker, command, and activity contracts
   viewer/
     components/          View switcher, reading, carousel, book, Google Search, mobile, and form-share UI
     hooks/               Instance-local view mode, zoom, and Reading Mode lifecycle
@@ -1606,7 +1656,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Document Experience Pack Complete**
+**Version 1.0 Complete; Enterprise AI Productivity Platform Complete**
 
 Completed:
 
@@ -1624,6 +1674,19 @@ Completed:
 - Selection AI toolbar and all eight selection actions
 - Selection AI preview, copy, retry, cancellation, and explicit replacement
 - Selection-safe editor API integration
+- Enterprise AI Productivity Sidebar with Images, Grammar, Voice, Providers,
+  and local activity History
+- Public instance-scoped image, grammar, and voice provider contracts with
+  free-first default adapters
+- Cancellable and cached local mock image generation with explicit insert and
+  replace actions through reusable editor assets
+- Provider-backed grammar analysis integrated with Review comments and pending
+  Track Changes
+- Cursor, selection, and append voice dictation with pause, resume, cancel,
+  undo, and eleven editor voice commands
+- Speaker transcript parsing, colors, statistics, navigation, rename, merge,
+  split, and global label updates
+- Editable Tiptap table nodes used by explicit table commands
 - Cohesive editor and AI UI polish across desktop and mobile
 - Ask Document speech-to-text input with live, editable transcription
 - Knowledge Sources UI with Current Document, file selection, drag-and-drop
@@ -1953,6 +2016,13 @@ preview, and protected form definitions. Views and share artifacts remain
 instance-local, generated HTML is escaped, and form submissions are returned
 through typed host callbacks. Export behavior and pagination internals remain
 unchanged, and no new production dependency was added.
+AI Productivity composes the existing Editor API, Review, Track Changes,
+Selection AI, Writing Assistant, and native history through one instance-scoped
+provider registry. Local mock images, deterministic writing analysis, and
+browser speech recognition are the defaults; hosts can replace each provider
+without changing UI components. Generated images use the existing asset node,
+voice commands use Editor API methods, and provider state remains local to the
+mounted editor. `@tiptap/extension-table` is the only new production dependency.
 
 ### Enterprise Writing Assistant Flow
 
@@ -2031,7 +2101,8 @@ These are not missing. Do not implement unless requested.
 
 - Runtime
 - Command registry
-- Provider-oriented AI, voice, upload, and storage plugin contracts
+- Cloud image, grammar, and voice provider adapters
+- Provider credentials, authentication, usage metering, and billing
 - Additional public theme icon slots
 - Headless and non-React adapters
 - Upload providers
@@ -2096,6 +2167,10 @@ These are not missing. Do not implement unless requested.
 - AI voice replies
 - Text-to-speech
 - Third-party or server-side speech recognition
+- OpenAI, Gemini, Stability, and other hosted image-generation adapters
+- Grammarly, LanguageTool, and Microsoft Editor adapters
+- Deepgram, AssemblyAI, OpenAI, and Gemini Live voice adapters
+- Persistent productivity activity, generated images, and speaker metadata
 - Backend audio uploads
 - Audio recording storage
 - Wake words

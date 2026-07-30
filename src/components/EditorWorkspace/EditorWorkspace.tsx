@@ -14,6 +14,8 @@ import type { ContractAnalysis } from '../../contract/types/contract'
 import { WritingAssistantToolbarControl } from '../../writing/components/WritingAssistantToolbarControl'
 import type { WritingSuggestion } from '../../writing/types/suggestion'
 import type { WritingAnalysis } from '../../writing/types/writing'
+import { ProductivityToolbarControl } from '../../productivity/components/ProductivityToolbarControl'
+import { createProductivityProviderRegistry } from '../../productivity/services/providerRegistry'
 import { GoogleSearchButton } from '../../viewer/components/GoogleSearchButton'
 import { MobileToolbar } from '../../viewer/components/MobileToolbar'
 import { ReadingMode } from '../../viewer/components/ReadingMode'
@@ -169,6 +171,11 @@ const WritingAssistantPanel = lazy(async () => {
   return { default: module.WritingAssistantPanel }
 })
 
+const ProductivitySidebar = lazy(async () => {
+  const module = await import('../../productivity/components/ProductivitySidebar')
+  return { default: module.ProductivitySidebar }
+})
+
 const CarouselView = lazy(async () => {
   const module = await import('../../viewer/components/CarouselView')
   return { default: module.CarouselView }
@@ -249,6 +256,8 @@ export function EditorWorkspace({
   const [isWritingAssistantOpen, setIsWritingAssistantOpen] = useState(false)
   const [isWritingAssistantLoaded, setIsWritingAssistantLoaded] = useState(false)
   const [writingAnalysis, setWritingAnalysis] = useState<WritingAnalysis | null>(null)
+  const [isProductivityOpen, setIsProductivityOpen] = useState(false)
+  const [isProductivityLoaded, setIsProductivityLoaded] = useState(false)
   const [isShareOpen, setIsShareOpen] = useState(false)
   const [isShareLoaded, setIsShareLoaded] = useState(false)
   const [searchKnowledgeSources, setSearchKnowledgeSources] = useState<KnowledgeSource[]>([])
@@ -278,6 +287,10 @@ export function EditorWorkspace({
   const documentHistoryNamespace = useMemo(
     () => historyNamespace(JSON.stringify(config.initialContent ?? 'document')),
     [config.initialContent],
+  )
+  const productivityRegistry = useMemo(
+    () => config.productivity ? createProductivityProviderRegistry(config.productivity) : null,
+    [config.productivity],
   )
 
   useEffect(() => {
@@ -999,6 +1012,54 @@ export function EditorWorkspace({
     window.requestAnimationFrame(() => document.getElementById('writing-assistant-trigger')?.focus())
   }, [])
 
+  const openProductivity = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
+    setIsExportOpen(false)
+    setIsIntelligenceOpen(false)
+    setIsComplianceOpen(false)
+    setIsFormBuilderOpen(false)
+    setIsHistoryOpen(false)
+    setIsWorkflowOpen(false)
+    setIsSearchOpen(false)
+    setIsRedactionOpen(false)
+    setIsContractOpen(false)
+    setIsWritingAssistantOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    cancelPlacement()
+    if (pendingComment) closeComposer()
+    setIsProductivityLoaded(true)
+    setIsProductivityOpen(true)
+  }, [cancelPlacement, closeComposer, pendingComment, setIsPageLayoutOpen, setIsWatermarkOpen])
+
+  const closeProductivity = useCallback(() => {
+    setIsProductivityOpen(false)
+    window.requestAnimationFrame(() => document.getElementById('productivity-trigger')?.focus())
+  }, [])
+
+  useEffect(() => {
+    if (
+      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode || isSuggestionMode ||
+      isComparisonOpen || isPageLayoutOpen || isWatermarkOpen || isExportOpen ||
+      isIntelligenceOpen || isComplianceOpen || isFormBuilderOpen || isHistoryOpen ||
+      isWorkflowOpen || isSearchOpen || isRedactionOpen || isContractOpen ||
+      isWritingAssistantOpen
+    ) setIsProductivityOpen(false)
+  }, [
+    isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
+    isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
+    isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
+    isWorkflowOpen, isSearchOpen, isRedactionOpen, isContractOpen,
+    isWritingAssistantOpen,
+  ])
+
   useEffect(() => {
     if (
       isAskDocumentOpen || isAssetLibraryOpen || isReviewMode || isSuggestionMode ||
@@ -1186,6 +1247,7 @@ export function EditorWorkspace({
       return false
     }
     setIsWritingAssistantOpen(false)
+    setIsProductivityOpen(false)
     setIsSuggestionLoaded(true)
     setIsSuggestionMode(true)
     setIsSuggestionSidebarOpen(true)
@@ -1200,6 +1262,7 @@ export function EditorWorkspace({
     if (!comment) return false
     setSelectedCommentId(comment.id)
     setIsWritingAssistantOpen(false)
+    setIsProductivityOpen(false)
     setIsReviewLoaded(true)
     setIsReviewMode(true)
     return true
@@ -1335,6 +1398,7 @@ export function EditorWorkspace({
     setIsRedactionOpen(false)
     setIsContractOpen(false)
     setIsWritingAssistantOpen(false)
+    setIsProductivityOpen(false)
     setIsShareOpen(false)
     cancelPlacement()
     if (pendingComment) closeComposer()
@@ -1372,7 +1436,7 @@ export function EditorWorkspace({
       isWatermarkOpen || isExportOpen || isIntelligenceOpen ||
       isComplianceOpen || isFormBuilderOpen || isHistoryOpen ||
       isWorkflowOpen || isSearchOpen || isRedactionOpen ||
-      isContractOpen || isWritingAssistantOpen
+      isContractOpen || isWritingAssistantOpen || isProductivityOpen
     ) selectViewMode('editor')
   }, [
     isAskDocumentOpen,
@@ -1392,6 +1456,7 @@ export function EditorWorkspace({
     isWatermarkOpen,
     isWorkflowOpen,
     isWritingAssistantOpen,
+    isProductivityOpen,
     selectViewMode,
     viewMode,
   ])
@@ -1629,6 +1694,15 @@ export function EditorWorkspace({
                       else openWritingAssistant()
                     }}
                   />
+                  {productivityRegistry && (
+                    <ProductivityToolbarControl
+                      isOpen={isProductivityOpen}
+                      onToggle={() => {
+                        if (isProductivityOpen) closeProductivity()
+                        else openProductivity()
+                      }}
+                    />
+                  )}
                 </>
               }
             />
@@ -1745,6 +1819,20 @@ export function EditorWorkspace({
         </div>
       </div>
       <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">
+        {isProductivityLoaded && productivityRegistry && (
+          <ErrorBoundary compact title="AI productivity needs a retry">
+            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-50 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[31rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[30rem] lg:rounded-lg lg:border" role="status" aria-label="Loading AI productivity"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+              <ProductivitySidebar
+                isOpen={isProductivityOpen}
+                api={api}
+                registry={productivityRegistry}
+                onClose={closeProductivity}
+                onApplyWriting={createWritingSuggestion}
+                onCommentWriting={createWritingComment}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        )}
         {isWritingAssistantLoaded && (
           <ErrorBoundary compact title="Writing assistant needs a retry">
             <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[30rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[29rem] lg:rounded-lg lg:border" role="status" aria-label="Loading writing assistant"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
@@ -2028,8 +2116,10 @@ export function EditorWorkspace({
         <MobileToolbar
           mode={viewMode}
           aiEnabled={Boolean(config.ai)}
+          productivityEnabled={Boolean(productivityRegistry)}
           onModeChange={handleViewModeChange}
           onAskAi={openAskDocument}
+          onProductivity={openProductivity}
           onShare={openShare}
         />
       )}
@@ -2040,10 +2130,11 @@ export function EditorWorkspace({
           !isShareOpen &&
           !isComparisonOpen &&
           !isExportOpen &&
-          !isIntelligenceOpen
+          !isIntelligenceOpen &&
+          !isProductivityOpen
         }
       />
-      {config.ai && viewMode === 'editor' && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && !isSearchOpen && !isRedactionOpen && !isContractOpen && !isWritingAssistantOpen && !isShareOpen && (
+      {config.ai && viewMode === 'editor' && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && !isSearchOpen && !isRedactionOpen && !isContractOpen && !isWritingAssistantOpen && !isProductivityOpen && !isShareOpen && (
         <ErrorBoundary compact title="Selection AI needs a retry">
           <SelectionAi
             api={api}

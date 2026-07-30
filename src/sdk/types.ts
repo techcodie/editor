@@ -11,6 +11,7 @@ import type { SearchMode } from '../search/types/search'
 import type { AiDetectionProvider } from '../redaction/types/detection'
 import type { ContractPlaybook } from '../contract/types/contract'
 import type { FormSubmission } from '../viewer/types/viewer'
+import type { ProductivityProviderConfig } from '../productivity/types/provider'
 import type {
   EditorApi,
   EditorInsertionTarget,
@@ -20,6 +21,7 @@ import type {
 export type DocumentEditorContent = string | Record<string, unknown>
 export type DocumentEditorIcon = ComponentType<SVGProps<SVGSVGElement>>
 export type AiWorkflow = 'ask-document' | 'selection' | 'compliance' | 'contract' | 'writing'
+export type DocumentEditorProductivityConfig = ProductivityProviderConfig
 
 export interface DocumentEditorAiConfig {
   /** Endpoint used by Ask Document. */
@@ -147,7 +149,7 @@ export interface DocumentEditorEventMap {
   }
   formSubmit: FormSubmission
   error: {
-    scope: 'configuration' | 'plugin' | 'editor' | 'ai' | 'knowledge' | 'preview' | 'compliance' | 'collaboration' | 'search'
+    scope: 'configuration' | 'plugin' | 'editor' | 'ai' | 'knowledge' | 'preview' | 'compliance' | 'collaboration' | 'search' | 'productivity'
     message: string
     cause?: unknown
   }
@@ -218,6 +220,8 @@ export interface DocumentEditorConfig {
   keyboardShortcuts?: boolean
   commandPalette?: boolean
   collaboration?: boolean | CollaborationConfig
+  /** Local-first productivity tools with optional host-provided providers. */
+  productivity?: boolean | DocumentEditorProductivityConfig
   /** Optional host-owned clause requirements and language rules. */
   contractPlaybook?: ContractPlaybook
   callbacks?: DocumentEditorCallbacks
@@ -239,6 +243,7 @@ export interface ResolvedDocumentEditorConfig {
   keyboardShortcuts: boolean
   commandPalette: boolean
   collaboration: false | ResolvedCollaborationConfig
+  productivity: false | DocumentEditorProductivityConfig
   contractPlaybook: ContractPlaybook | null
   callbacks: DocumentEditorCallbacks
   plugins: readonly DocumentEditorPlugin[]

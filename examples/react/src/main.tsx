@@ -46,6 +46,7 @@ export function Example() {
     animations: true,
     keyboardShortcuts: true,
     commandPalette: true,
+    productivity: true,
     collaboration: {
       roomId: 'quarterly-planning-demo',
       user: {

@@ -1,20 +1,24 @@
-import { MessageSquareText, Share2 } from 'lucide-react'
+import { MessageSquareText, Share2, WandSparkles } from 'lucide-react'
 import type { DocumentViewMode } from '../types/viewer'
 import { ViewSwitcher } from './ViewSwitcher'
 
 interface MobileToolbarProps {
   mode: DocumentViewMode
   aiEnabled: boolean
+  productivityEnabled: boolean
   onModeChange: (mode: DocumentViewMode) => void
   onAskAi: () => void
+  onProductivity: () => void
   onShare: () => void
 }
 
 export function MobileToolbar({
   mode,
   aiEnabled,
+  productivityEnabled,
   onModeChange,
   onAskAi,
+  onProductivity,
   onShare,
 }: MobileToolbarProps) {
   return (
@@ -32,6 +36,16 @@ export function MobileToolbar({
             className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
           >
             <MessageSquareText size={16} strokeWidth={1.9} aria-hidden />
+          </button>
+        )}
+        {productivityEnabled && (
+          <button
+            type="button"
+            onClick={onProductivity}
+            aria-label="Open AI productivity"
+            className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+          >
+            <WandSparkles size={16} strokeWidth={1.9} aria-hidden />
           </button>
         )}
         <button
