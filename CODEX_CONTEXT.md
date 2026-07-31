@@ -120,7 +120,8 @@ Version 1.0 exposes one package root, `@techcodie/editor`, with:
 - Framework-neutral Editor API types.
 - Typed configuration, event, plugin, theme, AI, knowledge-source,
   collaboration, search, embedding, knowledge-graph, viewer, form-sharing, and
-  productivity-provider contracts.
+  productivity-provider, identity-provider, RBAC, permission, session, and
+  audit contracts.
 - Selection AI action constants and validation.
 - Framework-neutral view-mode, page-preparation, Google Search, and standalone
   HTML form-share helpers.
@@ -138,6 +139,11 @@ mode, toolbar, voice, AI endpoints, Knowledge Sources, preview, streaming,
 animations, keyboard shortcuts, command palette, collaboration, callbacks, and
 plugins. Productivity tools are enabled by default with local providers and can
 be disabled or configured with host-supplied image, grammar, and voice adapters.
+Identity is enabled by default with a local administrator principal so existing
+SDK integrations remain functional. Hosts can disable identity enforcement or
+provide principals, provider adapters, custom roles, scoped permission
+overrides, memory-only identity tokens, organization context, and an audit
+adapter.
 Configuration is resolved once per controller instance. Runtime validation
 provides prefixed warnings, ignores unknown options, and safely falls back for
 invalid nested values.
@@ -146,7 +152,7 @@ Each controller owns a typed event target. Public callbacks and `events.on`
 cover editor readiness and changes, selection changes, AI request and response
 lifecycle, insertions, Knowledge Source add/remove/activation, preview open and
 close, collaboration status and presence changes, HTML form submissions, and
-errors. Events expose public data contracts only. Semantic Search also emits index-size and
+identity audit events. Events expose public data contracts only. Semantic Search also emits index-size and
 completed-query events without exposing indexed document content.
 
 ### Plugin Architecture
@@ -206,6 +212,50 @@ existing deterministic writing analyzer, and the browser Web Speech API. Hosts
 can replace any adapter independently. The registry is scoped to one editor
 instance and does not own credentials, authentication, usage accounting, or
 billing.
+
+### Enterprise Identity and Access Flow
+
+```text
+Host Application
+        |
+        v
+Instance Identity Manager
+        |
+   +----+-----------------+
+   v                      v
+Provider Registry     Session Manager
+        |                      |
+        +----------+-----------+
+                   v
+              Role Engine
+                   |
+                   v
+           Permission Engine
+                   |
+        +----------+-----------+
+        v                      v
+Editor / Features       Audit Adapter
+```
+
+Identity is instance-scoped and host-controlled. A host may provide a principal
+directly or register an adapter that resolves a principal from a memory-only
+token and tenant context. Tokens are never copied into sessions, events, or
+audit records.
+
+Built-in roles are Viewer, Commenter, Reviewer, Editor, Approver, Owner, and
+Administrator. Hosts may register custom roles. Permission evaluation uses
+explicit scoped deny, explicit scoped allow, assigned role grant, then default
+deny. Decisions are cached per principal, role set, tenant scope, action, and
+resource while every consumed decision still emits an audit event.
+
+The identity manager gates editor read and edit access plus Comments, Track
+Changes, Export, Redaction, AI, Forms, Workflow, Contract Intelligence, Search,
+and administration UI. Workflow decisions, export jobs, redaction actions, and
+AI requests also emit operational audit events through the same bounded local
+stream and optional non-blocking host adapter.
+
+This milestone provides no login UI, OAuth client, credential storage, cloud
+authentication, or vendor identity SDK.
 
 Frontend stream updates are buffered to animation frames before React state is
 updated. This preserves the existing transport while reducing render pressure
@@ -829,6 +879,10 @@ Document Experience UI remains framework-neutral. Google Search consumes the
 Editor API selection and Reading Mode consumes its readonly preview lifecycle.
 Carousel, Book, PDF Preview, and HTML form sharing read existing pagination,
 document snapshot, and form contracts without importing Tiptap or ProseMirror.
+
+Identity UI also remains framework-neutral. It consumes the public Identity
+Manager API and never imports Tiptap, ProseMirror, or external authentication
+SDKs.
 
 ---
 
@@ -1612,6 +1666,11 @@ src/
     hooks/               Cancellable provider, speaker, and voice-command lifecycles
     services/            Provider registry, free-first adapters, speaker parsing, and editor insertion
     types/               Provider, image, transcript, speaker, command, and activity contracts
+  identity/
+    components/          Identity settings, roles, permissions, sessions, audit, providers, and denied state
+    hooks/               External-store identity, session, and permission subscriptions
+    services/            Identity manager, provider registry, RBAC, permission cache, sessions, and audit adapter
+    types/               Principal, provider, tenant, role, permission, session, and audit contracts
   viewer/
     components/          View switcher, reading, carousel, book, Google Search, mobile, and form-share UI
     hooks/               Instance-local view mode, zoom, and Reading Mode lifecycle
@@ -1656,7 +1715,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise AI Productivity Platform Complete**
+**Version 1.0 Complete; Enterprise Identity and Access Platform Complete**
 
 Completed:
 
@@ -1686,6 +1745,19 @@ Completed:
   undo, and eleven editor voice commands
 - Speaker transcript parsing, colors, statistics, navigation, rename, merge,
   split, and global label updates
+- Instance-scoped Enterprise Identity Manager exposed through the SDK controller
+- Host identity provider registry with runtime registration and session resolution
+- Viewer, Commenter, Reviewer, Editor, Approver, Owner, Administrator, and
+  custom-role RBAC
+- Scoped permission overrides with deny-first precedence, default deny, and
+  per-principal tenant-aware decision caching
+- Memory-only identity token input with token-safe session metadata
+- Tenant, organization, workspace, department, and project context
+- Permission-gated editor and feature surfaces with an accessible responsive
+  Identity and Access panel
+- Bounded audit timeline and optional non-blocking host audit adapter
+- Audit integration for permission decisions, workflow decisions, exports,
+  redaction actions, AI requests, sessions, providers, roles, and overrides
 - Editable Tiptap table nodes used by explicit table commands
 - Cohesive editor and AI UI polish across desktop and mobile
 - Ask Document speech-to-text input with live, editable transcription
@@ -2198,7 +2270,10 @@ These are not missing. Do not implement unless requested.
 - Cloud history and multi-user editing
 - Governed version workflows, branching, and conflict resolution
 - Server-side snapshot compaction and retention policies
-- Workflow authentication, role permissions, and organization policy templates
+- Real authentication, login pages, OAuth flows, and credential storage
+- Azure AD, Okta, Auth0, Google Workspace, Keycloak, LDAP, SAML, and OIDC adapters
+- SCIM provisioning, directory synchronization, group mapping, and organization
+  policy templates
 - Conditional and parallel approval routing, delegated approvals, and escalations
 - Workflow notifications, email integration, realtime synchronization, and cloud persistence
 - Electronic signatures and approval certificates

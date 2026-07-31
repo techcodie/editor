@@ -7,6 +7,7 @@ import { useWorkflow } from '../hooks/useWorkflow'
 import { serializeWorkflow } from '../services/workflowSerializer'
 import type { ApprovalDecision } from '../types/approval'
 import type { Workflow } from '../types/workflow'
+import type { IdentityAuditInput } from '../../identity/types/identity'
 import { ApprovalDialog, type ApprovalDialogMode } from './ApprovalDialog'
 import { ApprovalSidebar } from './ApprovalSidebar'
 import { ReviewerAssignment } from './ReviewerAssignment'
@@ -28,6 +29,8 @@ interface WorkflowPanelProps {
   onClose: () => void
   onChange: (workflow: Workflow | null) => void
   contractAnalysis?: ContractAnalysis | null
+  canApprove?: boolean
+  onAudit?: (input: IdentityAuditInput) => void
 }
 
 type PanelTab = 'overview' | 'reviewers' | 'history'
@@ -42,12 +45,12 @@ function downloadWorkflow(workflow: Workflow) {
   URL.revokeObjectURL(url)
 }
 
-export function WorkflowPanel({ isOpen, api, author, namespace, unresolvedSuggestions, comments, onClose, onChange, contractAnalysis }: WorkflowPanelProps) {
+export function WorkflowPanel({ isOpen, api, author, namespace, unresolvedSuggestions, comments, onClose, onChange, contractAnalysis, canApprove = true, onAudit }: WorkflowPanelProps) {
   const panelRef = useRef<HTMLElement>(null)
   const [tab, setTab] = useState<PanelTab>('overview')
   const [dialog, setDialog] = useState<ApprovalDialogMode | null>(null)
   const [newName, setNewName] = useState('Document approval')
-  const workflowState = useWorkflow({ active: isOpen, api, namespace, author, unresolvedSuggestions, onChange, contractAnalysis })
+  const workflowState = useWorkflow({ active: isOpen, api, namespace, author, unresolvedSuggestions, onChange, contractAnalysis, onAudit })
   const { workflow, currentStage, stageReviewers, loaded, saving, error, validation } = workflowState
 
   useEffect(() => {
@@ -101,7 +104,7 @@ export function WorkflowPanel({ isOpen, api, author, namespace, unresolvedSugges
               <div className="flex flex-wrap items-center gap-1.5">
                 {workflow.status === 'draft' && <button type="button" onClick={() => void workflowState.submit()} disabled={saving || !validation.valid} className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md bg-neutral-900 px-3 text-[10px] font-semibold text-white hover:bg-neutral-800 disabled:opacity-40 dark:bg-white dark:text-neutral-950"><Send size={12} aria-hidden />Submit for review</button>}
                 {workflow.status === 'changes-requested' && <button type="button" onClick={() => void workflowState.submit('Revisions submitted for review.')} disabled={saving || !validation.valid} className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md bg-neutral-900 px-3 text-[10px] font-semibold text-white hover:bg-neutral-800 disabled:opacity-40 dark:bg-white dark:text-neutral-950"><RotateCcw size={12} aria-hidden />Resubmit</button>}
-                {workflow.status === 'in-review' && <><button type="button" onClick={() => setDialog('approve')} disabled={saving || stageReviewers.length === 0 || !validation.valid} className="flex h-8 flex-1 items-center justify-center gap-1 rounded-md bg-emerald-600 px-2 text-[9px] font-semibold text-white hover:bg-emerald-500 disabled:opacity-40"><Check size={11} aria-hidden />Approve</button><button type="button" onClick={() => setDialog('request-changes')} disabled={saving || stageReviewers.length === 0} className="h-8 rounded-md border border-neutral-200 bg-white px-2 text-[9px] font-semibold text-neutral-700 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-200">Changes</button><button type="button" onClick={() => setDialog('reject')} disabled={saving || stageReviewers.length === 0} className="h-8 rounded-md border border-red-200 bg-white px-2 text-[9px] font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40 dark:bg-neutral-950">Reject</button><button type="button" onClick={() => setDialog('skip-stage')} disabled={saving} aria-label="Skip current stage" title="Skip stage" className="flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-950"><SkipForward size={12} aria-hidden /></button></>}
+                {workflow.status === 'in-review' && <><button type="button" onClick={() => setDialog('approve')} disabled={!canApprove || saving || stageReviewers.length === 0 || !validation.valid} className="flex h-8 flex-1 items-center justify-center gap-1 rounded-md bg-emerald-600 px-2 text-[9px] font-semibold text-white hover:bg-emerald-500 disabled:opacity-40"><Check size={11} aria-hidden />Approve</button><button type="button" onClick={() => setDialog('request-changes')} disabled={!canApprove || saving || stageReviewers.length === 0} className="h-8 rounded-md border border-neutral-200 bg-white px-2 text-[9px] font-semibold text-neutral-700 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-200">Changes</button><button type="button" onClick={() => setDialog('reject')} disabled={!canApprove || saving || stageReviewers.length === 0} className="h-8 rounded-md border border-red-200 bg-white px-2 text-[9px] font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40 dark:bg-neutral-950">Reject</button><button type="button" onClick={() => setDialog('skip-stage')} disabled={!canApprove || saving} aria-label="Skip current stage" title="Skip stage" className="flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-950"><SkipForward size={12} aria-hidden /></button></>}
                 {workflow.status === 'archived' ? <button type="button" onClick={() => void workflowState.restore()} disabled={saving} className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md bg-neutral-900 text-[10px] font-semibold text-white hover:bg-neutral-800 disabled:opacity-40 dark:bg-white dark:text-neutral-950"><RotateCcw size={12} aria-hidden />Restore workflow</button> : <button type="button" onClick={() => setDialog('note')} disabled={saving} aria-label="Add workflow note" title="Add note" className="flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-950"><MessageSquarePlus size={12} aria-hidden /></button>}
                 {['approved', 'rejected'].includes(workflow.status) && <button type="button" onClick={() => void workflowState.archive()} disabled={saving} className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-white text-[10px] font-semibold text-neutral-600 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-300"><Archive size={12} aria-hidden />Archive</button>}
               </div>

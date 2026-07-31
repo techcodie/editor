@@ -21,6 +21,7 @@ All options are optional and validated once during initialization.
 | `commandPalette` | `true` | Shows the command palette control |
 | `collaboration` | `false` | Enables collaboration or supplies room, user, and transport configuration |
 | `productivity` | Local providers | Enables Images, Grammar, Voice, Providers, and History or supplies provider adapters |
+| `identity` | Local administrator | Enables host-controlled identity, RBAC, permission overrides, sessions, and audit adapters |
 | `callbacks` | `{}` | Typed lifecycle and interaction callbacks |
 | `plugins` | `[]` | Instance-scoped plugins |
 
@@ -111,6 +112,45 @@ adapter independently with an implementation of `ImageProvider`,
 `GrammarProvider`, or `VoiceProvider`. Credentials and billing remain outside
 the SDK; the built-in providers do not require API keys.
 
+### Identity and access
+
+```ts
+import {
+  createMemoryAuditAdapter,
+  type DocumentEditorConfig,
+} from '@techcodie/editor'
+
+const config: DocumentEditorConfig = {
+  identity: {
+    principal: {
+      id: 'user-42',
+      displayName: 'Avery Morgan',
+      roleIds: ['reviewer'],
+    },
+    context: {
+      tenantId: 'tenant-1',
+      organizationId: 'organization-1',
+      workspaceId: 'legal-workspace',
+      departmentId: 'legal',
+      projectId: 'agreement-2026',
+    },
+    permissionOverrides: [{
+      id: 'agreement-export-policy',
+      effect: 'deny',
+      permissions: ['export'],
+      projectIds: ['agreement-2026'],
+      reason: 'Export is disabled while legal review is active.',
+    }],
+    auditAdapter: createMemoryAuditAdapter(),
+  },
+}
+```
+
+Hosts can provide a principal directly or register an `IdentityProvider` and
+call `controller.identity.resolveSession(providerId)`. The SDK never creates
+login pages, stores credentials, or performs OAuth. Tokens are memory-only
+inputs to host adapters and are excluded from session and audit payloads.
+
 ## Events
 
 Events are synchronous, typed, and scoped to one controller. Calling `on`
@@ -142,7 +182,8 @@ stop()
 | `searchIndexChange` | `onSearchIndexChange` | Local document index or graph changed |
 | `search` | `onSearch` | Search completed with count and timing |
 | `formSubmit` | `onFormSubmit` | Shared HTML form returned values to the host |
-| `error` | `onError` | Configuration, plugin, editor, AI, source, preview, collaboration, or search error |
+| `identityAudit` | `onIdentityAudit` | Permission, session, workflow, export, redaction, AI, or administration audit event |
+| `error` | `onError` | Configuration, plugin, editor, AI, source, preview, collaboration, search, or identity error |
 
 Callbacks and `events.on` use the same event target. Throwing inside a
 non-error handler emits an `error` event rather than breaking the editor.

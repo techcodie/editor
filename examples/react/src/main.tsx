@@ -47,6 +47,20 @@ export function Example() {
     keyboardShortcuts: true,
     commandPalette: true,
     productivity: true,
+    identity: {
+      principal: {
+        id: 'example-administrator',
+        displayName: 'Example Administrator',
+        email: 'admin@example.test',
+        roleIds: ['administrator'],
+      },
+      context: {
+        tenantId: 'example-tenant',
+        organizationId: 'techcodie-demo',
+        workspaceId: 'quarterly-planning',
+        departmentId: 'product',
+      },
+    },
     collaboration: {
       roomId: 'quarterly-planning-demo',
       user: {
@@ -81,6 +95,8 @@ export function Example() {
         setStatus(`${total} search results in ${durationMs} ms`),
       onFormSubmit: ({ values }) =>
         setStatus(`${Object.keys(values).length} form values received`),
+      onIdentityAudit: ({ action, outcome }) =>
+        setStatus(`${action} · ${outcome}`),
       onError: ({ message }) => setStatus(message),
     },
   }), [])

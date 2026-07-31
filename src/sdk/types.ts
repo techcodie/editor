@@ -13,6 +13,11 @@ import type { ContractPlaybook } from '../contract/types/contract'
 import type { FormSubmission } from '../viewer/types/viewer'
 import type { ProductivityProviderConfig } from '../productivity/types/provider'
 import type {
+  IdentityAuditEvent,
+  IdentityConfig,
+  IdentityManagerApi,
+} from '../identity/types/identity'
+import type {
   EditorApi,
   EditorInsertionTarget,
   EditorTextSelection,
@@ -148,8 +153,9 @@ export interface DocumentEditorEventMap {
     durationMs: number
   }
   formSubmit: FormSubmission
+  identityAudit: IdentityAuditEvent
   error: {
-    scope: 'configuration' | 'plugin' | 'editor' | 'ai' | 'knowledge' | 'preview' | 'compliance' | 'collaboration' | 'search' | 'productivity'
+    scope: 'configuration' | 'plugin' | 'editor' | 'ai' | 'knowledge' | 'preview' | 'compliance' | 'collaboration' | 'search' | 'productivity' | 'identity'
     message: string
     cause?: unknown
   }
@@ -188,6 +194,7 @@ export interface DocumentEditorCallbacks {
   onSearchIndexChange?: DocumentEditorEventHandler<'searchIndexChange'>
   onSearch?: DocumentEditorEventHandler<'search'>
   onFormSubmit?: DocumentEditorEventHandler<'formSubmit'>
+  onIdentityAudit?: DocumentEditorEventHandler<'identityAudit'>
   onError?: DocumentEditorEventHandler<'error'>
 }
 
@@ -222,6 +229,8 @@ export interface DocumentEditorConfig {
   collaboration?: boolean | CollaborationConfig
   /** Local-first productivity tools with optional host-provided providers. */
   productivity?: boolean | DocumentEditorProductivityConfig
+  /** Host-controlled identity, role, permission, session, and audit providers. */
+  identity?: boolean | IdentityConfig
   /** Optional host-owned clause requirements and language rules. */
   contractPlaybook?: ContractPlaybook
   callbacks?: DocumentEditorCallbacks
@@ -244,6 +253,7 @@ export interface ResolvedDocumentEditorConfig {
   commandPalette: boolean
   collaboration: false | ResolvedCollaborationConfig
   productivity: false | DocumentEditorProductivityConfig
+  identity: false | IdentityConfig
   contractPlaybook: ContractPlaybook | null
   callbacks: DocumentEditorCallbacks
   plugins: readonly DocumentEditorPlugin[]
@@ -252,6 +262,7 @@ export interface ResolvedDocumentEditorConfig {
 export interface DocumentEditorController {
   readonly config: ResolvedDocumentEditorConfig
   readonly events: DocumentEditorEvents
+  readonly identity: IdentityManagerApi | null
   getEditorApi(): EditorApi | null
 }
 

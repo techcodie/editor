@@ -148,6 +148,63 @@ export type {
   VoiceInsertionMode,
   VoiceTranscriptUpdate,
 } from './productivity/types/productivity'
+export {
+  IdentityManager,
+  createIdentityManager,
+} from './identity/services/identityManager'
+export {
+  IdentityProviderRegistry,
+} from './identity/services/providerRegistry'
+export {
+  MemoryAuditAdapter,
+  createMemoryAuditAdapter,
+} from './identity/services/auditAdapter'
+export {
+  getBuiltInIdentityRoles,
+} from './identity/services/roleEngine'
+export {
+  IDENTITY_PERMISSIONS,
+} from './identity/types/permissions'
+export {
+  BUILT_IN_ROLE_IDS,
+} from './identity/types/roles'
+export type {
+  AuditAdapter,
+} from './identity/services/auditAdapter'
+export type {
+  IdentityAuditCategory,
+  IdentityAuditEvent,
+  IdentityAuditInput,
+  IdentityAuditOutcome,
+  IdentityConfig,
+  IdentityManagerApi,
+  IdentityManagerSnapshot,
+  IdentityManagerStatus,
+  IdentityOrganizationContext,
+  IdentityPrincipal,
+  IdentityProvider,
+  IdentityProviderCapability,
+  IdentityProviderProtocol,
+  IdentityResolutionRequest,
+  IdentitySession,
+  IdentitySessionStatus,
+  IdentityToken,
+  ResolvedIdentityConfig,
+} from './identity/types/identity'
+export type {
+  IdentityPermission,
+  PermissionDecision,
+  PermissionDecisionSource,
+  PermissionEffect,
+  PermissionOverride,
+  PermissionRequest,
+  PermissionResource,
+} from './identity/types/permissions'
+export type {
+  BuiltInRoleId,
+  CustomIdentityRole,
+  IdentityRole,
+} from './identity/types/roles'
 export type {
   AiDetectionProvider,
   CustomDetectionPattern,

@@ -31,6 +31,7 @@ import {
 import { inspectWorkflowDocument, validateWorkflow } from '../services/workflowValidator'
 import type { ApprovalDecision, ApprovalRequest } from '../types/approval'
 import type { Workflow, WorkflowStage, WorkflowValidation } from '../types/workflow'
+import type { IdentityAuditInput } from '../../identity/types/identity'
 
 interface UseWorkflowOptions {
   active: boolean
@@ -40,6 +41,7 @@ interface UseWorkflowOptions {
   unresolvedSuggestions: number
   onChange?: (workflow: Workflow | null) => void
   contractAnalysis?: ContractAnalysis | null
+  onAudit?: (input: IdentityAuditInput) => void
 }
 
 const EMPTY_VALIDATION: WorkflowValidation = {
@@ -56,7 +58,7 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'The workflow action could not be completed.'
 }
 
-export function useWorkflow({ active, api, namespace, author, unresolvedSuggestions, onChange, contractAnalysis }: UseWorkflowOptions) {
+export function useWorkflow({ active, api, namespace, author, unresolvedSuggestions, onChange, contractAnalysis, onAudit }: UseWorkflowOptions) {
   const [workflow, setWorkflow] = useState<Workflow | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -147,6 +149,13 @@ export function useWorkflow({ active, api, namespace, author, unresolvedSuggesti
     if (!workflow || !api || saving) return false
     if (decision === 'approve' && !validation.valid) {
       setError(validation.issues.find((issue) => issue.severity === 'blocking')?.description ?? 'Resolve workflow blockers before approval.')
+      onAudit?.({
+        category: 'workflow',
+        action: `workflow.${decision}`,
+        outcome: 'failure',
+        resourceId: workflow.id,
+        details: { reason: 'validation-blocked' },
+      })
       return false
     }
     setSaving(true)
@@ -161,12 +170,25 @@ export function useWorkflow({ active, api, namespace, author, unresolvedSuggesti
       )
       const next = applyApprovalDecision(workflow, { ...request, decision, snapshotVersionId })
       await persist(next)
+      onAudit?.({
+        category: 'workflow',
+        action: `workflow.${decision}`,
+        outcome: 'success',
+        resourceId: workflow.id,
+        details: { actorId: request.actorId },
+      })
       return true
     } catch (reason) {
       setError(errorMessage(reason))
+      onAudit?.({
+        category: 'workflow',
+        action: `workflow.${decision}`,
+        outcome: 'failure',
+        resourceId: workflow.id,
+      })
       return false
     } finally { setSaving(false) }
-  }, [api, author, namespace, persist, saving, validation.issues, validation.valid, workflow])
+  }, [api, author, namespace, onAudit, persist, saving, validation.issues, validation.valid, workflow])
 
   const currentStage = workflow?.stages[workflow.currentStage] ?? null
   const stageReviewers = useMemo(() => {

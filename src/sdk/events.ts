@@ -31,6 +31,7 @@ const CALLBACK_EVENTS = {
   onSearchIndexChange: 'searchIndexChange',
   onSearch: 'search',
   onFormSubmit: 'formSubmit',
+  onIdentityAudit: 'identityAudit',
   onError: 'error',
 } as const satisfies Record<keyof DocumentEditorCallbacks, DocumentEditorEventName>
 

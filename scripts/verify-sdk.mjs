@@ -12,7 +12,12 @@ const expectedRuntimeExports = [
   'BrowserVoiceProvider',
   'DOCUMENT_VIEW_MODES',
   'FORM_SUBMISSION_MESSAGE',
+  'BUILT_IN_ROLE_IDS',
+  'IDENTITY_PERMISSIONS',
+  'IdentityManager',
+  'IdentityProviderRegistry',
   'LocalGrammarProvider',
+  'MemoryAuditAdapter',
   'MockImageProvider',
   'ProductivityProviderRegistry',
   'SELECTION_AI_ACTIONS',
@@ -27,6 +32,8 @@ const expectedRuntimeExports = [
   'createFormShareArtifact',
   'createFormShareHtml',
   'createGoogleSearchUrl',
+  'createIdentityManager',
+  'createMemoryAuditAdapter',
   'createProductivityProviderRegistry',
   'createLocalEmbeddingProvider',
   'createLocalRewrite',
@@ -40,6 +47,7 @@ const expectedRuntimeExports = [
   'detectSensitiveData',
   'excludeRedactedText',
   'getDefaultDocumentEditorTheme',
+  'getBuiltInIdentityRoles',
   'fingerprintContract',
   'isSelectionAiAction',
   'isFormSubmissionMessage',
@@ -86,6 +94,35 @@ firstDefaults.theme.colors.accent = '#000000'
 firstDefaults.ai.askDocumentEndpoint = '/changed'
 assert.equal(secondDefaults.theme.colors.accent, '#4f46e5')
 assert.equal(secondDefaults.ai.askDocumentEndpoint, '/api/ask-document')
+
+const identity = sdk.createIdentityManager({
+  principal: {
+    id: 'sdk-viewer',
+    displayName: 'SDK Viewer',
+    roleIds: ['viewer'],
+  },
+  context: {
+    tenantId: 'tenant-1',
+    organizationId: 'organization-1',
+    workspaceId: 'workspace-1',
+  },
+})
+assert.equal(identity.can('document.read'), true)
+assert.equal(identity.can('document.edit'), false)
+const removeRole = identity.registerRole({
+  id: 'exporter',
+  name: 'Exporter',
+  description: 'Can read and export documents.',
+  permissions: ['document.read', 'export'],
+})
+identity.setPrincipal({
+  id: 'sdk-exporter',
+  displayName: 'SDK Exporter',
+  roleIds: ['exporter'],
+})
+assert.equal(identity.can('export'), true)
+assert.ok(identity.getAuditEvents().some((event) => event.category === 'permission'))
+removeRole()
 
 const buildResult = await build({
   configFile: false,

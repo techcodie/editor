@@ -35,6 +35,7 @@ Each mounted SDK instance owns:
 - Its own plugin setup and cleanup lifecycle
 - Browser-memory conversation, source, and preview state
 - One local-first productivity provider registry when enabled
+- One identity manager with provider, role, permission, session, and audit state
 
 There is no global editor store or global plugin registry.
 
@@ -98,6 +99,7 @@ The forwarded ref is a `DocumentEditorHandle`:
 interface DocumentEditorHandle {
   config: ResolvedDocumentEditorConfig
   events: DocumentEditorEvents
+  identity: IdentityManagerApi | null
   getEditorApi(): EditorApi | null
   focus(): void
 }
@@ -121,6 +123,29 @@ unsubscribe()
 ```
 
 One controller should be mounted by one `DocumentEditor` at a time.
+
+The controller also exposes its instance-scoped identity manager:
+
+```ts
+controller.identity?.registerProvider(companyIdentityProvider)
+controller.identity?.registerRole(contractReviewerRole)
+controller.identity?.setPermissionOverrides(documentOverrides)
+controller.identity?.setIdentityToken(hostToken)
+controller.identity?.setOrganizationContext({
+  tenantId,
+  organizationId,
+  workspaceId,
+})
+
+const decision = controller.identity?.decide({
+  permission: 'document.edit',
+  resource: { type: 'document', id: documentId },
+})
+```
+
+Tokens remain in memory and are passed only to the selected host provider.
+Sessions and audit events retain token presence and expiry metadata, never the
+token value.
 
 ## Editor API
 
@@ -222,6 +247,45 @@ content are not exposed through the public event surface.
 Knowledge sources are intentionally managed through the built-in UI in v1.0.
 An imperative source provider API is not part of the public surface.
 
+## Identity and Access
+
+Identity is provider-based and enabled with a local administrator principal by
+default so existing integrations remain usable. Set `identity: false` to leave
+authorization entirely to the host, or provide host identity context:
+
+```ts
+const controller = createEditor({
+  identity: {
+    principal: {
+      id: user.id,
+      displayName: user.name,
+      email: user.email,
+      roleIds: ['editor'],
+    },
+    context: {
+      tenantId: tenant.id,
+      organizationId: organization.id,
+      workspaceId: workspace.id,
+      departmentId: department.id,
+      projectId: project.id,
+    },
+    roles: [customRole],
+    permissionOverrides: documentOverrides,
+    auditAdapter,
+  },
+})
+```
+
+Built-in roles are Viewer, Commenter, Reviewer, Editor, Approver, Owner, and
+Administrator. Hosts may register custom roles and provider adapters at
+initialization or through `controller.identity`. Explicit scoped denies take
+precedence over allows, allows take precedence over role grants, and all other
+requests default to denied.
+
+The SDK includes no login flow, credential storage, OAuth client, or external
+identity dependency. Azure AD, Okta, Auth0, Google Workspace, Keycloak, LDAP,
+SAML, and OIDC are future host adapter protocols.
+
 ## Semantic Search
 
 The built-in Semantic Search panel incrementally indexes the current document,
@@ -261,6 +325,8 @@ Runtime exports:
 - `DocumentEditor`
 - `createBroadcastChannelTransport`
 - `createEditor`
+- `createIdentityManager`
+- `createMemoryAuditAdapter`
 - `createLocalEmbeddingProvider`
 - `createProductivityProviderRegistry`
 - `createSearchEngine`
@@ -268,10 +334,16 @@ Runtime exports:
 - `validateDocumentEditorConfig`
 - `resolveDocumentEditorConfig`
 - `getDefaultDocumentEditorTheme`
+- `getBuiltInIdentityRoles`
 - `BrowserVoiceProvider`
 - `LocalGrammarProvider`
 - `MockImageProvider`
 - `ProductivityProviderRegistry`
+- `IdentityManager`
+- `IdentityProviderRegistry`
+- `MemoryAuditAdapter`
+- `IDENTITY_PERMISSIONS`
+- `BUILT_IN_ROLE_IDS`
 - `VOICE_COMMANDS`
 - `matchVoiceCommand`
 - `parseTranscriptSpeakers`
@@ -281,5 +353,6 @@ Runtime exports:
 Type exports include configuration, controller, component, theme, event,
 plugin, selection action, collaboration, semantic search, knowledge graph,
 embedding provider, productivity provider, generated-image, speaker, voice,
-and `EditorApi` contracts. Package exports prevent
+identity provider, role, permission, session, audit, and `EditorApi` contracts.
+Package exports prevent
 supported imports from reaching internal implementation modules.

@@ -16,6 +16,8 @@ import type {
   ResolvedCollaborationConfig,
 } from '../collaboration/types/collaboration'
 import type { ContractPlaybook } from '../contract/types/contract'
+import type { IdentityConfig } from '../identity/types/identity'
+import { IDENTITY_PERMISSIONS } from '../identity/types/permissions'
 
 const DEFAULT_THEME: DocumentEditorTheme = {
   colors: {
@@ -73,6 +75,7 @@ const CONFIG_KEYS = new Set([
   'commandPalette',
   'collaboration',
   'productivity',
+  'identity',
   'contractPlaybook',
   'callbacks',
   'plugins',
@@ -105,6 +108,7 @@ const CALLBACK_KEYS = new Set([
   'onSearchIndexChange',
   'onSearch',
   'onFormSubmit',
+  'onIdentityAudit',
   'onError',
 ])
 
@@ -339,6 +343,144 @@ function resolveProductivity(
   return result
 }
 
+function resolveIdentity(
+  value: unknown,
+  warnings: string[],
+): false | IdentityConfig {
+  if (value === false) return false
+  if (value === undefined || value === true) return {}
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    warn('"identity" must be a boolean or identity configuration. Local administrator access will be used.', warnings)
+    return {}
+  }
+  const input = value as IdentityConfig & Record<string, unknown>
+  const known = new Set([
+    'providers',
+    'defaultProviderId',
+    'principal',
+    'token',
+    'context',
+    'roles',
+    'permissionOverrides',
+    'auditAdapter',
+    'auditBufferSize',
+    'permissionCacheTtlMs',
+  ])
+  for (const key of Object.keys(input)) {
+    if (!known.has(key)) warn(`Unknown identity option "${key}" was ignored.`, warnings)
+  }
+
+  const providers = Array.isArray(input.providers)
+    ? input.providers.filter((provider, index) => {
+        const valid = Boolean(
+          provider &&
+          typeof provider.id === 'string' &&
+          provider.id.trim() &&
+          typeof provider.name === 'string' &&
+          provider.name.trim() &&
+          typeof provider.protocol === 'string' &&
+          typeof provider.resolveIdentity === 'function',
+        )
+        if (!valid) warn(`Identity provider at index ${index} is invalid and was ignored.`, warnings)
+        return valid
+      })
+    : []
+  if (input.providers !== undefined && !Array.isArray(input.providers)) {
+    warn('"identity.providers" must be an array.', warnings)
+  }
+
+  const roles = Array.isArray(input.roles)
+    ? input.roles.filter((role, index) => {
+        const valid = Boolean(
+          role &&
+          typeof role.id === 'string' &&
+          role.id.trim() &&
+          typeof role.name === 'string' &&
+          role.name.trim() &&
+          typeof role.description === 'string' &&
+          Array.isArray(role.permissions) &&
+          role.permissions.every((permission) => IDENTITY_PERMISSIONS.includes(permission)),
+        )
+        if (!valid) warn(`Identity role at index ${index} is invalid and was ignored.`, warnings)
+        return valid
+      })
+    : []
+  if (input.roles !== undefined && !Array.isArray(input.roles)) {
+    warn('"identity.roles" must be an array.', warnings)
+  }
+
+  const principal = input.principal &&
+    typeof input.principal.id === 'string' &&
+    input.principal.id.trim() &&
+    typeof input.principal.displayName === 'string' &&
+    input.principal.displayName.trim() &&
+    Array.isArray(input.principal.roleIds)
+    ? input.principal
+    : undefined
+  if (input.principal !== undefined && !principal) {
+    warn('"identity.principal" requires id, displayName, and roleIds and was ignored.', warnings)
+  }
+
+  const token = input.token &&
+    typeof input.token.value === 'string' &&
+    input.token.value
+    ? input.token
+    : undefined
+  if (input.token !== undefined && !token) {
+    warn('"identity.token" requires a non-empty value and was ignored.', warnings)
+  }
+
+  const permissionOverrides = Array.isArray(input.permissionOverrides)
+    ? input.permissionOverrides.filter((override, index) => {
+        const valid = Boolean(
+          override &&
+          typeof override.id === 'string' &&
+          override.id.trim() &&
+          (override.effect === 'allow' || override.effect === 'deny') &&
+          Array.isArray(override.permissions) &&
+          override.permissions.every((permission) => IDENTITY_PERMISSIONS.includes(permission)),
+        )
+        if (!valid) warn(`Permission override at index ${index} is invalid and was ignored.`, warnings)
+        return valid
+      })
+    : []
+  if (
+    input.permissionOverrides !== undefined &&
+    !Array.isArray(input.permissionOverrides)
+  ) {
+    warn('"identity.permissionOverrides" must be an array.', warnings)
+  }
+
+  const auditAdapter = input.auditAdapter &&
+    typeof input.auditAdapter.write === 'function'
+    ? input.auditAdapter
+    : undefined
+  if (input.auditAdapter !== undefined && !auditAdapter) {
+    warn('"identity.auditAdapter" requires a write function and was ignored.', warnings)
+  }
+
+  return {
+    providers,
+    roles,
+    permissionOverrides,
+    principal,
+    token,
+    auditAdapter,
+    ...(typeof input.defaultProviderId === 'string' && input.defaultProviderId.trim()
+      ? { defaultProviderId: input.defaultProviderId }
+      : {}),
+    ...(input.context && typeof input.context === 'object'
+      ? { context: { ...input.context } }
+      : {}),
+    ...(typeof input.auditBufferSize === 'number'
+      ? { auditBufferSize: input.auditBufferSize }
+      : {}),
+    ...(typeof input.permissionCacheTtlMs === 'number'
+      ? { permissionCacheTtlMs: input.permissionCacheTtlMs }
+      : {}),
+  }
+}
+
 function resolveCallbacks(value: unknown, warnings: string[]): DocumentEditorCallbacks {
   if (value === undefined) return {}
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -498,6 +640,7 @@ export function validateDocumentEditorConfig(value: unknown): DocumentEditorConf
       ),
       collaboration: resolveCollaboration(input.collaboration, warnings),
       productivity: resolveProductivity(input.productivity, warnings),
+      identity: resolveIdentity(input.identity, warnings),
       contractPlaybook: resolveContractPlaybook(input.contractPlaybook, warnings),
       callbacks: resolveCallbacks(input.callbacks, warnings),
       plugins,

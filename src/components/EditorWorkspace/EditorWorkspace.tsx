@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Command, FilePenLine, LoaderCircle, MessageSquareText, MousePointer2, X } from 'lucide-react'
+import { Command, FilePenLine, LoaderCircle, MessageSquareText, MousePointer2, ShieldCheck, X } from 'lucide-react'
 import { AssetToolbarControl } from '../../assets/components/AssetToolbarControl'
 import { useAssetInsertion } from '../../assets/hooks/useAssetInsertion'
 import type { Asset } from '../../assets/types/asset'
@@ -77,6 +77,14 @@ import { RedactionToolbarControl } from '../../redaction/components/RedactionToo
 import type { RedactionRecord } from '../../redaction/types/redaction'
 import { useDocumentEditor } from '../../hooks/useDocumentEditor'
 import { useEditorApi } from '../../hooks/useEditorApi'
+import { useIdentity } from '../../identity/hooks/useIdentity'
+import { usePermissions } from '../../identity/hooks/usePermissions'
+import { AccessDenied } from '../../identity/components/AccessDenied'
+import type {
+  IdentityAuditInput,
+  IdentityManagerApi,
+} from '../../identity/types/identity'
+import type { IdentityPermission } from '../../identity/types/permissions'
 import { cn } from '../../lib/cn'
 import type { EditorApi } from '../../lib/editor-api'
 import type { InternalDocumentEditorEvents } from '../../sdk/events'
@@ -176,6 +184,11 @@ const ProductivitySidebar = lazy(async () => {
   return { default: module.ProductivitySidebar }
 })
 
+const IdentitySettings = lazy(async () => {
+  const module = await import('../../identity/components/IdentitySettings')
+  return { default: module.IdentitySettings }
+})
+
 const CarouselView = lazy(async () => {
   const module = await import('../../viewer/components/CarouselView')
   return { default: module.CarouselView }
@@ -199,18 +212,56 @@ const ShareDialog = lazy(async () => {
 interface EditorWorkspaceProps {
   config: ResolvedDocumentEditorConfig
   events: InternalDocumentEditorEvents
+  identityManager: IdentityManagerApi | null
   onApiChange: (api: EditorApi | null) => void
 }
+
+const WORKSPACE_PERMISSIONS: readonly IdentityPermission[] = [
+  'document.read',
+  'document.edit',
+  'comment',
+  'track-changes',
+  'approve',
+  'export',
+  'redact',
+  'ai.access',
+  'form-builder',
+  'workflow',
+  'contract-intelligence',
+  'search',
+  'administration',
+]
 
 export function EditorWorkspace({
   config,
   events,
+  identityManager,
   onApiChange,
 }: EditorWorkspaceProps) {
+  const identity = useIdentity(identityManager)
+  const permissionState = usePermissions(identityManager, WORKSPACE_PERMISSIONS)
+  const canRead = permissionState.can('document.read')
+  const canEdit = canRead && permissionState.can('document.edit')
+  const canComment = canRead && permissionState.can('comment')
+  const canTrackChanges = canRead && permissionState.can('track-changes')
+  const canApprove = canRead && permissionState.can('approve')
+  const canExport = canRead && permissionState.can('export')
+  const canRedact = canRead && permissionState.can('redact')
+  const canUseAi = canRead && permissionState.can('ai.access')
+  const canBuildForms = canRead && permissionState.can('form-builder')
+  const canUseWorkflow = canRead && permissionState.can('workflow')
+  const canUseContractIntelligence = canRead && permissionState.can('contract-intelligence')
+  const canSearch = canRead && permissionState.can('search')
+  const recordIdentityAudit = useCallback(
+    (input: IdentityAuditInput) => {
+      identityManager?.audit(input)
+    },
+    [identityManager],
+  )
   const editor = useDocumentEditor({
     placeholder: config.placeholder,
     content: config.initialContent,
-    editable: !config.readonly,
+    editable: !config.readonly && canEdit,
   })
   const api = useEditorApi(editor)
   const [isAskDocumentOpen, setIsAskDocumentOpen] = useState(false)
@@ -258,6 +309,8 @@ export function EditorWorkspace({
   const [writingAnalysis, setWritingAnalysis] = useState<WritingAnalysis | null>(null)
   const [isProductivityOpen, setIsProductivityOpen] = useState(false)
   const [isProductivityLoaded, setIsProductivityLoaded] = useState(false)
+  const [isIdentityOpen, setIsIdentityOpen] = useState(false)
+  const [isIdentityLoaded, setIsIdentityLoaded] = useState(false)
   const [isShareOpen, setIsShareOpen] = useState(false)
   const [isShareLoaded, setIsShareLoaded] = useState(false)
   const [searchKnowledgeSources, setSearchKnowledgeSources] = useState<KnowledgeSource[]>([])
@@ -270,19 +323,20 @@ export function EditorWorkspace({
   const [askDocumentCommand, setAskDocumentCommand] =
     useState<AskDocumentCommandRequest | null>(null)
   const askDocumentButtonRef = useRef<HTMLButtonElement>(null)
+  const identityButtonRef = useRef<HTMLButtonElement>(null)
   const validShareIdsRef = useRef<string[]>([])
   const lastDocumentTextRef = useRef<string | null>(null)
   const lastSelectionRef = useRef<string | null>(null)
   const AskDocumentIcon = config.theme.icons.askDocument ?? MessageSquareText
   const CommandPaletteIcon = config.theme.icons.commandPalette ?? Command
   const availableCommands: WorkspaceCommandId[] = [
-    ...(config.ai ? (['ask-ai', 'toggle-sidebar'] as const) : []),
-    ...(config.ai && !config.readonly ? (['insert-last-response'] as const) : []),
-    ...(config.ai && config.knowledgeSources ? (['upload-source'] as const) : []),
-    ...(config.ai && config.knowledgeSources && config.preview
+    ...(config.ai && canUseAi ? (['ask-ai', 'toggle-sidebar'] as const) : []),
+    ...(config.ai && canUseAi && canEdit && !config.readonly ? (['insert-last-response'] as const) : []),
+    ...(config.ai && canUseAi && config.knowledgeSources ? (['upload-source'] as const) : []),
+    ...(config.ai && canUseAi && config.knowledgeSources && config.preview
       ? (['open-preview'] as const)
       : []),
-    'focus-editor',
+    ...(canRead ? (['focus-editor'] as const) : []),
   ]
   const documentHistoryNamespace = useMemo(
     () => historyNamespace(JSON.stringify(config.initialContent ?? 'document')),
@@ -313,6 +367,11 @@ export function EditorWorkspace({
     cancelPlacement,
     insertPendingAsset,
   } = useAssetInsertion({ api, onInserted: recordRecentAsset })
+  const identityAuthor = useMemo(() => identity.principal ? {
+    id: identity.principal.id,
+    name: identity.principal.displayName,
+    avatarUrl: identity.principal.avatarUrl,
+  } : undefined, [identity.principal])
   const {
     comments,
     removedComments,
@@ -325,7 +384,10 @@ export function EditorWorkspace({
     deleteComment,
     jumpToComment,
     applyRemoteComments,
-  } = useComments(api, config.collaboration ? config.collaboration.user : undefined)
+  } = useComments(
+    api,
+    config.collaboration ? config.collaboration.user : identityAuthor,
+  )
   const {
     changes,
     changesById,
@@ -507,6 +569,19 @@ export function EditorWorkspace({
     notifyChanges()
     return api.subscribe(notifyChanges)
   }, [api, events])
+
+  useEffect(() => {
+    if (!identityManager) return
+    return events.on('aiRequest', ({ workflow, requestId, action }) => {
+      identityManager.audit({
+        category: 'ai',
+        action: `ai.${workflow}.requested`,
+        outcome: 'success',
+        resourceId: requestId,
+        details: { workflow, action: action ?? null },
+      })
+    })
+  }, [events, identityManager])
 
   useEffect(() => {
     if (!api) return
@@ -1044,6 +1119,40 @@ export function EditorWorkspace({
     window.requestAnimationFrame(() => document.getElementById('productivity-trigger')?.focus())
   }, [])
 
+  const openIdentity = useCallback(() => {
+    setIsAskDocumentOpen(false)
+    setIsAssetLibraryOpen(false)
+    setIsReviewMode(false)
+    setIsSuggestionMode(false)
+    setIsSuggestionSidebarOpen(false)
+    setIsComparisonOpen(false)
+    setIsPageLayoutOpen(false)
+    setIsWatermarkOpen(false)
+    setIsExportOpen(false)
+    setIsIntelligenceOpen(false)
+    setIsComplianceOpen(false)
+    setIsFormBuilderOpen(false)
+    setIsHistoryOpen(false)
+    setIsWorkflowOpen(false)
+    setIsSearchOpen(false)
+    setIsRedactionOpen(false)
+    setIsContractOpen(false)
+    setIsWritingAssistantOpen(false)
+    setIsProductivityOpen(false)
+    setIsShareOpen(false)
+    setCommentHighlightPreview(null)
+    setSuggestionPreview(null)
+    cancelPlacement()
+    if (pendingComment) closeComposer()
+    setIsIdentityLoaded(true)
+    setIsIdentityOpen(true)
+  }, [cancelPlacement, closeComposer, pendingComment, setIsPageLayoutOpen, setIsWatermarkOpen])
+
+  const closeIdentity = useCallback(() => {
+    setIsIdentityOpen(false)
+    window.requestAnimationFrame(() => identityButtonRef.current?.focus())
+  }, [])
+
   useEffect(() => {
     if (
       isAskDocumentOpen || isAssetLibraryOpen || isReviewMode || isSuggestionMode ||
@@ -1058,6 +1167,61 @@ export function EditorWorkspace({
     isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
     isWorkflowOpen, isSearchOpen, isRedactionOpen, isContractOpen,
     isWritingAssistantOpen,
+  ])
+
+  useEffect(() => {
+    if (
+      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode || isSuggestionMode ||
+      isComparisonOpen || isPageLayoutOpen || isWatermarkOpen || isExportOpen ||
+      isIntelligenceOpen || isComplianceOpen || isFormBuilderOpen || isHistoryOpen ||
+      isWorkflowOpen || isSearchOpen || isRedactionOpen || isContractOpen ||
+      isWritingAssistantOpen || isProductivityOpen
+    ) setIsIdentityOpen(false)
+  }, [
+    isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
+    isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
+    isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
+    isWorkflowOpen, isSearchOpen, isRedactionOpen, isContractOpen,
+    isWritingAssistantOpen, isProductivityOpen,
+  ])
+
+  useEffect(() => {
+    if (!canComment) {
+      setIsReviewMode(false)
+      closeComposer()
+    }
+    if (!canTrackChanges) {
+      setIsSuggestionMode(false)
+      setIsSuggestionSidebarOpen(false)
+    }
+    if (!canExport) setIsExportOpen(false)
+    if (!canRedact) setIsRedactionOpen(false)
+    if (!canBuildForms) {
+      setIsFormBuilderOpen(false)
+      setIsShareOpen(false)
+    }
+    if (!canUseWorkflow) setIsWorkflowOpen(false)
+    if (!canUseContractIntelligence) setIsContractOpen(false)
+    if (!canSearch) setIsSearchOpen(false)
+    if (!canUseAi) {
+      setIsAskDocumentOpen(false)
+      setIsWritingAssistantOpen(false)
+      setIsProductivityOpen(false)
+    }
+    if (!canEdit) cancelPlacement()
+  }, [
+    canBuildForms,
+    canComment,
+    canEdit,
+    canExport,
+    canRedact,
+    canSearch,
+    canTrackChanges,
+    canUseAi,
+    canUseContractIntelligence,
+    canUseWorkflow,
+    cancelPlacement,
+    closeComposer,
   ])
 
   useEffect(() => {
@@ -1495,7 +1659,7 @@ export function EditorWorkspace({
   )
 
   useEffect(() => {
-    if (!config.keyboardShortcuts || !config.commandPalette) return
+    if (!config.keyboardShortcuts || !config.commandPalette || !canRead) return
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
@@ -1517,10 +1681,10 @@ export function EditorWorkspace({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [config.commandPalette, config.keyboardShortcuts])
+  }, [canRead, config.commandPalette, config.keyboardShortcuts])
 
   useEffect(() => {
-    if (!config.keyboardShortcuts || config.readonly) return
+    if (!config.keyboardShortcuts || config.readonly || !canTrackChanges) return
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.key.toLocaleLowerCase() !== 's' ||
@@ -1538,6 +1702,7 @@ export function EditorWorkspace({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
     closeSuggestionMode,
+    canTrackChanges,
     config.keyboardShortcuts,
     config.readonly,
     isSuggestionMode,
@@ -1545,7 +1710,7 @@ export function EditorWorkspace({
   ])
 
   useEffect(() => {
-    if (!config.keyboardShortcuts) return
+    if (!config.keyboardShortcuts || !canSearch) return
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.key.toLocaleLowerCase() === 'f' &&
@@ -1560,7 +1725,7 @@ export function EditorWorkspace({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [closeSearch, config.keyboardShortcuts, isSearchOpen, openSearch])
+  }, [canSearch, closeSearch, config.keyboardShortcuts, isSearchOpen, openSearch])
 
   return (
     <div className="document-editor-workspace mx-auto flex w-full max-w-[84rem] items-start justify-center px-3 pb-20 pt-4 sm:px-6 sm:py-7 lg:px-8 lg:py-6">
@@ -1569,7 +1734,7 @@ export function EditorWorkspace({
           <ReadingMode mode={viewMode} onModeChange={handleViewModeChange} onExit={closeDocumentViewer} />
         ) : (
         <div className="sticky top-3 z-30 flex items-start gap-2.5 sm:top-4">
-          {config.toolbar && !config.readonly && (
+          {config.toolbar && !config.readonly && canEdit && (
             <Toolbar
               api={api}
               className="min-w-0"
@@ -1582,27 +1747,27 @@ export function EditorWorkspace({
                       else openAssetLibrary()
                     }}
                   />
-                  <ReviewToolbarControl
+                  {canComment && <ReviewToolbarControl
                     isActive={isReviewMode}
                     onToggle={() => {
                       if (isReviewMode) closeReviewMode()
                       else openReviewMode()
                     }}
-                  />
-                  <SuggestionToolbar
+                  />}
+                  {canTrackChanges && <SuggestionToolbar
                     isActive={isSuggestionMode}
                     onToggle={() => {
                       if (isSuggestionMode) closeSuggestionMode()
                       else openSuggestionMode()
                     }}
-                  />
-                  <ComparisonToolbarControl
+                  />}
+                  {canRead && <ComparisonToolbarControl
                     isActive={isComparisonOpen}
                     onToggle={() => {
                       if (isComparisonOpen) closeComparison()
                       else openComparison()
                     }}
-                  />
+                  />}
                   <PageLayoutToolbarControl
                     isOpen={isPageLayoutOpen}
                     onToggle={() => {
@@ -1618,83 +1783,83 @@ export function EditorWorkspace({
                       else openWatermark()
                     }}
                   />
-                  <ExportToolbarControl
+                  {canExport && <ExportToolbarControl
                     isOpen={isExportOpen}
                     onToggle={() => {
                       if (isExportOpen) closeExport()
                       else openExport()
                     }}
-                  />
-                  <DocumentIntelligenceToolbarControl
+                  />}
+                  {canRead && <DocumentIntelligenceToolbarControl
                     isOpen={isIntelligenceOpen}
                     onToggle={() => {
                       if (isIntelligenceOpen) closeIntelligence()
                       else openIntelligence()
                     }}
-                  />
-                  <ComplianceToolbarControl
+                  />}
+                  {canRead && <ComplianceToolbarControl
                     isOpen={isComplianceOpen}
                     onToggle={() => {
                       if (isComplianceOpen) closeCompliance()
                       else openCompliance()
                     }}
-                  />
-                  <FormBuilderToolbarControl
+                  />}
+                  {canBuildForms && <FormBuilderToolbarControl
                     isOpen={isFormBuilderOpen}
                     fieldCount={formFieldCount}
                     onToggle={() => {
                       if (isFormBuilderOpen) closeFormBuilder()
                       else openFormBuilder()
                     }}
-                  />
-                  <HistoryToolbarControl
+                  />}
+                  {canRead && <HistoryToolbarControl
                     isOpen={isHistoryOpen}
                     versionCount={historyVersionCount}
                     onToggle={() => {
                       if (isHistoryOpen) closeHistory()
                       else openHistory()
                     }}
-                  />
-                  <WorkflowToolbarControl
+                  />}
+                  {canUseWorkflow && <WorkflowToolbarControl
                     isOpen={isWorkflowOpen}
                     status={currentWorkflow?.status}
                     onToggle={() => {
                       if (isWorkflowOpen) closeWorkflow()
                       else openWorkflow()
                     }}
-                  />
-                  <SearchToolbarControl
+                  />}
+                  {canSearch && <SearchToolbarControl
                     isOpen={isSearchOpen}
                     onToggle={() => {
                       if (isSearchOpen) closeSearch()
                       else openSearch()
                     }}
-                  />
-                  <RedactionToolbarControl
+                  />}
+                  {canRedact && <RedactionToolbarControl
                     isOpen={isRedactionOpen}
                     count={redactionRecords.filter((record) => record.decision === 'pending').length}
                     onToggle={() => {
                       if (isRedactionOpen) closeRedaction()
                       else openRedaction()
                     }}
-                  />
-                  <ContractToolbarControl
+                  />}
+                  {canUseContractIntelligence && <ContractToolbarControl
                     isOpen={isContractOpen}
                     riskScore={contractAnalysis?.overallRiskScore}
                     onToggle={() => {
                       if (isContractOpen) closeContract()
                       else openContract()
                     }}
-                  />
-                  <WritingAssistantToolbarControl
+                  />}
+                  {canUseAi && <WritingAssistantToolbarControl
                     isOpen={isWritingAssistantOpen}
                     score={writingAnalysis?.score}
                     onToggle={() => {
                       if (isWritingAssistantOpen) closeWritingAssistant()
                       else openWritingAssistant()
                     }}
-                  />
-                  {productivityRegistry && (
+                  />}
+                  {productivityRegistry && canUseAi && (
                     <ProductivityToolbarControl
                       isOpen={isProductivityOpen}
                       onToggle={() => {
@@ -1707,10 +1872,10 @@ export function EditorWorkspace({
               }
             />
           )}
-          <div className="hidden sm:block">
+          {canRead && <div className="hidden sm:block">
             <ViewSwitcher mode={viewMode} onChange={handleViewModeChange} />
-          </div>
-          <div className="hidden sm:block">
+          </div>}
+          {canBuildForms && <div className="hidden sm:block">
             <ShareToolbarControl
               isOpen={isShareOpen}
               onToggle={() => {
@@ -1718,8 +1883,8 @@ export function EditorWorkspace({
                 else openShare()
               }}
             />
-          </div>
-          {config.commandPalette && (
+          </div>}
+          {config.commandPalette && canRead && (
             <button
               type="button"
               aria-label="Open command palette"
@@ -1737,7 +1902,7 @@ export function EditorWorkspace({
               <CommandPaletteIcon width={17} height={17} strokeWidth={1.9} aria-hidden />
             </button>
           )}
-          {config.ai && (
+          {config.ai && canUseAi && (
             <button
               ref={askDocumentButtonRef}
               type="button"
@@ -1766,7 +1931,29 @@ export function EditorWorkspace({
               />
             </button>
           )}
-          {config.collaboration && (
+          {identityManager && (
+            <button
+              ref={identityButtonRef}
+              type="button"
+              aria-label={isIdentityOpen ? 'Close identity settings' : 'Open identity settings'}
+              aria-expanded={isIdentityOpen}
+              aria-controls="identity-settings"
+              title="Identity & access"
+              onClick={() => {
+                if (isIdentityOpen) closeIdentity()
+                else openIdentity()
+              }}
+              className={cn(
+                'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border shadow-[var(--document-editor-shadow-surface)] backdrop-blur-xl transition-[border-color,background-color,color,box-shadow,transform] duration-150 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f6f4] active:translate-y-0',
+                isIdentityOpen
+                  ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
+                  : 'border-neutral-200 bg-white/90 text-neutral-500 hover:border-neutral-300 hover:bg-white hover:text-neutral-950',
+              )}
+            >
+              <ShieldCheck size={17} strokeWidth={1.9} aria-hidden />
+            </button>
+          )}
+          {config.collaboration && canRead && (
             <PresenceBar
               collaborators={collaboration.onlineCollaborators}
               currentUser={config.collaboration.user}
@@ -1794,7 +1981,7 @@ export function EditorWorkspace({
               </button>
             </div>
           )}
-          <DocumentEditor
+          {canRead ? <DocumentEditor
             editor={editor}
             className={viewMode === 'reading' ? 'reader-document-surface' : undefined}
             placementActive={viewMode === 'editor' && Boolean(pendingAsset)}
@@ -1815,10 +2002,26 @@ export function EditorWorkspace({
                 )}
               </>
             }
-          />
+          /> : (
+            <AccessDenied
+              permission="document.read"
+              reason="Your identity does not have access to this document."
+            />
+          )}
         </div>
       </div>
       <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">
+        {isIdentityLoaded && identityManager && (
+          <ErrorBoundary compact title="Identity settings need a retry">
+            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-50 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[32rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[31rem] lg:rounded-lg lg:border" role="status" aria-label="Loading identity settings"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+              <IdentitySettings
+                isOpen={isIdentityOpen}
+                manager={identityManager}
+                onClose={closeIdentity}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        )}
         {isProductivityLoaded && productivityRegistry && (
           <ErrorBoundary compact title="AI productivity needs a retry">
             <Suspense fallback={<div className="fixed inset-y-0 right-0 z-50 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[31rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[30rem] lg:rounded-lg lg:border" role="status" aria-label="Loading AI productivity"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
@@ -1829,6 +2032,7 @@ export function EditorWorkspace({
                 onClose={closeProductivity}
                 onApplyWriting={createWritingSuggestion}
                 onCommentWriting={createWritingComment}
+                onAudit={recordIdentityAudit}
               />
             </Suspense>
           </ErrorBoundary>
@@ -1864,6 +2068,7 @@ export function EditorWorkspace({
                 aiEndpoint={config.ai ? config.ai.contractEndpoint : undefined}
                 onClose={closeContract}
                 onAnalysisChange={setContractAnalysis}
+                onAudit={recordIdentityAudit}
               />
             </Suspense>
           </ErrorBoundary>
@@ -1879,6 +2084,7 @@ export function EditorWorkspace({
                 aiProvider={config.ai ? config.ai.redactionDetector : undefined}
                 onClose={closeRedaction}
                 onRecordsChange={setRedactionRecords}
+                onAudit={recordIdentityAudit}
               />
             </Suspense>
           </ErrorBoundary>
@@ -1919,6 +2125,8 @@ export function EditorWorkspace({
                 onClose={closeWorkflow}
                 onChange={setCurrentWorkflow}
                 contractAnalysis={contractAnalysis}
+                canApprove={canApprove}
+                onAudit={recordIdentityAudit}
               />
             </Suspense>
           </ErrorBoundary>
@@ -2115,11 +2323,14 @@ export function EditorWorkspace({
       {(viewMode === 'editor' || viewMode === 'reading') && (
         <MobileToolbar
           mode={viewMode}
-          aiEnabled={Boolean(config.ai)}
-          productivityEnabled={Boolean(productivityRegistry)}
+          aiEnabled={Boolean(config.ai && canUseAi)}
+          productivityEnabled={Boolean(productivityRegistry && canUseAi)}
+          identityEnabled={Boolean(identityManager)}
+          shareEnabled={canBuildForms}
           onModeChange={handleViewModeChange}
           onAskAi={openAskDocument}
           onProductivity={openProductivity}
+          onIdentity={openIdentity}
           onShare={openShare}
         />
       )}
@@ -2127,14 +2338,16 @@ export function EditorWorkspace({
         api={api}
         enabled={
           (viewMode === 'editor' || viewMode === 'reading') &&
+          canRead &&
           !isShareOpen &&
           !isComparisonOpen &&
           !isExportOpen &&
           !isIntelligenceOpen &&
-          !isProductivityOpen
+          !isProductivityOpen &&
+          !isIdentityOpen
         }
       />
-      {config.ai && viewMode === 'editor' && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && !isSearchOpen && !isRedactionOpen && !isContractOpen && !isWritingAssistantOpen && !isProductivityOpen && !isShareOpen && (
+      {config.ai && canUseAi && canEdit && viewMode === 'editor' && !config.readonly && !isReviewMode && !isSuggestionMode && !isComplianceOpen && !isFormBuilderOpen && !isHistoryOpen && !isWorkflowOpen && !isSearchOpen && !isRedactionOpen && !isContractOpen && !isWritingAssistantOpen && !isProductivityOpen && !isIdentityOpen && !isShareOpen && (
         <ErrorBoundary compact title="Selection AI needs a retry">
           <SelectionAi
             api={api}
@@ -2144,13 +2357,13 @@ export function EditorWorkspace({
           />
         </ErrorBoundary>
       )}
-      {isReviewMode && !config.readonly && reviewSelection && !pendingComment && (
+      {canComment && isReviewMode && !config.readonly && reviewSelection && !pendingComment && (
         <CommentToolbar
           bounds={reviewSelection.bounds}
           onComment={openComposer}
         />
       )}
-      {isReviewMode && pendingComment && (
+      {canComment && isReviewMode && pendingComment && (
         <SelectionCommentComposer
           bounds={pendingComment.selection.bounds}
           quote={pendingComment.selection.text}
@@ -2164,13 +2377,13 @@ export function EditorWorkspace({
           bounds={commentHighlightPreview.bounds}
         />
       )}
-      {isSuggestionMode && previewedChange && suggestionPreview && (
+      {canTrackChanges && isSuggestionMode && previewedChange && suggestionPreview && (
         <SuggestionPreview
           change={previewedChange}
           bounds={suggestionPreview.bounds}
         />
       )}
-      {isSuggestionMode && !isSuggestionSidebarOpen && (
+      {canTrackChanges && isSuggestionMode && !isSuggestionSidebarOpen && (
         <button
           type="button"
           onClick={() => setIsSuggestionSidebarOpen(true)}
@@ -2232,6 +2445,7 @@ export function EditorWorkspace({
               workflow={currentWorkflow}
               redactions={redactionRecords}
               onClose={closeExport}
+              onAudit={recordIdentityAudit}
             />
           </Suspense>
         </ErrorBoundary>
@@ -2333,7 +2547,7 @@ export function EditorWorkspace({
           onSelect={runWorkspaceCommand}
         />
       )}
-      {config.collaboration && (
+      {config.collaboration && canRead && (
         <>
           <SelectionLayer decorations={collaboratorDecorations} />
           <CursorLayer decorations={collaboratorDecorations} />

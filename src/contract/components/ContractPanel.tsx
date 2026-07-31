@@ -6,6 +6,7 @@ import { useContractAnalysis } from '../hooks/useContractAnalysis'
 import { exportContractReport, type ContractReportKind } from '../services/summaryEngine'
 import type { ContractClause } from '../types/clause'
 import type { ContractAnalysis, ContractObligation, ContractParty, ContractPlaybook, ContractRisk } from '../types/contract'
+import type { IdentityAuditInput } from '../../identity/types/identity'
 import { AnalysisProgress } from './AnalysisProgress'
 import { ClauseComparison } from './ClauseComparison'
 import { ClauseList } from './ClauseList'
@@ -26,17 +27,18 @@ interface ContractPanelProps {
   aiEndpoint?: string
   onClose: () => void
   onAnalysisChange: (analysis: ContractAnalysis | null) => void
+  onAudit?: (input: IdentityAuditInput) => void
 }
 
 type ContractView = 'overview' | 'clauses' | 'obligations' | 'timeline' | 'risks'
 
 export function ContractPanel(props: ContractPanelProps) {
-  const { isOpen, api, namespace, author, playbook, complianceFindings, aiEndpoint, onClose, onAnalysisChange } = props
+  const { isOpen, api, namespace, author, playbook, complianceFindings, aiEndpoint, onClose, onAnalysisChange, onAudit } = props
   const panelRef = useRef<HTMLElement>(null)
   const [view, setView] = useState<ContractView>('overview')
   const [selectedClauseId, setSelectedClauseId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const contract = useContractAnalysis({ api, active: isOpen, namespace, author, playbook, complianceFindings, aiEndpoint, onAnalysisChange })
+  const contract = useContractAnalysis({ api, active: isOpen, namespace, author, playbook, complianceFindings, aiEndpoint, onAnalysisChange, onAudit })
   const analysis = contract.analysis
   const selectedClause = analysis?.clauses.find((item) => item.id === selectedClauseId) ?? null
 

@@ -4,6 +4,7 @@ import type { EditorApi } from '../../lib/editor-api'
 import { compareContractAnalyses } from '../services/comparisonEngine'
 import { analyzeContract, loadContractAnalysisHistory, saveContractAnalysisHistory, saveContractVersionSnapshot } from '../services/contractAnalysis'
 import type { ContractAnalysis, ContractAnalysisComparison, ContractAnalysisHistoryEntry, ContractAnalysisProgress, ContractPlaybook } from '../types/contract'
+import type { IdentityAuditInput } from '../../identity/types/identity'
 
 const IDLE_PROGRESS: ContractAnalysisProgress = { stage: 'idle', progress: 0, message: 'Ready to analyze' }
 
@@ -16,10 +17,11 @@ interface UseContractAnalysisOptions {
   complianceFindings?: ComplianceFinding[]
   aiEndpoint?: string
   onAnalysisChange?: (analysis: ContractAnalysis | null) => void
+  onAudit?: (input: IdentityAuditInput) => void
 }
 
 export function useContractAnalysis(options: UseContractAnalysisOptions) {
-  const { api, active, namespace, author, playbook, complianceFindings = [], aiEndpoint, onAnalysisChange } = options
+  const { api, active, namespace, author, playbook, complianceFindings = [], aiEndpoint, onAnalysisChange, onAudit } = options
   const controllerRef = useRef<AbortController | null>(null)
   const [analysis, setAnalysis] = useState<ContractAnalysis | null>(null)
   const [history, setHistory] = useState<ContractAnalysisHistoryEntry[]>(() => loadContractAnalysisHistory(namespace))
@@ -37,6 +39,12 @@ export function useContractAnalysis(options: UseContractAnalysisOptions) {
     controllerRef.current = controller
     setIsAnalyzing(true)
     setError(null)
+    onAudit?.({
+      category: 'ai',
+      action: 'ai.contract.requested',
+      outcome: 'success',
+      details: { aiEnabled: Boolean(aiEndpoint) },
+    })
     try {
       const next = await analyzeContract(text, {
         signal: controller.signal, onProgress: setProgress, playbook, complianceFindings,
@@ -46,6 +54,13 @@ export function useContractAnalysis(options: UseContractAnalysisOptions) {
       setAnalysis(next)
       setHistory(saveContractAnalysisHistory(namespace, next))
       onAnalysisChange?.(next)
+      onAudit?.({
+        category: 'ai',
+        action: 'ai.contract.completed',
+        outcome: 'success',
+        resourceId: next.id,
+        details: { aiEnabled: Boolean(aiEndpoint) },
+      })
       return next
     } catch (reason) {
       if (controller.signal.aborted || (reason instanceof DOMException && reason.name === 'AbortError')) {
@@ -55,11 +70,17 @@ export function useContractAnalysis(options: UseContractAnalysisOptions) {
       const message = reason instanceof Error ? reason.message : 'Contract analysis could not be completed.'
       setError(message)
       setProgress({ stage: 'error', progress: 0, message })
+      onAudit?.({
+        category: 'ai',
+        action: 'ai.contract.failed',
+        outcome: 'failure',
+        details: { aiEnabled: Boolean(aiEndpoint) },
+      })
       return null
     } finally {
       if (controllerRef.current === controller) { controllerRef.current = null; setIsAnalyzing(false) }
     }
-  }, [aiEndpoint, api, complianceFindings, namespace, onAnalysisChange, playbook])
+  }, [aiEndpoint, api, complianceFindings, namespace, onAnalysisChange, onAudit, playbook])
 
   useEffect(() => {
     if (!active || !api) return

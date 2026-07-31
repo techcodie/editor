@@ -6,6 +6,7 @@ import { useDetection } from '../hooks/useDetection'
 import { useRedaction } from '../hooks/useRedaction'
 import type { AiDetectionProvider, SensitiveDataDetection, SensitiveDataType } from '../types/detection'
 import type { RedactionRecord } from '../types/redaction'
+import type { IdentityAuditInput } from '../../identity/types/identity'
 import { ClassificationLegend } from './ClassificationLegend'
 import { DetectionFilters, type DetectionFilter } from './DetectionFilters'
 import { DetectionResults } from './DetectionResults'
@@ -24,9 +25,10 @@ interface RedactionPanelProps {
   aiProvider?: AiDetectionProvider
   onClose: () => void
   onRecordsChange: (records: RedactionRecord[]) => void
+  onAudit?: (input: IdentityAuditInput) => void
 }
 
-export function RedactionPanel({ isOpen, api, namespace, author, aiProvider, onClose, onRecordsChange }: RedactionPanelProps) {
+export function RedactionPanel({ isOpen, api, namespace, author, aiProvider, onClose, onRecordsChange, onAudit }: RedactionPanelProps) {
   const panelRef = useRef<HTMLElement>(null)
   const [view, setView] = useState<RedactionView>('detect')
   const [filter, setFilter] = useState<DetectionFilter>('all')
@@ -36,7 +38,7 @@ export function RedactionPanel({ isOpen, api, namespace, author, aiProvider, onC
   const [notice, setNotice] = useState<string | null>(null)
   const detection = useDetection({ api, active: isOpen, aiProvider })
   const { cancel: cancelDetection, isDetecting } = detection
-  const redaction = useRedaction({ api, namespace, author })
+  const redaction = useRedaction({ api, namespace, author, onAudit })
   const types = useMemo(() => [...new Set(detection.detections.map((item) => item.type))].toSorted() as SensitiveDataType[], [detection.detections])
   const visibleDetections = useMemo(() => detection.detections.filter((item) => filter === 'all' || item.type === filter), [detection.detections, filter])
   const selectedRecord = redaction.records.find((record) => record.id === selectedRecordId) ?? null

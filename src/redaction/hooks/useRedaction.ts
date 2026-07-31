@@ -7,8 +7,9 @@ import { createRedaction, summarizeRedactions, updateRedactionStyle } from '../s
 import { addRedactionComment, decideRedaction, setRedactionClassification } from '../services/reviewEngine'
 import type { SensitiveDataDetection } from '../types/detection'
 import type { ClassificationLevel, RedactionRecord, RedactionStyle } from '../types/redaction'
+import type { IdentityAuditInput } from '../../identity/types/identity'
 
-export function useRedaction({ api, namespace, author }: { api: EditorApi | null; namespace: string; author: VersionAuthor }) {
+export function useRedaction({ api, namespace, author, onAudit }: { api: EditorApi | null; namespace: string; author: VersionAuthor; onAudit?: (input: IdentityAuditInput) => void }) {
   const [records, setRecords] = useState<RedactionRecord[]>([])
   const [error, setError] = useState<string | null>(null)
   const summary = useMemo(() => summarizeRedactions(records), [records])
@@ -35,12 +36,25 @@ export function useRedaction({ api, namespace, author }: { api: EditorApi | null
       const snapshotId = await createRecoverySnapshot(detection)
       const record = createRedaction(detection, { actor: author.name, snapshotId })
       setRecords((current) => [...current, record])
+      onAudit?.({
+        category: 'redaction',
+        action: 'redaction.created',
+        outcome: 'success',
+        resourceId: record.id,
+        details: { type: detection.type },
+      })
       return record
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The redaction restore point could not be created.')
+      onAudit?.({
+        category: 'redaction',
+        action: 'redaction.create',
+        outcome: 'failure',
+        details: { type: detection.type },
+      })
       return null
     }
-  }, [author.name, createRecoverySnapshot, records])
+  }, [author.name, createRecoverySnapshot, onAudit, records])
 
   const update = useCallback((id: string, updater: (record: RedactionRecord) => RedactionRecord) => {
     setRecords((current) => current.map((record) => record.id === id ? updater(record) : record))
@@ -48,9 +62,43 @@ export function useRedaction({ api, namespace, author }: { api: EditorApi | null
 
   return {
     records, summary, error, clearError: () => setError(null), add,
-    setStyle: (id: string, style: RedactionStyle) => update(id, (record) => updateRedactionStyle(record, style)),
-    setClassification: (id: string, level: ClassificationLevel) => update(id, (record) => setRedactionClassification(record, level, author.name)),
-    decide: (id: string, decision: 'approved' | 'rejected' | 'restored') => update(id, (record) => decideRedaction(record, decision, author.name)),
-    addComment: (id: string, text: string) => update(id, (record) => addRedactionComment(record, text, author.name)),
+    setStyle: (id: string, style: RedactionStyle) => {
+      update(id, (record) => updateRedactionStyle(record, style))
+      onAudit?.({
+        category: 'redaction',
+        action: 'redaction.style-updated',
+        outcome: 'success',
+        resourceId: id,
+        details: { style },
+      })
+    },
+    setClassification: (id: string, level: ClassificationLevel) => {
+      update(id, (record) => setRedactionClassification(record, level, author.name))
+      onAudit?.({
+        category: 'redaction',
+        action: 'redaction.classified',
+        outcome: 'success',
+        resourceId: id,
+        details: { level },
+      })
+    },
+    decide: (id: string, decision: 'approved' | 'rejected' | 'restored') => {
+      update(id, (record) => decideRedaction(record, decision, author.name))
+      onAudit?.({
+        category: 'redaction',
+        action: `redaction.${decision}`,
+        outcome: 'success',
+        resourceId: id,
+      })
+    },
+    addComment: (id: string, text: string) => {
+      update(id, (record) => addRedactionComment(record, text, author.name))
+      onAudit?.({
+        category: 'redaction',
+        action: 'redaction.comment-added',
+        outcome: 'success',
+        resourceId: id,
+      })
+    },
   }
 }

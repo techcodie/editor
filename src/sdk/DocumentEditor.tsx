@@ -86,6 +86,7 @@ export const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorPro
       () => ({
         config: activeController.config,
         events: activeController.events,
+        identity: activeController.identity,
         getEditorApi: activeController.getEditorApi,
         focus: () => activeController.getEditorApi()?.focus(),
       }),
@@ -103,6 +104,7 @@ export const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorPro
           <EditorWorkspace
             config={internals.config}
             events={internals.events}
+            identityManager={activeController.identity}
             onApiChange={handleApiChange}
           />
         </ErrorBoundary>

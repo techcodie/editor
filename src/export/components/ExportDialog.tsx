@@ -8,6 +8,7 @@ import type { TrackChange } from '../../review/trackChanges/types/trackChange'
 import type { Watermark } from '../../watermark/types/watermark'
 import type { Workflow } from '../../workflow/types/workflow'
 import type { RedactionRecord } from '../../redaction/types/redaction'
+import type { IdentityAuditInput } from '../../identity/types/identity'
 import { useExport } from '../hooks/useExport'
 import { formatBytes } from '../services/exportManager'
 import {
@@ -33,6 +34,7 @@ interface ExportDialogProps {
   workflow: Workflow | null
   redactions: RedactionRecord[]
   onClose: () => void
+  onAudit?: (input: IdentityAuditInput) => void
 }
 
 function documentTitle(text: string): string {
@@ -51,6 +53,7 @@ export function ExportDialog({
   workflow,
   redactions,
   onClose,
+  onAudit,
 }: ExportDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
@@ -63,7 +66,7 @@ export function ExportDialog({
     startExport,
     downloadExport,
     clearHistory,
-  } = useExport()
+  } = useExport({ onAudit })
   const createRequest = (): ExportRequest | null => {
     if (!api) return null
     const text = api.getDocumentText()
