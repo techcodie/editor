@@ -24,7 +24,7 @@ export function LoadingState({ onCancel }: LoadingStateProps) {
           <button
             type="button"
             onClick={onCancel}
-            className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[10px] font-semibold text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+            className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[10px] font-semibold text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
           >
             <Square size={9} fill="currentColor" aria-hidden />
             Stop

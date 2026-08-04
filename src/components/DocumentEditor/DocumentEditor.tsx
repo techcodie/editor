@@ -8,7 +8,7 @@ const CONTAINER_CLASS =
   'shadow-[var(--document-editor-shadow-surface)] ' +
   'transition-[border-color,box-shadow] duration-200 ' +
   'focus-within:border-neutral-300 ' +
-  'focus-within:shadow-[0_1px_2px_rgba(20,20,20,0.05),0_20px_52px_-28px_rgba(20,20,20,0.4),0_0_0_3px_rgba(99,102,241,0.06)] ' +
+  'focus-within:shadow-[0_1px_2px_rgba(20,20,20,0.05),0_20px_52px_-28px_rgba(20,20,20,0.4),0_0_0_3px_color-mix(in_srgb,var(--document-editor-focus-ring)_35%,transparent)] ' +
   'sm:px-12 sm:py-14 md:px-16 md:py-16'
 
 function DocumentEditorComponent({

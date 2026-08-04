@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode, useSyncExternalStore } from 'react'
 import * as ToolbarPrimitive from '@radix-ui/react-toolbar'
-import * as Tooltip from '@radix-ui/react-tooltip'
+import * as TooltipPrimitive from '@radix-ui/react-tooltip'
 import { cn } from '../../lib/cn'
 import type { EditorApi } from '../../lib/editor-api'
 import { ToolbarButton } from './ToolbarButton'
@@ -30,7 +30,9 @@ const TOOLBAR_CLASS =
   'supports-[backdrop-filter]:bg-white/80 backdrop-blur-xl ' +
   // Horizontal scroll on mobile; wrap into rows from the `sm` breakpoint up.
   'flex-nowrap overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ' +
-  'sm:flex-wrap sm:overflow-visible'
+  'sm:flex-wrap sm:overflow-visible ' +
+  // Edge-fade signals there's more to scroll to on mobile; irrelevant once wrapped.
+  '[mask-image:linear-gradient(to_right,transparent,black_14px,black_calc(100%-14px),transparent)] sm:[mask-image:none]'
 
 export function Toolbar({
   api,
@@ -44,7 +46,9 @@ export function Toolbar({
   useSyncExternalStore(api?.subscribe ?? NOOP_SUBSCRIBE, api?.getSnapshot ?? NULL_SNAPSHOT)
 
   return (
-    <Tooltip.Provider delayDuration={300} skipDelayDuration={200}>
+    // Kept for the feature-specific *ToolbarControl components composed into
+    // trailingContent that still use raw @radix-ui/react-tooltip directly.
+    <TooltipPrimitive.Provider delayDuration={300} skipDelayDuration={200}>
       <ToolbarPrimitive.Root
         aria-label="Text formatting"
         className={cn(TOOLBAR_CLASS, sticky && 'sticky top-3 z-30 sm:top-4', className)}
@@ -80,6 +84,6 @@ export function Toolbar({
           </>
         )}
       </ToolbarPrimitive.Root>
-    </Tooltip.Provider>
+    </TooltipPrimitive.Provider>
   )
 }

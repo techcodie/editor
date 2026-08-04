@@ -26,8 +26,20 @@ const DEFAULT_THEME: DocumentEditorTheme = {
     text: '#171717',
     mutedText: '#737373',
     border: '#e5e5e5',
+    borderStrong: '#d4d4d4',
     accent: '#4f46e5',
     selection: 'rgba(79, 70, 229, 0.2)',
+    hoverSurface: 'rgba(23, 23, 23, 0.04)',
+    activeSurface: 'rgba(23, 23, 23, 0.07)',
+    focusRing: 'rgba(79, 70, 229, 0.45)',
+    danger: '#dc2626',
+    dangerSurface: '#fef2f2',
+    warning: '#d97706',
+    warningSurface: '#fffbeb',
+    success: '#059669',
+    successSurface: '#ecfdf5',
+    info: '#4338ca',
+    infoSurface: '#eef2ff',
   },
   typography: {
     fontFamily:
@@ -47,6 +59,7 @@ const DEFAULT_THEME: DocumentEditorTheme = {
   animationDuration: '160ms',
   shadows: {
     surface: '0 1px 2px rgba(20,20,20,0.04), 0 18px 48px -28px rgba(20,20,20,0.32)',
+    raised: '0 1px 3px rgba(20,20,20,0.06), 0 8px 24px -12px rgba(20,20,20,0.18)',
     overlay: '0 24px 70px -24px rgba(20,20,20,0.48)',
   },
 }

@@ -27,7 +27,7 @@ export function SourceBadges({
             'inline-flex min-w-0 max-w-full items-center gap-1 rounded-md bg-white px-1.5 py-1 text-[9px] font-medium text-neutral-600 shadow-sm ring-1 ring-inset ring-neutral-200'
           const content = (
             <>
-              <FileText size={10} strokeWidth={2} className="shrink-0 text-indigo-500" aria-hidden />
+              <FileText size={10} strokeWidth={2} className="shrink-0 text-[var(--document-editor-info)]" aria-hidden />
               <span className="truncate">{source.name}</span>
             </>
           )
@@ -38,7 +38,7 @@ export function SourceBadges({
               type="button"
               onClick={() => onOpenSource(source.id)}
               aria-label={`Open ${source.name} preview`}
-              className={`${className} transition-colors hover:bg-indigo-50 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40`}
+              className={`${className} transition-colors hover:bg-[var(--document-editor-info-surface)] hover:text-[var(--document-editor-info)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]`}
             >
               {content}
             </button>

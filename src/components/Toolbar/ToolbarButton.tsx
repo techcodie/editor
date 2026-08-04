@@ -1,8 +1,8 @@
 import type { LucideIcon } from 'lucide-react'
 import { Loader2 } from 'lucide-react'
 import * as ToolbarPrimitive from '@radix-ui/react-toolbar'
-import * as Tooltip from '@radix-ui/react-tooltip'
 import { cn } from '../../lib/cn'
+import { Tooltip } from '../ui/Tooltip'
 
 export type ToolbarButtonSize = 'sm' | 'md'
 
@@ -21,6 +21,12 @@ export interface ToolbarButtonProps {
   size?: ToolbarButtonSize
   /** Click handler. */
   onClick?: () => void
+  /** Optional DOM id, useful as an `aria-controls`/anchor target for a toggled panel. */
+  id?: string
+  /** Set when this button toggles a panel/dialog open and closed. */
+  ariaExpanded?: boolean
+  /** Id of the panel/dialog this button controls. */
+  ariaControls?: string
 }
 
 const SIZE: Record<ToolbarButtonSize, { button: string; icon: number }> = {
@@ -33,15 +39,11 @@ const BUTTON_CLASS =
   'transition-[background-color,color,box-shadow,transform] duration-150 ' +
   'hover:bg-neutral-100 hover:text-neutral-950 ' +
   'active:scale-[0.96] active:bg-neutral-200/70 ' +
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] ' +
   'focus-visible:ring-offset-1 focus-visible:ring-offset-white ' +
   'disabled:pointer-events-none disabled:opacity-35 ' +
   'aria-pressed:bg-neutral-900 aria-pressed:text-white aria-pressed:shadow-sm ' +
   'aria-pressed:hover:bg-neutral-800 aria-pressed:hover:text-white'
-
-const TOOLTIP_CLASS =
-  'z-50 select-none rounded-md bg-neutral-900 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-[0_8px_24px_-8px_rgba(0,0,0,0.45)] ' +
-  '[animation:toolbar-tooltip-in_120ms_ease-out]'
 
 export function ToolbarButton({
   icon: Icon,
@@ -51,33 +53,31 @@ export function ToolbarButton({
   isLoading,
   size = 'md',
   onClick,
+  id,
+  ariaExpanded,
+  ariaControls,
 }: ToolbarButtonProps) {
   const dimensions = SIZE[size]
 
   return (
-    <Tooltip.Root>
-      <Tooltip.Trigger asChild>
-        <ToolbarPrimitive.Button
-          type="button"
-          aria-label={label}
-          aria-pressed={isActive}
-          disabled={disabled || isLoading}
-          onClick={onClick}
-          className={cn(BUTTON_CLASS, dimensions.button)}
-        >
-          {isLoading ? (
-            <Loader2 size={dimensions.icon} strokeWidth={2} className="animate-spin" aria-hidden />
-          ) : (
-            <Icon size={dimensions.icon} strokeWidth={1.9} aria-hidden />
-          )}
-        </ToolbarPrimitive.Button>
-      </Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Content side="bottom" sideOffset={6} className={TOOLTIP_CLASS}>
-          {label}
-          <Tooltip.Arrow className="fill-neutral-900" width={10} height={5} />
-        </Tooltip.Content>
-      </Tooltip.Portal>
-    </Tooltip.Root>
+    <Tooltip content={label}>
+      <ToolbarPrimitive.Button
+        id={id}
+        type="button"
+        aria-label={label}
+        aria-pressed={isActive}
+        aria-expanded={ariaExpanded}
+        aria-controls={ariaControls}
+        disabled={disabled || isLoading}
+        onClick={onClick}
+        className={cn(BUTTON_CLASS, dimensions.button)}
+      >
+        {isLoading ? (
+          <Loader2 size={dimensions.icon} strokeWidth={2} className="animate-spin" aria-hidden />
+        ) : (
+          <Icon size={dimensions.icon} strokeWidth={1.9} aria-hidden />
+        )}
+      </ToolbarPrimitive.Button>
+    </Tooltip>
   )
 }

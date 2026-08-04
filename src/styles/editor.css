@@ -290,7 +290,8 @@
   float: left;
   height: 0;
   pointer-events: none;
-  color: #b4b4ae;
+  color: var(--document-editor-muted-text, #b4b4ae);
+  opacity: 0.75;
 }
 
 @media (max-width: 639px) {
@@ -346,6 +347,8 @@
 
 .document-page-surface[data-page-layout='enabled']:focus-within {
   box-shadow: none;
+  outline: 2px solid color-mix(in srgb, var(--document-editor-focus-ring, rgba(79, 70, 229, 0.45)) 70%, transparent);
+  outline-offset: 3px;
 }
 
 .document-page-surface[data-page-layout='enabled'] .tiptap {

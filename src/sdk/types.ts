@@ -64,8 +64,20 @@ export interface DocumentEditorTheme {
     text: string
     mutedText: string
     border: string
+    borderStrong: string
     accent: string
     selection: string
+    hoverSurface: string
+    activeSurface: string
+    focusRing: string
+    danger: string
+    dangerSurface: string
+    warning: string
+    warningSurface: string
+    success: string
+    successSurface: string
+    info: string
+    infoSurface: string
   }
   typography: {
     fontFamily: string
@@ -84,6 +96,7 @@ export interface DocumentEditorTheme {
   animationDuration: string
   shadows: {
     surface: string
+    raised: string
     overlay: string
   }
 }

@@ -1,4 +1,6 @@
 import type { ExportOptions as ExportOptionsModel } from '../types/export'
+import { Checkbox } from '../../components/ui/Checkbox'
+import { cn } from '../../lib/cn'
 
 interface ExportOptionsProps {
   value: ExportOptionsModel
@@ -36,31 +38,23 @@ export function ExportOptions({
 
   return (
     <fieldset className="min-w-0 border-0 p-0">
-      <legend className="text-[11px] font-semibold text-neutral-900 dark:text-neutral-100">
-        Content
-      </legend>
-      <div className="mt-2 divide-y divide-neutral-100 rounded-md border border-neutral-200 bg-white dark:divide-neutral-800 dark:border-neutral-700 dark:bg-neutral-900">
+      <legend className="text-[11px] font-semibold text-neutral-900">Content</legend>
+      <div className="mt-2 divide-y divide-neutral-100 rounded-md border border-neutral-200 bg-white">
         {options.map((option) => (
-          <label
-            key={option.key}
-            className="flex min-h-12 items-center gap-3 px-3 py-2 disabled:opacity-50"
-          >
-            <input
-              type="checkbox"
+          <div key={option.key} className="flex min-h-12 items-center px-3 py-2">
+            <Checkbox
               checked={option.disabled ? false : value[option.key]}
               disabled={option.disabled}
               onChange={(event) => onChange({ ...value, [option.key]: event.target.checked })}
-              className="h-4 w-4 shrink-0 accent-indigo-600"
+              className={cn('w-full', option.disabled && 'opacity-50')}
+              label={
+                <span className="min-w-0">
+                  <span className="block text-[11px] font-medium text-neutral-800">{option.label}</span>
+                  <span className="block text-[9px] text-neutral-500">{option.description}</span>
+                </span>
+              }
             />
-            <span className="min-w-0">
-              <span className="block text-[11px] font-medium text-neutral-800 dark:text-neutral-200">
-                {option.label}
-              </span>
-              <span className="block text-[9px] text-neutral-500 dark:text-neutral-400">
-                {option.description}
-              </span>
-            </span>
-          </label>
+          </div>
         ))}
       </div>
     </fieldset>
