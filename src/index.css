@@ -23,6 +23,11 @@
   text-rendering: optimizeLegibility;
 }
 
+.document-editor-workspace {
+  background-color: color-mix(in srgb, var(--document-editor-bg, #f6f6f4) 92%, #e7e7e4);
+  scroll-behavior: smooth;
+}
+
 @layer base {
   .document-editor-sdk,
   .document-editor-sdk *,

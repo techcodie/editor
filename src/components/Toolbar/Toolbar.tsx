@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode, useSyncExternalStore } from 'react'
+import { Fragment, memo, type ReactNode, useSyncExternalStore } from 'react'
 import * as ToolbarPrimitive from '@radix-ui/react-toolbar'
 import * as TooltipPrimitive from '@radix-ui/react-tooltip'
 import { cn } from '../../lib/cn'
@@ -42,7 +42,7 @@ const TOOLBAR_CLASS =
   // Edge-fade signals there's more to scroll to.
   '[mask-image:linear-gradient(to_right,transparent,black_14px,black_calc(100%-14px),transparent)]'
 
-export function Toolbar({
+function ToolbarComponent({
   api,
   sticky = false,
   size = 'md',
@@ -58,7 +58,7 @@ export function Toolbar({
     // trailingSections that still use raw @radix-ui/react-tooltip directly.
     <TooltipPrimitive.Provider delayDuration={300} skipDelayDuration={200}>
       <ToolbarPrimitive.Root
-        aria-label="Text formatting"
+        aria-label="Document editor ribbon"
         className={cn(TOOLBAR_CLASS, sticky && 'sticky top-3 z-30 sm:top-4', className)}
       >
         {TOOLBAR_SECTIONS.map((section, index) => (
@@ -96,3 +96,5 @@ export function Toolbar({
     </TooltipPrimitive.Provider>
   )
 }
+
+export const Toolbar = memo(ToolbarComponent)

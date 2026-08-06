@@ -55,7 +55,7 @@ export function PresenceBar({
         aria-label={`${collaborators.length} collaborators in this document`}
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
-        className="flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-white/90 px-2.5 text-neutral-600 shadow-[var(--document-editor-shadow-surface)] backdrop-blur-xl transition-[border-color,background-color,box-shadow,transform] hover:-translate-y-px hover:border-neutral-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2"
+        className="flex h-8 items-center gap-1.5 rounded-md px-2 text-neutral-600 transition-[background-color,color] hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
       >
         <span className="flex -space-x-2" aria-hidden>
           {(visible.length ? visible : [{ ...currentUser, clientId: currentUser.id, cursor: null, selection: null, status: 'online' as const, typing: false, lastSeen: Date.now() }]).map((collaborator) => (
