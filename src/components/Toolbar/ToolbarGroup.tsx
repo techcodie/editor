@@ -10,7 +10,7 @@ export interface ToolbarGroupProps {
 
 export function ToolbarGroup({ children, label, className }: ToolbarGroupProps) {
   return (
-    <div role="group" aria-label={label} className={cn('flex items-center gap-px', className)}>
+    <div role="group" aria-label={label} className={cn('flex items-center gap-0.5', className)}>
       {children}
     </div>
   )

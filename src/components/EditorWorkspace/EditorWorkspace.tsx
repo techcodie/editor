@@ -1,6 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Command, FilePenLine, LoaderCircle, MessageSquareText, MousePointer2, ShieldCheck, X } from 'lucide-react'
-import { AssetToolbarControl } from '../../assets/components/AssetToolbarControl'
 import { useAssetInsertion } from '../../assets/hooks/useAssetInsertion'
 import type { Asset } from '../../assets/types/asset'
 import { ComplianceToolbarControl } from '../../compliance/components/ComplianceToolbarControl'
@@ -32,7 +31,6 @@ import {
 import type { DocumentViewMode } from '../../viewer/types/viewer'
 import { ComparisonToolbarControl } from '../../comparison/components/ComparisonToolbar'
 import { ExportToolbarControl } from '../../export/components/ExportToolbarControl'
-import { FormBuilderToolbarControl } from '../../forms/components/FormBuilderToolbarControl'
 import { HistoryToolbarControl } from '../../history/components/HistoryToolbarControl'
 import { historyNamespace } from '../../history/services/historyStorage'
 import { DocumentIntelligenceToolbarControl } from '../../intelligence/components/DocumentIntelligenceToolbarControl'
@@ -57,10 +55,7 @@ import { SuggestionPreview } from '../../review/trackChanges/components/Suggesti
 import { SuggestionToolbar } from '../../review/trackChanges/components/SuggestionToolbar'
 import { useTrackChanges } from '../../review/trackChanges/hooks/useTrackChanges'
 import { WatermarkLayer } from '../../watermark/components/WatermarkLayer'
-import {
-  WatermarkPanel,
-  WatermarkToolbarControl,
-} from '../../watermark/components/WatermarkPanel'
+import { WatermarkPanel } from '../../watermark/components/WatermarkPanel'
 import { useWatermark } from '../../watermark/hooks/useWatermark'
 import { WorkflowToolbarControl } from '../../workflow/components/WorkflowToolbarControl'
 import { loadWorkflow, saveWorkflow } from '../../workflow/services/workflowSerializer'
@@ -95,7 +90,7 @@ import {
   type WorkspaceCommandId,
 } from '../CommandPalette/CommandPalette'
 import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary'
-import { Toolbar } from '../Toolbar'
+import { InsertToolbarControl, PrintToolbarControl, Toolbar } from '../Toolbar'
 import { DocumentEditor } from '../DocumentEditor'
 import { SelectionAi } from '../SelectionAI'
 import type { AskDocumentCommandRequest } from '../AskDocument/AskDocumentPanel'
@@ -321,7 +316,6 @@ export function EditorWorkspace({
   const [isComplianceLoaded, setIsComplianceLoaded] = useState(false)
   const isFormBuilderOpen = activePanel === 'formBuilder'
   const [isFormBuilderLoaded, setIsFormBuilderLoaded] = useState(false)
-  const [formFieldCount, setFormFieldCount] = useState(0)
   const isHistoryOpen = activePanel === 'history'
   const [isHistoryLoaded, setIsHistoryLoaded] = useState(false)
   const [historyVersionCount, setHistoryVersionCount] = useState(0)
@@ -568,16 +562,6 @@ export function EditorWorkspace({
     onApiChange(api)
     return () => onApiChange(null)
   }, [api, onApiChange])
-
-  useEffect(() => {
-    if (!api) {
-      setFormFieldCount(0)
-      return
-    }
-    const sync = () => setFormFieldCount(api.getFormFields().length)
-    sync()
-    return api.subscribe(sync)
-  }, [api])
 
   useEffect(() => {
     if (!api) return
@@ -1440,7 +1424,7 @@ export function EditorWorkspace({
 
   return (
     <div className="document-editor-workspace mx-auto flex w-full max-w-[84rem] items-start justify-center px-3 pb-20 pt-4 sm:px-6 sm:py-7 lg:px-8 lg:py-6">
-      <div className={cn('min-w-0 w-full max-w-[48rem]', viewMode === 'reading' && 'reader-workspace max-w-[54rem]')}>
+      <div className={cn('min-w-0 w-full', viewMode === 'reading' && 'reader-workspace max-w-[54rem]')}>
         {viewMode === 'reading' ? (
           <ReadingMode mode={viewMode} onModeChange={handleViewModeChange} onExit={closeDocumentViewer} />
         ) : (
@@ -1449,138 +1433,164 @@ export function EditorWorkspace({
             <Toolbar
               api={api}
               className="min-w-0"
-              trailingSections={[{ id: 'workspace', label: 'Workspace tools', content: (
-                <>
-                  <AssetToolbarControl
-                    isOpen={isAssetLibraryOpen}
-                    onToggle={() => {
-                      if (isAssetLibraryOpen) closeAssetLibrary()
-                      else openAssetLibrary()
-                    }}
-                  />
-                  {canComment && <ReviewToolbarControl
-                    isActive={isReviewMode}
-                    onToggle={() => {
-                      if (isReviewMode) closeReviewMode()
-                      else openReviewMode()
-                    }}
-                  />}
-                  {canTrackChanges && <SuggestionToolbar
-                    isActive={isSuggestionMode}
-                    onToggle={() => {
-                      if (isSuggestionMode) closeSuggestionMode()
-                      else openSuggestionMode()
-                    }}
-                  />}
-                  {canRead && <ComparisonToolbarControl
-                    isActive={isComparisonOpen}
-                    onToggle={() => {
-                      if (isComparisonOpen) closeComparison()
-                      else openComparison()
-                    }}
-                  />}
-                  <PageLayoutToolbarControl
-                    isOpen={isPageLayoutOpen}
-                    onToggle={() => {
-                      if (isPageLayoutOpen) closePageLayout()
-                      else openPageLayout()
-                    }}
-                  />
-                  <WatermarkToolbarControl
-                    isOpen={isWatermarkOpen}
-                    hasWatermark={Boolean(watermark)}
-                    onToggle={() => {
-                      if (isWatermarkOpen) closeWatermark()
-                      else openWatermark()
-                    }}
-                  />
-                  {canExport && <ExportToolbarControl
-                    isOpen={isExportOpen}
-                    onToggle={() => {
-                      if (isExportOpen) closeExport()
-                      else openExport()
-                    }}
-                  />}
-                  {canRead && <DocumentIntelligenceToolbarControl
-                    isOpen={isIntelligenceOpen}
-                    onToggle={() => {
-                      if (isIntelligenceOpen) closeIntelligence()
-                      else openIntelligence()
-                    }}
-                  />}
-                  {canRead && <ComplianceToolbarControl
-                    isOpen={isComplianceOpen}
-                    onToggle={() => {
-                      if (isComplianceOpen) closeCompliance()
-                      else openCompliance()
-                    }}
-                  />}
-                  {canBuildForms && <FormBuilderToolbarControl
-                    isOpen={isFormBuilderOpen}
-                    fieldCount={formFieldCount}
-                    onToggle={() => {
-                      if (isFormBuilderOpen) closeFormBuilder()
-                      else openFormBuilder()
-                    }}
-                  />}
-                  {canRead && <HistoryToolbarControl
-                    isOpen={isHistoryOpen}
-                    versionCount={historyVersionCount}
-                    onToggle={() => {
-                      if (isHistoryOpen) closeHistory()
-                      else openHistory()
-                    }}
-                  />}
-                  {canUseWorkflow && <WorkflowToolbarControl
-                    isOpen={isWorkflowOpen}
-                    status={currentWorkflow?.status}
-                    onToggle={() => {
-                      if (isWorkflowOpen) closeWorkflow()
-                      else openWorkflow()
-                    }}
-                  />}
-                  {canSearch && <SearchToolbarControl
-                    isOpen={isSearchOpen}
-                    onToggle={() => {
-                      if (isSearchOpen) closeSearch()
-                      else openSearch()
-                    }}
-                  />}
-                  {canRedact && <RedactionToolbarControl
-                    isOpen={isRedactionOpen}
-                    count={redactionRecords.filter((record) => record.decision === 'pending').length}
-                    onToggle={() => {
-                      if (isRedactionOpen) closeRedaction()
-                      else openRedaction()
-                    }}
-                  />}
-                  {canUseContractIntelligence && <ContractToolbarControl
-                    isOpen={isContractOpen}
-                    riskScore={contractAnalysis?.overallRiskScore}
-                    onToggle={() => {
-                      if (isContractOpen) closeContract()
-                      else openContract()
-                    }}
-                  />}
-                  {canUseAi && <WritingAssistantToolbarControl
-                    isOpen={isWritingAssistantOpen}
-                    score={writingAnalysis?.score}
-                    onToggle={() => {
-                      if (isWritingAssistantOpen) closeWritingAssistant()
-                      else openWritingAssistant()
-                    }}
-                  />}
-                  {productivityRegistry && canUseAi && (
-                    <ProductivityToolbarControl
-                      isOpen={isProductivityOpen}
-                      onToggle={() => {
-                        if (isProductivityOpen) closeProductivity()
-                        else openProductivity()
+              trailingSections={[
+                {
+                  id: 'insert',
+                  label: 'Insert',
+                  content: (
+                    <InsertToolbarControl
+                      api={api}
+                      hasWatermark={Boolean(watermark)}
+                      canBuildForms={canBuildForms}
+                      onOpenAssetLibrary={() => {
+                        if (isAssetLibraryOpen) closeAssetLibrary()
+                        else openAssetLibrary()
+                      }}
+                      onOpenWatermark={() => {
+                        if (isWatermarkOpen) closeWatermark()
+                        else openWatermark()
+                      }}
+                      onOpenFormBuilder={() => {
+                        if (isFormBuilderOpen) closeFormBuilder()
+                        else openFormBuilder()
                       }}
                     />
-                  )}
-                </>
-              ) }]}
+                  ),
+                },
+                {
+                  id: 'document',
+                  label: 'Document',
+                  content: (
+                    <>
+                      <PageLayoutToolbarControl
+                        isOpen={isPageLayoutOpen}
+                        onToggle={() => {
+                          if (isPageLayoutOpen) closePageLayout()
+                          else openPageLayout()
+                        }}
+                      />
+                      {canExport && <ExportToolbarControl
+                        isOpen={isExportOpen}
+                        onToggle={() => {
+                          if (isExportOpen) closeExport()
+                          else openExport()
+                        }}
+                      />}
+                      <PrintToolbarControl
+                        isActive={isPrintPreviewOpen}
+                        onToggle={() => handleViewModeChange(isPrintPreviewOpen ? 'editor' : 'pdf-preview')}
+                      />
+                    </>
+                  ),
+                },
+                {
+                  id: 'review',
+                  label: 'Review',
+                  content: (
+                    <>
+                      {canComment && <ReviewToolbarControl
+                        isActive={isReviewMode}
+                        onToggle={() => {
+                          if (isReviewMode) closeReviewMode()
+                          else openReviewMode()
+                        }}
+                      />}
+                      {canTrackChanges && <SuggestionToolbar
+                        isActive={isSuggestionMode}
+                        onToggle={() => {
+                          if (isSuggestionMode) closeSuggestionMode()
+                          else openSuggestionMode()
+                        }}
+                      />}
+                      {canRead && <ComparisonToolbarControl
+                        isActive={isComparisonOpen}
+                        onToggle={() => {
+                          if (isComparisonOpen) closeComparison()
+                          else openComparison()
+                        }}
+                      />}
+                      {canRead && <HistoryToolbarControl
+                        isOpen={isHistoryOpen}
+                        versionCount={historyVersionCount}
+                        onToggle={() => {
+                          if (isHistoryOpen) closeHistory()
+                          else openHistory()
+                        }}
+                      />}
+                      {canUseWorkflow && <WorkflowToolbarControl
+                        isOpen={isWorkflowOpen}
+                        status={currentWorkflow?.status}
+                        onToggle={() => {
+                          if (isWorkflowOpen) closeWorkflow()
+                          else openWorkflow()
+                        }}
+                      />}
+                    </>
+                  ),
+                },
+                {
+                  id: 'ai',
+                  label: 'AI',
+                  content: (
+                    <>
+                      {canRead && <DocumentIntelligenceToolbarControl
+                        isOpen={isIntelligenceOpen}
+                        onToggle={() => {
+                          if (isIntelligenceOpen) closeIntelligence()
+                          else openIntelligence()
+                        }}
+                      />}
+                      {canRead && <ComplianceToolbarControl
+                        isOpen={isComplianceOpen}
+                        onToggle={() => {
+                          if (isComplianceOpen) closeCompliance()
+                          else openCompliance()
+                        }}
+                      />}
+                      {canSearch && <SearchToolbarControl
+                        isOpen={isSearchOpen}
+                        onToggle={() => {
+                          if (isSearchOpen) closeSearch()
+                          else openSearch()
+                        }}
+                      />}
+                      {canRedact && <RedactionToolbarControl
+                        isOpen={isRedactionOpen}
+                        count={redactionRecords.filter((record) => record.decision === 'pending').length}
+                        onToggle={() => {
+                          if (isRedactionOpen) closeRedaction()
+                          else openRedaction()
+                        }}
+                      />}
+                      {canUseContractIntelligence && <ContractToolbarControl
+                        isOpen={isContractOpen}
+                        riskScore={contractAnalysis?.overallRiskScore}
+                        onToggle={() => {
+                          if (isContractOpen) closeContract()
+                          else openContract()
+                        }}
+                      />}
+                      {canUseAi && <WritingAssistantToolbarControl
+                        isOpen={isWritingAssistantOpen}
+                        score={writingAnalysis?.score}
+                        onToggle={() => {
+                          if (isWritingAssistantOpen) closeWritingAssistant()
+                          else openWritingAssistant()
+                        }}
+                      />}
+                      {productivityRegistry && canUseAi && (
+                        <ProductivityToolbarControl
+                          isOpen={isProductivityOpen}
+                          onToggle={() => {
+                            if (isProductivityOpen) closeProductivity()
+                            else openProductivity()
+                          }}
+                        />
+                      )}
+                    </>
+                  ),
+                },
+              ]}
             />
           )}
           {canRead && <div className="hidden sm:block">
@@ -1677,7 +1687,7 @@ export function EditorWorkspace({
           )}
         </div>
         )}
-        <div className="relative pt-3.5 sm:pt-4">
+        <div className="relative mx-auto w-full max-w-[48rem] pt-3.5 sm:pt-4">
           {pendingAsset && (
             <div className="absolute left-1/2 top-6 z-20 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-[var(--document-editor-shadow-overlay)]" role="status">
               <MousePointer2 size={14} strokeWidth={1.9} className="shrink-0" aria-hidden />

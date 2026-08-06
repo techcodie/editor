@@ -1,4 +1,5 @@
 import { Columns2, FileDiff, PanelTopClose, Rows3, X } from 'lucide-react'
+import { ToolbarButton } from '../../components/Toolbar/ToolbarButton'
 import { cn } from '../../lib/cn'
 import type { ComparisonViewMode } from '../types/comparison'
 
@@ -12,22 +13,13 @@ export function ComparisonToolbarControl({
   onToggle,
 }: ComparisonToolbarControlProps) {
   return (
-    <button
+    <ToolbarButton
       id="comparison-trigger"
-      type="button"
+      icon={FileDiff}
+      label="Compare documents"
+      isActive={isActive}
       onClick={onToggle}
-      aria-label="Compare documents"
-      aria-pressed={isActive}
-      title="Compare documents"
-      className={cn(
-        'flex h-8 w-8 items-center justify-center rounded-md transition-[background-color,color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35',
-        isActive
-          ? 'bg-indigo-100 text-indigo-700 shadow-sm'
-          : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950',
-      )}
-    >
-      <FileDiff size={16} strokeWidth={1.9} aria-hidden />
-    </button>
+    />
   )
 }
 

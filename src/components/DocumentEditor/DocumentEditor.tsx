@@ -4,12 +4,14 @@ import { cn } from '../../lib/cn'
 import type { DocumentEditorProps } from '../../types/editor'
 
 const CONTAINER_CLASS =
-  'w-full rounded-lg border border-neutral-200 bg-white px-5 py-9 ' +
-  'shadow-[var(--document-editor-shadow-surface)] ' +
+  'w-full rounded-lg border border-neutral-200/80 bg-white px-5 py-9 ' +
+  // A softer, wider shadow than a generic card reads more like a resting
+  // sheet of paper on a grey desk — the Word/Docs/Jodit reference feel.
+  'shadow-[0_1px_1px_rgba(20,20,20,0.04),0_1px_3px_rgba(20,20,20,0.06),0_24px_48px_-24px_rgba(20,20,20,0.22)] ' +
   'transition-[border-color,box-shadow] duration-200 ' +
   'focus-within:border-neutral-300 ' +
-  'focus-within:shadow-[0_1px_2px_rgba(20,20,20,0.05),0_20px_52px_-28px_rgba(20,20,20,0.4),0_0_0_3px_color-mix(in_srgb,var(--document-editor-focus-ring)_35%,transparent)] ' +
-  'sm:px-12 sm:py-14 md:px-16 md:py-16'
+  'focus-within:shadow-[0_1px_2px_rgba(20,20,20,0.05),0_24px_56px_-28px_rgba(20,20,20,0.4),0_0_0_3px_color-mix(in_srgb,var(--document-editor-focus-ring)_35%,transparent)] ' +
+  'sm:px-14 sm:py-16 md:px-[4.5rem] md:py-20'
 
 function DocumentEditorComponent({
   editor,

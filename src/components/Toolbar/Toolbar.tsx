@@ -33,7 +33,7 @@ export interface ToolbarProps {
 }
 
 const TOOLBAR_CLASS =
-  'flex w-full items-center gap-0.5 rounded-lg border border-neutral-200 bg-white/90 p-1 ' +
+  'flex w-full items-center gap-0.5 rounded-lg border border-neutral-200 bg-white/90 p-1.5 ' +
   'shadow-[0_1px_2px_rgba(20,20,20,0.04),0_8px_24px_-16px_rgba(20,20,20,0.28)] ' +
   'supports-[backdrop-filter]:bg-white/80 backdrop-blur-xl ' +
   // A Jodit-style ribbon always stays a single row and scrolls horizontally

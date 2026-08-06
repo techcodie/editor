@@ -45,11 +45,11 @@ const TRIGGER_CLASS =
   'data-[state=open]:bg-neutral-900 data-[state=open]:text-white'
 
 const CONTENT_CLASS =
-  'z-50 min-w-[11rem] overflow-hidden rounded-lg border border-neutral-200 bg-white p-1 ' +
+  'z-50 min-w-[12rem] overflow-hidden rounded-xl border border-neutral-200/80 bg-white p-1.5 ' +
   'shadow-[var(--document-editor-shadow-raised)] [animation:toolbar-tooltip-in_120ms_ease-out]'
 
 const ITEM_CLASS =
-  'flex w-full cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-neutral-700 ' +
+  'flex w-full cursor-pointer select-none items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-neutral-700 ' +
   'outline-none transition-colors duration-100 ' +
   'data-[highlighted]:bg-neutral-100 data-[highlighted]:text-neutral-950 ' +
   'data-[disabled]:pointer-events-none data-[disabled]:opacity-40'

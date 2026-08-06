@@ -21,7 +21,7 @@ import { IDENTITY_PERMISSIONS } from '../identity/types/permissions'
 
 const DEFAULT_THEME: DocumentEditorTheme = {
   colors: {
-    background: '#f6f6f4',
+    background: '#f1f1ee',
     surface: '#ffffff',
     text: '#171717',
     mutedText: '#737373',

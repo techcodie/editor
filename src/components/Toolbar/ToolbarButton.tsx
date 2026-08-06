@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Loader2 } from 'lucide-react'
 import * as ToolbarPrimitive from '@radix-ui/react-toolbar'
@@ -27,6 +28,8 @@ export interface ToolbarButtonProps {
   ariaExpanded?: boolean
   /** Id of the panel/dialog this button controls. */
   ariaControls?: string
+  /** Small status/count indicator rendered in the top-right corner (e.g. a pending count or risk score). */
+  badge?: ReactNode
 }
 
 const SIZE: Record<ToolbarButtonSize, { button: string; icon: number }> = {
@@ -56,6 +59,7 @@ export function ToolbarButton({
   id,
   ariaExpanded,
   ariaControls,
+  badge,
 }: ToolbarButtonProps) {
   const dimensions = SIZE[size]
 
@@ -70,12 +74,23 @@ export function ToolbarButton({
         aria-controls={ariaControls}
         disabled={disabled || isLoading}
         onClick={onClick}
-        className={cn(BUTTON_CLASS, dimensions.button)}
+        className={cn(BUTTON_CLASS, 'relative', dimensions.button)}
       >
         {isLoading ? (
           <Loader2 size={dimensions.icon} strokeWidth={2} className="animate-spin" aria-hidden />
         ) : (
           <Icon size={dimensions.icon} strokeWidth={1.9} aria-hidden />
+        )}
+        {badge != null && (
+          <span className="pointer-events-none absolute -right-1 -top-1 flex items-center justify-center">
+            {typeof badge === 'string' || typeof badge === 'number' ? (
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-neutral-900 px-1 text-[9px] font-semibold leading-none text-white shadow-sm">
+                {badge}
+              </span>
+            ) : (
+              badge
+            )}
+          </span>
         )}
       </ToolbarPrimitive.Button>
     </Tooltip>
