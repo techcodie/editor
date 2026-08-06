@@ -66,6 +66,11 @@ export function Editor() {
 - [Ask Document, knowledge sources, voice, and troubleshooting](docs/GUIDES.md)
 - [Plugin guide](docs/PLUGINS.md)
 - [Migration notes](docs/MIGRATION.md)
+- [Production architecture](docs/ARCHITECTURE.md)
+- [Environment variables](docs/ENVIRONMENT.md)
+- [Provider and API-key inventory](docs/PROVIDERS.md)
+- [Deployment guide](docs/DEPLOYMENT.md)
+- [Production checklist](docs/PRODUCTION_CHECKLIST.md)
 - [Version history](CHANGELOG.md)
 
 ## Repository Development
@@ -86,7 +91,10 @@ Useful release commands:
 npm run typecheck
 npm run lint
 npm run build
+npm run test:server
+npm run verify:sdk
 npm run pack:check
+npm run audit:production
 ```
 
 The React consumer example lives in [`examples/react`](examples/react).

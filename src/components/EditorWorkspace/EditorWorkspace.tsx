@@ -26,6 +26,7 @@ import { useViewMode } from '../../viewer/hooks/useViewMode'
 import { createViewerPages } from '../../viewer/services/viewManager'
 import {
   isFormSubmissionMessage,
+  getFormSubmissionChannelName,
   normalizeSubmissionValues,
 } from '../../viewer/services/shareEngine'
 import type { DocumentViewMode } from '../../viewer/types/viewer'
@@ -325,6 +326,7 @@ export function EditorWorkspace({
   const askDocumentButtonRef = useRef<HTMLButtonElement>(null)
   const identityButtonRef = useRef<HTMLButtonElement>(null)
   const validShareIdsRef = useRef<string[]>([])
+  const shareChannelsRef = useRef(new Map<string, BroadcastChannel>())
   const lastDocumentTextRef = useRef<string | null>(null)
   const lastSelectionRef = useRef<string | null>(null)
   const AskDocumentIcon = config.theme.icons.askDocument ?? MessageSquareText
@@ -1519,25 +1521,46 @@ export function EditorWorkspace({
     setIsShareOpen(true)
   }, [])
 
+  const emitFormSubmission = useCallback((message: unknown) => {
+    if (!isFormSubmissionMessage(message)) return
+    if (!validShareIdsRef.current.includes(message.payload.shareId)) return
+    events.emit('formSubmit', {
+      ...message.payload,
+      values: normalizeSubmissionValues(message.payload.values),
+    })
+  }, [events])
+
   const registerShareArtifact = useCallback((shareId: string) => {
     validShareIdsRef.current = [
       shareId,
       ...validShareIdsRef.current.filter((id) => id !== shareId),
     ].slice(0, 32)
-  }, [])
+    if (typeof BroadcastChannel !== 'function' || shareChannelsRef.current.has(shareId)) return
+
+    const channel = new BroadcastChannel(getFormSubmissionChannelName(shareId))
+    channel.onmessage = (event) => emitFormSubmission(event.data)
+    shareChannelsRef.current.set(shareId, channel)
+    while (shareChannelsRef.current.size > 32) {
+      const oldest = shareChannelsRef.current.entries().next().value
+      if (!oldest) break
+      oldest[1].close()
+      shareChannelsRef.current.delete(oldest[0])
+    }
+  }, [emitFormSubmission])
 
   useEffect(() => {
+    const channels = shareChannelsRef.current
     const handleMessage = (event: MessageEvent) => {
-      if (!isFormSubmissionMessage(event.data)) return
-      if (!validShareIdsRef.current.includes(event.data.payload.shareId)) return
-      events.emit('formSubmit', {
-        ...event.data.payload,
-        values: normalizeSubmissionValues(event.data.payload.values),
-      })
+      if (event.origin !== window.location.origin) return
+      emitFormSubmission(event.data)
     }
     window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [events])
+    return () => {
+      window.removeEventListener('message', handleMessage)
+      for (const channel of channels.values()) channel.close()
+      channels.clear()
+    }
+  }, [emitFormSubmission])
 
   const handleViewModeChange = useCallback((nextMode: DocumentViewMode) => {
     setIsPrintPreviewOpen(nextMode === 'pdf-preview')
@@ -1726,6 +1749,14 @@ export function EditorWorkspace({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [canSearch, closeSearch, config.keyboardShortcuts, isSearchOpen, openSearch])
+
+  const isMobileSurfaceOpen =
+    isAskDocumentOpen || isAssetLibraryOpen || isReviewMode || isSuggestionMode ||
+    isComparisonOpen || isPageLayoutOpen || isWatermarkOpen || isExportOpen ||
+    isIntelligenceOpen || isComplianceOpen || isFormBuilderOpen || isHistoryOpen ||
+    isWorkflowOpen || isSearchOpen || isRedactionOpen || isContractOpen ||
+    isWritingAssistantOpen || isProductivityOpen || isIdentityOpen || isShareOpen ||
+    isCommandPaletteOpen || isPrintPreviewOpen
 
   return (
     <div className="document-editor-workspace mx-auto flex w-full max-w-[84rem] items-start justify-center px-3 pb-20 pt-4 sm:px-6 sm:py-7 lg:px-8 lg:py-6">
@@ -2320,7 +2351,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
       </div>
-      {(viewMode === 'editor' || viewMode === 'reading') && (
+      {(viewMode === 'editor' || viewMode === 'reading') && !isMobileSurfaceOpen && (
         <MobileToolbar
           mode={viewMode}
           aiEnabled={Boolean(config.ai && canUseAi)}

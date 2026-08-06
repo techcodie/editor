@@ -19,6 +19,8 @@ export interface FormShareOptions {
   title: string
   description?: string
   documentText?: string
+  /** Optional exact origin for hosts that receive submissions via window messaging. */
+  submissionTargetOrigin?: string
 }
 
 export interface FormShareArtifact {

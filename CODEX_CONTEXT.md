@@ -1144,6 +1144,22 @@ system.
 - Motion respects `prefers-reduced-motion`, dialogs expose accessible names and
   descriptions, streaming regions expose busy state, and responsive overlays
   avoid horizontal viewport overflow.
+- Shared UI primitives standardize buttons, inputs, badges, cards, empty and
+  loading states, tooltips, dialogs, panel shells, focus trapping, and motion.
+  Semantic theme tokens cover interaction surfaces, status colors, focus,
+  elevation, spacing, and radii while preserving host overrides.
+- The reference Node server exposes `/api/health` and provider-aware
+  `/api/ready`, applies security and no-store API headers, validates exact CORS
+  origins when configured, limits AI requests per client, and bounds provider
+  streams with cancellation and a configurable timeout.
+- Static assets use correct JavaScript module, source-map, image, and font MIME
+  types. Only fingerprinted `dist/assets` files receive immutable caching.
+- Vercel frontend and Render API configuration, GitHub verification automation,
+  server smoke coverage, environment documentation, deployment instructions,
+  and a production checklist are included in the repository.
+- The standalone application may target a separate HTTPS API through
+  `VITE_API_BASE_URL`; the public SDK retains its existing relative endpoint
+  defaults and host-provided configuration contract.
 
 ---
 
@@ -1553,6 +1569,7 @@ server/
   contract.ts            Contract summary endpoint
   writing.ts             Explicit writing rewrite endpoint
   http.ts                Shared request validation and errors
+  rate-limit.ts          Bounded single-instance AI request limiter
   prompts.ts             Centralized AI prompts
 
 shared/
@@ -1578,6 +1595,7 @@ src/
     ErrorBoundary/       Application and isolated-feature error containment
     SelectionAI/         Selection toolbar and result preview
     Toolbar/             Formatting controls
+    ui/                  Shared accessible controls, dialogs, panels, states, and motion primitives
   editor/
     components/          Replacement review UI
     hooks/               Editor insertion lifecycle and capabilities
@@ -1686,8 +1704,12 @@ src/
   sdk-entry.ts           ESM library and stylesheet build entry
   styles/editor.css      Editor typography and content styling
 
-docs/                    API, configuration, guides, plugins, and migration notes
+docs/                    API, configuration, architecture, environment, providers, deployment, checklist, guides, plugins, and migration notes
 examples/react/          React consumer example built against the SDK artifact
+scripts/                 Development launcher, SDK checks, and server smoke verification
+.github/workflows/       Automated release verification
+vercel.json              Vite frontend deployment and security headers
+render.yaml              Reference Node API deployment blueprint
 ```
 
 ---
@@ -1715,7 +1737,7 @@ Avoid:
 
 ## Current Project Status
 
-**Version 1.0 Complete; Enterprise Identity and Access Platform Complete**
+**Version 1.0 Complete; Enterprise Production Release Ready**
 
 Completed:
 
@@ -1758,6 +1780,24 @@ Completed:
 - Bounded audit timeline and optional non-blocking host audit adapter
 - Audit integration for permission decisions, workflow decisions, exports,
   redaction actions, AI requests, sessions, providers, roles, and overrides
+- Production Node server health and readiness endpoints, exact-origin CORS,
+  bounded per-client AI rate limiting, request/provider timeouts, graceful
+  shutdown, security headers, and hardened static-file caching and MIME types
+- Deterministic server smoke verification for health, readiness, CORS, headers,
+  content-type validation, API methods, missing routes, and shutdown
+- Vercel frontend and Render API deployment configuration with separate-origin
+  frontend endpoint support
+- GitHub verification automation covering TypeScript, lint, application, SDK,
+  example and server builds, server smoke behavior, SDK exports, package
+  contents, and production dependency auditing
+- Complete environment, architecture, deployment, rollback, cost, provider,
+  secret-handling, and production-checklist documentation
+- Direct SDK dependency declarations and externalization for Tiptap Core,
+  ProseMirror packages, and the Table extension to prevent consumer duplication
+- Share-specific form submission channels and explicit-origin fallback window
+  messaging; wildcard cross-window submission delivery is no longer used
+- Mobile document actions yield to full-screen panels and dialogs so they do
+  not cover AI inputs or other panel controls
 - Editable Tiptap table nodes used by explicit table commands
 - Cohesive editor and AI UI polish across desktop and mobile
 - Ask Document speech-to-text input with live, editable transcription
@@ -2086,8 +2126,10 @@ changes, and no external grammar service or new production dependency was added.
 Document Experience composes the existing Editor API, pagination, print
 preview, and protected form definitions. Views and share artifacts remain
 instance-local, generated HTML is escaped, and form submissions are returned
-through typed host callbacks. Export behavior and pagination internals remain
-unchanged, and no new production dependency was added.
+through typed host callbacks over a share-specific browser channel. Optional
+window delivery requires an explicit target origin. Export behavior and
+pagination internals remain unchanged, and no new production dependency was
+added.
 AI Productivity composes the existing Editor API, Review, Track Changes,
 Selection AI, Writing Assistant, and native history through one instance-scoped
 provider registry. Local mock images, deterministic writing analysis, and
@@ -2175,6 +2217,10 @@ These are not missing. Do not implement unless requested.
 - Command registry
 - Cloud image, grammar, and voice provider adapters
 - Provider credentials, authentication, usage metering, and billing
+- Distributed rate limiting and centralized API gateway enforcement for
+  multi-replica backend deployments
+- Production observability, alerting, durable server audit retention, and SLA
+  monitoring owned by the deployment host
 - Additional public theme icon slots
 - Headless and non-React adapters
 - Upload providers
