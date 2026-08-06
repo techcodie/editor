@@ -1,5 +1,6 @@
 const DEFAULT_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const DEFAULT_MODEL = 'llama-3.1-8b-instant'
+const DEFAULT_TIMEOUT_MS = 30_000
 
 export function getGroqModel(): string {
   return process.env.GROQ_MODEL?.trim() || DEFAULT_MODEL
@@ -46,6 +47,27 @@ function parseChunk(data: string): string | null {
   return content
 }
 
+function getApiUrl(): string {
+  const configured = process.env.GROQ_API_URL?.trim() || DEFAULT_API_URL
+  let url: URL
+  try {
+    url = new URL(configured)
+  } catch {
+    throw new GroqProviderError('configuration', 'GROQ_API_URL is invalid.')
+  }
+  if (url.protocol !== 'https:') {
+    throw new GroqProviderError('configuration', 'GROQ_API_URL must use HTTPS.')
+  }
+  return url.toString()
+}
+
+function getTimeoutMs(): number {
+  const configured = Number(process.env.GROQ_TIMEOUT_MS)
+  return Number.isInteger(configured) && configured >= 1_000 && configured <= 120_000
+    ? configured
+    : DEFAULT_TIMEOUT_MS
+}
+
 export async function* streamGroqCompletion(
   messages: GroqChatMessage[],
   signal: AbortSignal,
@@ -56,8 +78,19 @@ export async function* streamGroqCompletion(
   }
 
   let response: Response
+  const providerController = new AbortController()
+  const handleAbort = () => providerController.abort(signal.reason)
+  const timeout = setTimeout(
+    () => providerController.abort(new DOMException('Groq request timed out.', 'TimeoutError')),
+    getTimeoutMs(),
+  )
+  const cleanup = () => {
+    clearTimeout(timeout)
+    signal.removeEventListener('abort', handleAbort)
+  }
+  signal.addEventListener('abort', handleAbort, { once: true })
   try {
-    response = await fetch(process.env.GROQ_API_URL ?? DEFAULT_API_URL, {
+    response = await fetch(getApiUrl(), {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -70,18 +103,21 @@ export async function* streamGroqCompletion(
         temperature: 0.1,
         max_completion_tokens: 1200,
       }),
-      signal,
+      signal: providerController.signal,
     })
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') throw error
+  } catch {
+    cleanup()
+    if (signal.aborted) throw new DOMException('AI request cancelled.', 'AbortError')
     throw new GroqProviderError('upstream', 'Groq could not be reached.')
   }
 
   if (!response.ok) {
+    cleanup()
     const kind: GroqErrorKind = response.status === 429 ? 'rate_limit' : 'upstream'
     throw new GroqProviderError(kind, `Groq request failed with status ${response.status}.`)
   }
   if (!response.body) {
+    cleanup()
     throw new GroqProviderError('invalid_response', 'Groq returned no response body.')
   }
 
@@ -90,29 +126,40 @@ export async function* streamGroqCompletion(
   let buffer = ''
   let receivedDone = false
 
-  while (true) {
-    const { value, done } = await reader.read()
-    buffer += decoder.decode(value, { stream: !done }).replaceAll('\r\n', '\n')
+  try {
+    while (true) {
+      const { value, done } = await reader.read()
+      buffer += decoder.decode(value, { stream: !done }).replaceAll('\r\n', '\n')
 
-    const frames = buffer.split('\n\n')
-    buffer = done ? '' : (frames.pop() ?? '')
+      const frames = buffer.split('\n\n')
+      buffer = done ? '' : (frames.pop() ?? '')
 
-    for (const frame of frames) {
-      for (const line of frame.split('\n')) {
-        if (!line.startsWith('data:')) continue
-        const data = line.slice(5).trim()
-        if (!data) continue
-        if (data === '[DONE]') {
-          receivedDone = true
-          continue
+      for (const frame of frames) {
+        for (const line of frame.split('\n')) {
+          if (!line.startsWith('data:')) continue
+          const data = line.slice(5).trim()
+          if (!data) continue
+          if (data === '[DONE]') {
+            receivedDone = true
+            continue
+          }
+
+          const content = parseChunk(data)
+          if (content) yield content
         }
-
-        const content = parseChunk(data)
-        if (content) yield content
       }
-    }
 
-    if (done) break
+      if (done) break
+    }
+  } catch (error) {
+    if (signal.aborted) throw new DOMException('AI request cancelled.', 'AbortError')
+    if (providerController.signal.aborted) {
+      throw new GroqProviderError('upstream', 'Groq response timed out.')
+    }
+    throw error
+  } finally {
+    cleanup()
+    reader.releaseLock()
   }
 
   if (!receivedDone) {

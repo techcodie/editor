@@ -1,0 +1,41 @@
+name: Verify
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Build application, SDK, and example
+        run: npm run build
+      - name: Verify server
+        run: npm run test:server
+      - name: Verify SDK contract
+        run: npm run verify:sdk
+      - name: Verify package contents
+        run: npm run pack:check
+      - name: Audit production dependencies
+        run: npm run audit:production

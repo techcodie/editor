@@ -3,6 +3,20 @@ import type { AiErrorResponse } from '../shared/ai.js'
 
 const MAX_BODY_BYTES = 256 * 1024
 
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "connect-src 'self' https: wss:",
+  "worker-src 'self' blob:",
+  "media-src 'self' data: blob:",
+  "form-action 'self'",
+].join('; ')
+
 export class RequestValidationError extends Error {
   constructor(
     readonly status: number,
@@ -16,6 +30,54 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
+export function applySecurityHeaders(response: ServerResponse): void {
+  response.setHeader('Content-Security-Policy', CONTENT_SECURITY_POLICY)
+  response.setHeader('Permissions-Policy', 'camera=(), geolocation=(), microphone=(self)')
+  response.setHeader('Referrer-Policy', 'no-referrer')
+  response.setHeader('Strict-Transport-Security', 'max-age=31536000')
+  response.setHeader('X-Content-Type-Options', 'nosniff')
+  response.setHeader('X-Permitted-Cross-Domain-Policies', 'none')
+}
+
+function appendVary(response: ServerResponse, value: string): void {
+  const current = response.getHeader('Vary')
+  const values = new Set(
+    (Array.isArray(current) ? current : String(current ?? '').split(','))
+      .map((item) => item.trim())
+      .filter(Boolean),
+  )
+  values.add(value)
+  response.setHeader('Vary', [...values].join(', '))
+}
+
+function allowedOrigins(): Set<string> {
+  return new Set(
+    (process.env.CORS_ORIGINS ?? '')
+      .split(',')
+      .map((origin) => origin.trim().replace(/\/$/, ''))
+      .filter((origin) => /^https?:\/\/[^/]+$/i.test(origin)),
+  )
+}
+
+export function applyCors(request: IncomingMessage, response: ServerResponse): boolean {
+  const origin = request.headers.origin?.replace(/\/$/, '')
+  if (!origin) return true
+
+  const configuredOrigins = allowedOrigins()
+  if (configuredOrigins.size === 0) return true
+  appendVary(response, 'Origin')
+  if (!configuredOrigins.has(origin)) {
+    sendJsonError(response, 403, 'This origin is not allowed.')
+    return false
+  }
+
+  response.setHeader('Access-Control-Allow-Origin', origin)
+  response.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, OPTIONS')
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  response.setHeader('Access-Control-Max-Age', '600')
+  return true
+}
+
 export function requireJson(request: IncomingMessage): void {
   if (!request.headers['content-type']?.includes('application/json')) {
     throw new RequestValidationError(415, 'The request must use JSON.')
@@ -27,6 +89,13 @@ export function readJson(request: IncomingMessage): Promise<unknown> {
     const chunks: Buffer[] = []
     let size = 0
     let tooLarge = false
+
+    const contentLength = Number(request.headers['content-length'])
+    if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
+      request.resume()
+      reject(new RequestValidationError(413, 'The request is too large.'))
+      return
+    }
 
     request.on('data', (chunk: Buffer) => {
       size += chunk.length
@@ -49,6 +118,7 @@ export function readJson(request: IncomingMessage): Promise<unknown> {
         reject(new RequestValidationError(400, 'The request body must be valid JSON.'))
       }
     })
+    request.on('aborted', () => reject(new Error('The request was aborted.')))
     request.on('error', reject)
   })
 }
@@ -66,7 +136,6 @@ export function sendJsonError(response: ServerResponse, status: number, message:
   response.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
-    'X-Content-Type-Options': 'nosniff',
   })
   response.end(JSON.stringify(body))
 }

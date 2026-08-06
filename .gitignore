@@ -17,6 +17,11 @@ dist-sdk
 .env.*
 !.env.example
 
+# Local benchmark/submission artifacts (not part of the editor product)
+*_submission_*.zip
+*_submission_*/
+sentinel-*-working/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

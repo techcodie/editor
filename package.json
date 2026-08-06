@@ -91,6 +91,9 @@
     "type": "git",
     "url": "https://github.com/techcodie/editor.git"
   },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -102,16 +105,19 @@
     "typecheck": "tsc -b --pretty false",
     "build": "npm run build:app && npm run build:sdk && npm run build:example",
     "build:app": "tsc -b && vite build",
+    "build:server": "tsc -p tsconfig.server.json",
     "build:sdk": "vite build --config vite.sdk.config.ts && tsc -p tsconfig.sdk.json",
     "build:server": "tsc -p tsconfig.server.json",
     "build:example": "tsc -p examples/react/tsconfig.json && vite build --config examples/react/vite.config.ts",
     "lint": "oxlint",
     "pack:check": "npm pack --dry-run --json",
     "verify:sdk": "node scripts/verify-sdk.mjs",
-    "verify:release": "npm run typecheck && npm run lint && npm run build:server && npm run build:app",
+    "test:server": "npm run build:server && node scripts/smoke-server.mjs",
+    "audit:production": "npm audit --omit=dev --audit-level=high",
+    "verify:release": "npm run typecheck && npm run lint && npm run build && npm run test:server && npm run verify:sdk && npm run pack:check",
     "start": "node --env-file-if-exists=.env dist-server/server/index.js",
     "preview": "npm run build:app && npm run start",
-    "prepublishOnly": "npm run typecheck && npm run lint && npm run build:sdk && npm run verify:sdk"
+    "prepublishOnly": "npm run typecheck && npm run lint && npm run build:sdk && npm run test:server && npm run verify:sdk"
   },
   "dependencies": {
     "@radix-ui/react-toolbar": "^1.1.16",
@@ -121,6 +127,8 @@
     "@tiptap/extension-placeholder": "^3.28.0",
     "@tiptap/extension-table": "^3.28.0",
     "@tiptap/extension-text-align": "^3.28.0",
+    "@tiptap/core": "^3.28.0",
+    "@tiptap/pm": "^3.28.0",
     "@tiptap/react": "^3.28.0",
     "@tiptap/starter-kit": "^3.28.0",
     "diff": "^9.0.0",

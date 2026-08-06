@@ -1,110 +1,86 @@
-# Deployment
+# Deployment Guide
 
-This repository deploys as two separate services:
+The lowest-manual-work preview architecture is Vercel for the Vite frontend and
+Render for the reference Node API. The repository includes `vercel.json` and
+`render.yaml`.
 
-- **Backend** (`server/`, the Groq-backed AI proxy + static-file fallback) → **Render**
-- **Frontend** (the Vite app in `src/`) → **Vercel**
+## Important Plan Limits
 
-They are independent deployments connected over HTTPS: Vercel serves the static
-app and proxies `/api/*` requests to the Render service (see `vercel.json`).
+Vercel Hobby is limited to personal or non-commercial use. Render states that
+Free web services are for previews and should not be used for production; they
+also sleep after 15 idle minutes. Use these free plans only for a private demo or
+evaluation. A commercial production deployment should use Vercel Pro and a paid
+Render web service (or equivalent host infrastructure).
 
-## 1. Deploy the backend to Render
+## 1. Create The Groq Key
 
-The repo includes `render.yaml` (a Render Blueprint) that pins the exact build
-command, start command, health check, and Node version so the service
-deploys the same way every time.
+1. Visit [GroqCloud](https://console.groq.com/keys) and sign in.
+2. Select or create a project for this editor.
+3. Open **API Keys** and click **Create API Key**.
+4. Name it `techcodie-editor-production`.
+5. Copy the key once. It will be pasted into Render as `GROQ_API_KEY`.
 
-1. In the Render dashboard: **New → Blueprint**, point it at this repo/branch.
-   Render will read `render.yaml` and create the `techcodie-editor-api` web
-   service automatically.
-2. Set the required secret environment variables on the service (these are
-   marked `sync: false` in `render.yaml`, so Render won't set them for you):
-   - `GROQ_API_KEY` — required. Requests fail with a 503 until this is set.
-   - `CORS_ALLOWED_ORIGIN` — recommended for production. Comma-separated list
-     of exact origins allowed to call the API (e.g.
-     `https://your-app.vercel.app,https://your-custom-domain.com`). If left
-     unset, the API allows any origin — acceptable since every endpoint is a
-     stateless JSON/SSE proxy with a server-only API key and no
-     cookies/sessions, but tighten this for stricter deployments.
-3. Deploy. Render will run `npm ci && npm run build:server`, then
-   `npm start`, and poll `GET /healthz` (returns `{"status":"ok"}`) to confirm
-   the service is live.
-4. Copy the resulting service URL (`https://<service>.onrender.com`).
+The default `llama-3.1-8b-instant` model has a Groq free tier. Current exact
+limits are shown on the Groq [rate-limits page](https://console.groq.com/docs/rate-limits).
 
-If you don't use the Blueprint, configure an equivalent Node web service by
-hand with these exact settings:
+## 2. Deploy The API To Render
 
-| Setting | Value |
-|---|---|
-| Build Command | `npm ci && npm run build:server` |
-| Start Command | `npm start` |
-| Health Check Path | `/healthz` |
-| Node Version | `>=22.12.0` (set `NODE_VERSION=22.12.0` or add a `.node-version` file) |
-| Environment Variables | `GROQ_API_KEY`, `GROQ_MODEL` (optional, defaults to `llama-3.1-8b-instant`), `HOST=0.0.0.0`, `CORS_ALLOWED_ORIGIN` |
+1. Visit [Render](https://dashboard.render.com/) and sign in with GitHub.
+2. Click **New**, then **Blueprint**.
+3. Connect `techcodie/editor` and select `main`.
+4. Render reads `render.yaml` and creates `techcodie-editor-api`.
+5. For `GROQ_API_KEY`, paste the Groq key.
+6. For `CORS_ORIGINS`, temporarily enter `http://127.0.0.1:5173`.
+7. Click **Apply** and wait for the service to become live.
+8. Copy the `https://...onrender.com` service URL.
+9. Open `<service-url>/api/health`; it must return `{"status":"ok"}`.
+10. Open `<service-url>/api/ready`; it must return `{"status":"ready","provider":"configured"}`.
 
-The Build Command must run a full `npm ci` (not `--omit=dev`/`--production`):
-`typescript` and `@types/node` are devDependencies needed to compile the
-server, even though the compiled output only needs plain Node to run.
+## 3. Deploy The Frontend To Vercel
 
-## 2. Point Vercel at the Render backend
+1. Visit [Vercel](https://vercel.com/new) and click **Add New Project**.
+2. Import `techcodie/editor`.
+3. Keep the detected Vite settings; `vercel.json` sets the build command and
+   output directory.
+4. Open **Environment Variables**.
+5. Add `VITE_API_BASE_URL` and paste the Render service URL without a trailing
+   slash.
+6. Enable it for Production and Preview as appropriate.
+7. Click **Deploy**.
+8. Copy the final Vercel URL after the deployment succeeds.
 
-`vercel.json` proxies `/api/*` to the Render service so the frontend can keep
-calling relative paths (`/api/ask-document`, etc.) unchanged in every
-environment.
+## 4. Lock CORS To Vercel
 
-1. **Required manual step:** open `vercel.json` and replace
-   `https://YOUR-RENDER-SERVICE.onrender.com` with the real Render URL from
-   step 1.4 above, then commit that change. (The Render URL isn't known until
-   after the first Render deploy, so this can't be pre-filled.)
-2. In the Vercel dashboard: **New Project**, import this repo.
-3. Vercel reads `vercel.json` for the build settings:
+1. Return to Render and open `techcodie-editor-api`.
+2. Open **Environment**.
+3. Replace `CORS_ORIGINS` with the exact Vercel origin, for example
+   `https://editor.example.vercel.app`.
+4. Add additional exact origins separated by commas only when they must call the
+   API.
+5. Save changes and let Render restart the service.
+6. Open the Vercel site and run one Ask Document request.
 
-   | Setting | Value |
-   |---|---|
-   | Install Command | `npm ci` |
-   | Build Command | `npm run build:app` |
-   | Output Directory | `dist` |
+When adding a custom frontend domain, add its exact origin to `CORS_ORIGINS`.
+Do not use a wildcard origin.
 
-4. No frontend environment variables are required for the default setup —
-   the SDK's AI endpoints default to relative `/api/...` paths, which the
-   `vercel.json` rewrite forwards to Render.
-5. Deploy. Verify the deployed app can open **Ask Document** and receive a
-   streamed response — this exercises the full Vercel → Render → Groq path,
-   including CORS if you're calling Render directly instead of through the
-   rewrite (e.g. a preview deployment on a different domain not listed in
-   `CORS_ALLOWED_ORIGIN`).
-6. Confirm PDF preview and OCR import still work after deploy — both load a
-   web worker (`pdfjs-dist`, `tesseract.js`) as a separate on-demand chunk;
-   this only fails if a CDN/proxy in front of Vercel strips or misroutes
-   `Content-Type` for `.wasm`/worker assets, which the default Vercel static
-   hosting does not do.
+## Rollback
 
-## 3. Local verification before every deploy
+- Vercel: open the project, select **Deployments**, open the last healthy
+  deployment, and choose **Promote to Production**.
+- Render: open the service, select **Events**, choose a previous successful
+  deploy, and redeploy it.
+- Rotate the Groq key if rollback follows a credential incident.
 
-```bash
-npm ci
-npm run typecheck     # tsc project references, zero errors
-npm run lint           # oxlint, zero errors
-npm run build:server   # compiles server/ + shared/ -> dist-server/
-npm run build:app      # compiles + bundles the frontend -> dist/
-npm run verify:release # runs all four of the above in sequence
-```
+## Cost
 
-To smoke-test the production server build locally:
-
-```bash
-npm run build:server
-GROQ_API_KEY=... npm start
-curl -i http://localhost:3001/healthz
-```
-
-## Notes
-
-- `npm run build` (no suffix) builds the app, the publishable SDK package,
-  and the standalone example — that's the release pipeline for the
-  `@techcodie/editor` npm package, not the Render/Vercel deploy path. Render
-  only needs `build:server`; Vercel only needs `build:app`.
-- The backend also serves `dist/` directly as a fallback static file server
-  (see `server/http.ts`) for same-origin, single-service deployments. The
-  Render+Vercel split described here does not rely on that path, since Render
-  never builds `dist/` — only `dist-server/`.
+- Personal/non-commercial preview: `$0/month` while Vercel Hobby, Render Free,
+  and Groq Free limits are respected.
+- Commercial production baseline: approximately `$27/month` before AI usage,
+  based on one Vercel Pro developer seat (currently `$20/month`) and a small paid
+  Render service (commonly starting near `$7/month`). Verify prices in both
+  dashboards before purchase.
+- Groq Developer usage for `llama-3.1-8b-instant` is currently `$0.05` per one
+  million input tokens and `$0.08` per one million output tokens. Free-tier use
+  remains `$0` within account limits.
+- Database, storage, cache, and background-worker cost is `$0` because the
+  current reference deployment does not provision them.

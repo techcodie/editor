@@ -29,6 +29,8 @@ const initialContent = `
   </ul>
 `
 
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/+$/, '') ?? ''
+
 export function Example() {
   const [status, setStatus] = useState('Initializing editor')
 
@@ -37,8 +39,11 @@ export function Example() {
     toolbar: true,
     voice: true,
     ai: {
-      askDocumentEndpoint: '/api/ask-document',
-      selectionEndpoint: '/api/selection-ai',
+      askDocumentEndpoint: `${apiBaseUrl}/api/ask-document`,
+      selectionEndpoint: `${apiBaseUrl}/api/selection-ai`,
+      complianceEndpoint: `${apiBaseUrl}/api/compliance-analysis`,
+      contractEndpoint: `${apiBaseUrl}/api/contract-analysis`,
+      writingEndpoint: `${apiBaseUrl}/api/writing-assistant`,
     },
     knowledgeSources: true,
     preview: true,
