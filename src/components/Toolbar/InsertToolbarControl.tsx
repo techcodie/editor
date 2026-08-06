@@ -1,4 +1,4 @@
-import { Droplets, FormInput, Plus, SeparatorHorizontal, Stamp, Table2 } from 'lucide-react'
+import { Droplets, FormInput, Minus, Plus, SeparatorHorizontal, Stamp, Table2 } from 'lucide-react'
 import type { EditorApi } from '../../lib/editor-api'
 import { ToolbarDropdown } from './ToolbarDropdown'
 import type { ToolbarButtonSize } from './ToolbarButton'
@@ -34,6 +34,7 @@ export function InsertToolbarControl({
       label="Insert"
       size={size}
       disabled={!api}
+      onCloseAutoFocus={() => api?.focus()}
       items={[
         {
           id: 'insert-table',
@@ -46,6 +47,12 @@ export function InsertToolbarControl({
           icon: SeparatorHorizontal,
           label: 'Page break',
           onSelect: () => api?.insertPageBreak(),
+        },
+        {
+          id: 'insert-horizontal-rule',
+          icon: Minus,
+          label: 'Horizontal rule',
+          onSelect: () => api?.insertHorizontalRule(),
         },
         {
           id: 'insert-assets',

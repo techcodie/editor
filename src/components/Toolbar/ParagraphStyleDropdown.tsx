@@ -27,6 +27,7 @@ export function ParagraphStyleDropdown({ api, size = 'md' }: ParagraphStyleDropd
       triggerLabel={triggerLabel}
       size={size}
       disabled={!api}
+      onCloseAutoFocus={() => api?.focus()}
       items={[
         {
           id: 'paragraph',

@@ -33,14 +33,22 @@ export interface ToolbarProps {
 }
 
 const TOOLBAR_CLASS =
-  'flex w-full items-center gap-0.5 rounded-lg border border-neutral-200 bg-white/90 p-1.5 ' +
+  'flex w-full items-center gap-x-0.5 gap-y-1 rounded-lg border border-neutral-200 bg-white/90 p-1.5 ' +
   'shadow-[0_1px_2px_rgba(20,20,20,0.04),0_8px_24px_-16px_rgba(20,20,20,0.28)] ' +
   'supports-[backdrop-filter]:bg-white/80 backdrop-blur-xl ' +
-  // A Jodit-style ribbon always stays a single row and scrolls horizontally
-  // once its groups no longer fit, instead of wrapping onto multiple rows.
+  // Below `sm`, the ribbon still shares its row with fixed-width workspace
+  // icons (command palette, Ask Document, identity, presence) that leave too
+  // little width for even one group to wrap sensibly — keep that width class
+  // scrolling horizontally there. From `sm` up there's enough room to grow
+  // into full, wrapped rows with every command visible and no scrolling.
   'flex-nowrap overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ' +
-  // Edge-fade signals there's more to scroll to.
-  '[mask-image:linear-gradient(to_right,transparent,black_14px,black_calc(100%-14px),transparent)]'
+  '[mask-image:linear-gradient(to_right,transparent,black_14px,black_calc(100%-14px),transparent)] ' +
+  'sm:flex-wrap sm:overflow-visible sm:[mask-image:none]'
+
+// Forces the feature groups (Insert, Document, Review, AI) onto their own row
+// below the formatting groups, so every command stays visible at once instead
+// of requiring horizontal scrolling. Only meaningful once sm:flex-wrap applies.
+const ROW_BREAK_CLASS = 'hidden sm:block sm:basis-full sm:h-0'
 
 function ToolbarComponent({
   api,
@@ -86,9 +94,12 @@ function ToolbarComponent({
             </ToolbarGroup>
           </Fragment>
         ))}
-        {trailingSections?.map((section) => (
+        {trailingSections && trailingSections.length > 0 && (
+          <div className={ROW_BREAK_CLASS} aria-hidden />
+        )}
+        {trailingSections?.map((section, index) => (
           <Fragment key={section.id}>
-            <ToolbarDivider />
+            {index > 0 && <ToolbarDivider />}
             <ToolbarGroup label={section.label}>{section.content}</ToolbarGroup>
           </Fragment>
         ))}

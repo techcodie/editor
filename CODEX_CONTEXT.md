@@ -799,18 +799,29 @@ Toolbar must never call:
 
 Toolbar communicates only with the Editor API.
 
-The editing workspace presents these commands as one memoized, sticky,
-single-row ribbon. Clipboard, paragraph, typography, alignment, lists,
-supported insertions, review, AI, and document controls are composed into
-labelled groups with professional separators. The ribbon never wraps;
-tablet and mobile layouts use contained horizontal scrolling without causing
-page-level overflow. Paragraph styles and insertions use native accessible
-selectors, and only commands already exposed by the Editor API or existing
-workspace features are shown. The Document group's Print control opens the
-existing Print Preview; real `window.print()` remains deferred per the
+The editing workspace presents these commands as one memoized, sticky
+ribbon that spans the full toolbar row. Clipboard, formatting, paragraph,
+lists, insert, document, review, and AI controls are composed into labelled
+groups with professional separators. From the `sm` breakpoint up the ribbon
+wraps onto as many rows as its groups need so every command stays visible
+with no horizontal scrolling; below `sm`, where the ribbon shares its row
+with fixed-width workspace icons, it falls back to contained horizontal
+scrolling without causing page-level overflow. Paragraph styles and
+insertions use native accessible selectors, and only commands already
+exposed by the Editor API or existing workspace features are shown.
+
+The Document group's Import control reuses the existing Document
+Intelligence import pipeline (no separate upload/parsing path); it inserts
+recognized content into the current document rather than performing a
+full-fidelity replace-the-document Open. Its Save control opens the existing
+Version History panel rather than performing host-backed persistence, since
+no storage/upload provider exists in this milestone. Its Print control opens
+the existing Print Preview; real `window.print()` remains deferred per the
 Future Print Architecture below. Font family, font size, link, attachment,
-duplicate, New/Open/Save, and document import remain absent because those
-commands are not currently supported.
+image insertion, table cell/row/column editing, QR codes, full-fidelity
+document import, and durable host-backed Save/Open/New remain absent because
+those commands are not currently supported without changing the Editor API,
+adding a new dependency, or adding a host storage/upload provider.
 
 ### Bubble Menu
 

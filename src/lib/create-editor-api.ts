@@ -76,8 +76,9 @@ export function createEditorApi(editor: Editor): EditorApi {
     surface.style.removeProperty('min-height')
     for (const child of editor.view.dom.children) {
       if (!(child instanceof HTMLElement)) continue
-      child.style.removeProperty('margin-top')
-      delete child.dataset.pageBreakBefore
+      if (child.style.marginTop) child.style.removeProperty('margin-top')
+      if (child.dataset.pageBreakBefore) delete child.dataset.pageBreakBefore
+      if (child.dataset.paginationOffset) delete child.dataset.paginationOffset
     }
   }
 
@@ -116,15 +117,27 @@ export function createEditorApi(editor: Editor): EditorApi {
     surface.style.setProperty('--page-margin-bottom', `${marginBottom}px`)
     surface.style.setProperty('--page-margin-left', `${marginLeft}px`)
 
+    // Measuring `top`/`marginTop` never writes to the live DOM here — the
+    // previously-applied pagination offset (tracked separately in a data
+    // attribute) is subtracted back out in memory instead. Earlier this
+    // cleared every block's inline margin before every remeasure, which
+    // means EVERY block in the document was mutated on every keystroke even
+    // when nothing about it changed. Mutating the ProseMirror-owned DOM
+    // while the browser's contentEditable caret is mid-composition can
+    // desync the browser's own caret bookkeeping from ProseMirror's, which
+    // was silently corrupting and truncating text while typing near a page
+    // boundary. Only writing when a value actually changes (below) avoids
+    // touching nodes that don't need it.
     const blocks = [...editor.view.dom.children].flatMap((child) => {
       if (!(child instanceof HTMLElement)) return []
-      child.style.removeProperty('margin-top')
-      delete child.dataset.pageBreakBefore
+      const appliedOffset = Number.parseFloat(child.dataset.paginationOffset ?? '0') || 0
+      const baseMarginTop = (Number.parseFloat(getComputedStyle(child).marginTop) || 0) - appliedOffset
       return [{
         element: child,
         position: editor.view.posAtDOM(child, 0),
-        top: child.offsetTop,
+        top: child.offsetTop - appliedOffset,
         height: child.getBoundingClientRect().height,
+        baseMarginTop,
       }]
     })
     const result = paginateBlocks({
@@ -136,12 +149,28 @@ export function createEditorApi(editor: Editor): EditorApi {
       pageGap,
     })
 
+    const offsetBlocks = new Set<HTMLElement>()
     for (const offset of result.offsets) {
       const block = blocks.find((item) => item.position === offset.position)
       if (!block) continue
-      const baseMargin = Number.parseFloat(getComputedStyle(block.element).marginTop) || 0
-      block.element.style.marginTop = `${baseMargin + offset.offset}px`
-      block.element.dataset.pageBreakBefore = offset.manualBreakId ? 'manual' : 'automatic'
+      offsetBlocks.add(block.element)
+      const nextMarginTop = `${block.baseMarginTop + offset.offset}px`
+      if (block.element.style.marginTop !== nextMarginTop) {
+        block.element.style.marginTop = nextMarginTop
+      }
+      const nextPageBreakBefore = offset.manualBreakId ? 'manual' : 'automatic'
+      if (block.element.dataset.pageBreakBefore !== nextPageBreakBefore) {
+        block.element.dataset.pageBreakBefore = nextPageBreakBefore
+      }
+      if (block.element.dataset.paginationOffset !== String(offset.offset)) {
+        block.element.dataset.paginationOffset = String(offset.offset)
+      }
+    }
+    for (const block of blocks) {
+      if (offsetBlocks.has(block.element)) continue
+      if (block.element.style.marginTop) block.element.style.removeProperty('margin-top')
+      if (block.element.dataset.pageBreakBefore) delete block.element.dataset.pageBreakBefore
+      if (block.element.dataset.paginationOffset) delete block.element.dataset.paginationOffset
     }
 
     const surfaceHeight =

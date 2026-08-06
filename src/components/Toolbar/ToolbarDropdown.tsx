@@ -27,6 +27,15 @@ export interface ToolbarDropdownProps {
   disabled?: boolean
   align?: DropdownMenuPrimitive.DropdownMenuContentProps['align']
   id?: string
+  /**
+   * Called instead of Radix's default close-focus behavior, which returns
+   * focus to the trigger button. Without this, selecting an item and then
+   * continuing to type sends keystrokes into the toolbar (not the document);
+   * depending on which keys land on the now-focused button, this can even
+   * reopen the menu and scatter subsequent input. Pass e.g. `() => api?.focus()`
+   * to keep the document editable immediately after a selection.
+   */
+  onCloseAutoFocus?: () => void
 }
 
 const SIZE: Record<ToolbarButtonSize, { button: string; icon: number }> = {
@@ -68,6 +77,7 @@ export function ToolbarDropdown({
   disabled,
   align = 'start',
   id,
+  onCloseAutoFocus,
 }: ToolbarDropdownProps) {
   const dimensions = SIZE[size]
 
@@ -102,7 +112,16 @@ export function ToolbarDropdown({
     <DropdownMenuPrimitive.Root>
       {triggerLabel ? trigger : <Tooltip content={label}>{trigger}</Tooltip>}
       <DropdownMenuPrimitive.Portal>
-        <DropdownMenuPrimitive.Content align={align} sideOffset={6} className={CONTENT_CLASS}>
+        <DropdownMenuPrimitive.Content
+          align={align}
+          sideOffset={6}
+          className={CONTENT_CLASS}
+          onCloseAutoFocus={(event) => {
+            if (!onCloseAutoFocus) return
+            event.preventDefault()
+            onCloseAutoFocus()
+          }}
+        >
           {items.map((item) => (
             <DropdownMenuPrimitive.Item
               key={item.id}

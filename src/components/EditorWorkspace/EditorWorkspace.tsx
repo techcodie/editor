@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Command, FilePenLine, LoaderCircle, MessageSquareText, MousePointer2, ShieldCheck, X } from 'lucide-react'
+import { Command, FilePenLine, LoaderCircle, MessageSquareText, MousePointer2, Save, ShieldCheck, X } from 'lucide-react'
 import { useAssetInsertion } from '../../assets/hooks/useAssetInsertion'
 import type { Asset } from '../../assets/types/asset'
 import { ComplianceToolbarControl } from '../../compliance/components/ComplianceToolbarControl'
@@ -90,7 +90,7 @@ import {
   type WorkspaceCommandId,
 } from '../CommandPalette/CommandPalette'
 import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary'
-import { InsertToolbarControl, PrintToolbarControl, Toolbar } from '../Toolbar'
+import { InsertToolbarControl, PrintToolbarControl, Toolbar, ToolbarButton } from '../Toolbar'
 import { DocumentEditor } from '../DocumentEditor'
 import { SelectionAi } from '../SelectionAI'
 import type { AskDocumentCommandRequest } from '../AskDocument/AskDocumentPanel'
@@ -1432,7 +1432,7 @@ export function EditorWorkspace({
           {config.toolbar && !config.readonly && canEdit && (
             <Toolbar
               api={api}
-              className="min-w-0"
+              className="min-w-0 flex-1"
               trailingSections={[
                 {
                   id: 'insert',
@@ -1462,6 +1462,22 @@ export function EditorWorkspace({
                   label: 'Document',
                   content: (
                     <>
+                      {canRead && <DocumentIntelligenceToolbarControl
+                        isOpen={isIntelligenceOpen}
+                        onToggle={() => {
+                          if (isIntelligenceOpen) closeIntelligence()
+                          else openIntelligence()
+                        }}
+                      />}
+                      {canRead && <ToolbarButton
+                        icon={Save}
+                        label="Save (opens Version History)"
+                        onClick={() => {
+                          if (isHistoryOpen) closeHistory()
+                          else openHistory()
+                        }}
+                        isActive={isHistoryOpen}
+                      />}
                       <PageLayoutToolbarControl
                         isOpen={isPageLayoutOpen}
                         onToggle={() => {
@@ -1533,13 +1549,6 @@ export function EditorWorkspace({
                   label: 'AI',
                   content: (
                     <>
-                      {canRead && <DocumentIntelligenceToolbarControl
-                        isOpen={isIntelligenceOpen}
-                        onToggle={() => {
-                          if (isIntelligenceOpen) closeIntelligence()
-                          else openIntelligence()
-                        }}
-                      />}
                       {canRead && <ComplianceToolbarControl
                         isOpen={isComplianceOpen}
                         onToggle={() => {
