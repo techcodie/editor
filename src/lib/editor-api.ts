@@ -6,7 +6,7 @@ import type {
   FormFieldPatch,
 } from '../forms/types/field'
 
-export type HeadingLevel = 1 | 2 | 3
+export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6
 export type TextAlignment = 'left' | 'center' | 'right' | 'justify'
 
 export interface EditorSelectionBounds {

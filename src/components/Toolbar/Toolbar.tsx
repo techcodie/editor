@@ -7,10 +7,18 @@ import { ToolbarButton } from './ToolbarButton'
 import type { ToolbarButtonSize } from './ToolbarButton'
 import { ToolbarGroup } from './ToolbarGroup'
 import { ToolbarDivider } from './ToolbarDivider'
+import { ParagraphStyleDropdown } from './ParagraphStyleDropdown'
 import { TOOLBAR_SECTIONS } from './toolbar.config'
 
 const NOOP_SUBSCRIBE = () => () => {}
 const NULL_SNAPSHOT = () => null
+
+/** A labelled group of feature controls appended after the formatting sections. */
+export interface ToolbarTrailingSection {
+  id: string
+  label: string
+  content: ReactNode
+}
 
 export interface ToolbarProps {
   /** Public editor API the toolbar drives. Null until the editor is ready. */
@@ -20,26 +28,26 @@ export interface ToolbarProps {
   /** Size applied to every button. */
   size?: ToolbarButtonSize
   className?: string
-  /** Feature controls composed into the end of the toolbar. */
-  trailingContent?: ReactNode
+  /** Labelled groups of feature/workspace controls appended after formatting (Insert, Document, Review, AI, ...). */
+  trailingSections?: ToolbarTrailingSection[]
 }
 
 const TOOLBAR_CLASS =
   'flex w-full items-center gap-0.5 rounded-lg border border-neutral-200 bg-white/90 p-1 ' +
   'shadow-[0_1px_2px_rgba(20,20,20,0.04),0_8px_24px_-16px_rgba(20,20,20,0.28)] ' +
   'supports-[backdrop-filter]:bg-white/80 backdrop-blur-xl ' +
-  // Horizontal scroll on mobile; wrap into rows from the `sm` breakpoint up.
+  // A Jodit-style ribbon always stays a single row and scrolls horizontally
+  // once its groups no longer fit, instead of wrapping onto multiple rows.
   'flex-nowrap overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ' +
-  'sm:flex-wrap sm:overflow-visible ' +
-  // Edge-fade signals there's more to scroll to on mobile; irrelevant once wrapped.
-  '[mask-image:linear-gradient(to_right,transparent,black_14px,black_calc(100%-14px),transparent)] sm:[mask-image:none]'
+  // Edge-fade signals there's more to scroll to.
+  '[mask-image:linear-gradient(to_right,transparent,black_14px,black_calc(100%-14px),transparent)]'
 
 export function Toolbar({
   api,
   sticky = false,
   size = 'md',
   className,
-  trailingContent,
+  trailingSections,
 }: ToolbarProps) {
   // Re-render on every editor change so active/disabled states stay in sync —
   // without the toolbar ever importing Tiptap.
@@ -47,7 +55,7 @@ export function Toolbar({
 
   return (
     // Kept for the feature-specific *ToolbarControl components composed into
-    // trailingContent that still use raw @radix-ui/react-tooltip directly.
+    // trailingSections that still use raw @radix-ui/react-tooltip directly.
     <TooltipPrimitive.Provider delayDuration={300} skipDelayDuration={200}>
       <ToolbarPrimitive.Root
         aria-label="Text formatting"
@@ -57,6 +65,7 @@ export function Toolbar({
           <Fragment key={section.id}>
             {index > 0 && <ToolbarDivider />}
             <ToolbarGroup label={section.label}>
+              {section.id === 'paragraph' && <ParagraphStyleDropdown api={api} size={size} />}
               {section.items.map((item) => {
                 const isActive = api && item.isActive ? item.isActive(api) : undefined
                 const disabled = !api || (item.canExecute ? !item.canExecute(api) : false)
@@ -77,12 +86,12 @@ export function Toolbar({
             </ToolbarGroup>
           </Fragment>
         ))}
-        {trailingContent && (
-          <>
+        {trailingSections?.map((section) => (
+          <Fragment key={section.id}>
             <ToolbarDivider />
-            <ToolbarGroup label="Workspace tools">{trailingContent}</ToolbarGroup>
-          </>
-        )}
+            <ToolbarGroup label={section.label}>{section.content}</ToolbarGroup>
+          </Fragment>
+        ))}
       </ToolbarPrimitive.Root>
     </TooltipPrimitive.Provider>
   )

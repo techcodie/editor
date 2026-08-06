@@ -233,6 +233,33 @@ const WORKSPACE_PERMISSIONS: readonly IdentityPermission[] = [
   'administration',
 ]
 
+/**
+ * The right-hand dock shows at most one feature panel at a time. `activePanel`
+ * is the single source of truth for that exclusivity — replacing the ~20
+ * independent booleans and hand-written "close every other panel" lists this
+ * workspace previously kept in sync manually.
+ */
+type RightDockPanelId =
+  | 'askDocument'
+  | 'assetLibrary'
+  | 'review'
+  | 'suggestion'
+  | 'comparison'
+  | 'pageLayout'
+  | 'watermark'
+  | 'export'
+  | 'intelligence'
+  | 'compliance'
+  | 'formBuilder'
+  | 'history'
+  | 'workflow'
+  | 'search'
+  | 'redaction'
+  | 'contract'
+  | 'writingAssistant'
+  | 'productivity'
+  | 'identity'
+
 export function EditorWorkspace({
   config,
   events,
@@ -265,52 +292,56 @@ export function EditorWorkspace({
     editable: !config.readonly && canEdit,
   })
   const api = useEditorApi(editor)
-  const [isAskDocumentOpen, setIsAskDocumentOpen] = useState(false)
+  const [activePanel, setActivePanel] = useState<RightDockPanelId | null>(null)
+  const isAskDocumentOpen = activePanel === 'askDocument'
   const [isAskDocumentLoaded, setIsAskDocumentLoaded] = useState(false)
-  const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false)
+  const isAssetLibraryOpen = activePanel === 'assetLibrary'
   const [isAssetLibraryLoaded, setIsAssetLibraryLoaded] = useState(false)
   const [recentAssetIds, setRecentAssetIds] = useState<string[]>([])
-  const [isReviewMode, setIsReviewMode] = useState(false)
+  const isReviewMode = activePanel === 'review'
   const [isReviewLoaded, setIsReviewLoaded] = useState(false)
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
   const [commentHighlightPreview, setCommentHighlightPreview] =
     useState<CommentHighlightPreviewState | null>(null)
+  // Suggestion Mode and its sidebar stay independent state (not derived from
+  // activePanel): per CODEX_CONTEXT.md the sidebar may be explicitly hidden
+  // on mobile while Suggestion Mode remains active — see hideSuggestionSidebar.
   const [isSuggestionMode, setIsSuggestionMode] = useState(false)
   const [isSuggestionSidebarOpen, setIsSuggestionSidebarOpen] = useState(false)
   const [isSuggestionLoaded, setIsSuggestionLoaded] = useState(false)
   const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null)
   const [suggestionPreview, setSuggestionPreview] =
     useState<{ changeId: string; bounds: CommentHighlightPreviewState['bounds'] } | null>(null)
-  const [isComparisonOpen, setIsComparisonOpen] = useState(false)
-  const [isExportOpen, setIsExportOpen] = useState(false)
+  const isComparisonOpen = activePanel === 'comparison'
+  const isExportOpen = activePanel === 'export'
   const [isExportLoaded, setIsExportLoaded] = useState(false)
-  const [isIntelligenceOpen, setIsIntelligenceOpen] = useState(false)
+  const isIntelligenceOpen = activePanel === 'intelligence'
   const [isIntelligenceLoaded, setIsIntelligenceLoaded] = useState(false)
-  const [isComplianceOpen, setIsComplianceOpen] = useState(false)
+  const isComplianceOpen = activePanel === 'compliance'
   const [isComplianceLoaded, setIsComplianceLoaded] = useState(false)
-  const [isFormBuilderOpen, setIsFormBuilderOpen] = useState(false)
+  const isFormBuilderOpen = activePanel === 'formBuilder'
   const [isFormBuilderLoaded, setIsFormBuilderLoaded] = useState(false)
   const [formFieldCount, setFormFieldCount] = useState(0)
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+  const isHistoryOpen = activePanel === 'history'
   const [isHistoryLoaded, setIsHistoryLoaded] = useState(false)
   const [historyVersionCount, setHistoryVersionCount] = useState(0)
-  const [isWorkflowOpen, setIsWorkflowOpen] = useState(false)
+  const isWorkflowOpen = activePanel === 'workflow'
   const [isWorkflowLoaded, setIsWorkflowLoaded] = useState(false)
   const [currentWorkflow, setCurrentWorkflow] = useState<Workflow | null>(null)
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const isSearchOpen = activePanel === 'search'
   const [isSearchLoaded, setIsSearchLoaded] = useState(false)
-  const [isRedactionOpen, setIsRedactionOpen] = useState(false)
+  const isRedactionOpen = activePanel === 'redaction'
   const [isRedactionLoaded, setIsRedactionLoaded] = useState(false)
   const [redactionRecords, setRedactionRecords] = useState<RedactionRecord[]>([])
-  const [isContractOpen, setIsContractOpen] = useState(false)
+  const isContractOpen = activePanel === 'contract'
   const [isContractLoaded, setIsContractLoaded] = useState(false)
   const [contractAnalysis, setContractAnalysis] = useState<ContractAnalysis | null>(null)
-  const [isWritingAssistantOpen, setIsWritingAssistantOpen] = useState(false)
+  const isWritingAssistantOpen = activePanel === 'writingAssistant'
   const [isWritingAssistantLoaded, setIsWritingAssistantLoaded] = useState(false)
   const [writingAnalysis, setWritingAnalysis] = useState<WritingAnalysis | null>(null)
-  const [isProductivityOpen, setIsProductivityOpen] = useState(false)
+  const isProductivityOpen = activePanel === 'productivity'
   const [isProductivityLoaded, setIsProductivityLoaded] = useState(false)
-  const [isIdentityOpen, setIsIdentityOpen] = useState(false)
+  const isIdentityOpen = activePanel === 'identity'
   const [isIdentityLoaded, setIsIdentityLoaded] = useState(false)
   const [isShareOpen, setIsShareOpen] = useState(false)
   const [isShareLoaded, setIsShareLoaded] = useState(false)
@@ -617,7 +648,7 @@ export function EditorWorkspace({
       setCommentHighlightPreview(null)
       setSelectedCommentId(interaction.commentId)
       setIsReviewLoaded(true)
-      setIsReviewMode(true)
+      setActivePanel('review')
     })
   }, [api, isReviewMode])
 
@@ -641,66 +672,60 @@ export function EditorWorkspace({
       setSuggestionPreview(null)
       setSelectedChangeId(interaction.changeId)
       setIsSuggestionLoaded(true)
+      setActivePanel('suggestion')
       setIsSuggestionMode(true)
       setIsSuggestionSidebarOpen(true)
     })
   }, [api, isSuggestionMode])
 
+  // Sync the two right-dock panels whose visibility booleans are owned by
+  // their own hooks (usePageLayout/useWatermark) with the single activePanel
+  // source of truth, instead of setting them from every open*/close* callback.
+  useEffect(() => {
+    setIsPageLayoutOpen(activePanel === 'pageLayout')
+  }, [activePanel, setIsPageLayoutOpen])
+
+  useEffect(() => {
+    setIsWatermarkOpen(activePanel === 'watermark')
+  }, [activePanel, setIsWatermarkOpen])
+
+  // Suggestion Mode/sidebar are independent state (see declaration above) but
+  // must still close when a different dock panel becomes active.
+  useEffect(() => {
+    if (activePanel !== 'suggestion') {
+      setIsSuggestionMode(false)
+      setIsSuggestionSidebarOpen(false)
+    }
+  }, [activePanel])
+
   const openAskDocument = useCallback(() => {
-    setIsFormBuilderOpen(false)
-    setIsComplianceOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
+    setActivePanel('askDocument')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     setIsAskDocumentLoaded(true)
-    setIsAskDocumentOpen(true)
-  }, [setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [])
 
   const closeAskDocument = useCallback(() => {
-    setIsAskDocumentOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => askDocumentButtonRef.current?.focus())
   }, [])
 
   const openAssetLibrary = useCallback(() => {
-    setIsFormBuilderOpen(false)
-    setIsComplianceOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsAskDocumentOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
+    setActivePanel('assetLibrary')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     setIsAssetLibraryLoaded(true)
-    setIsAssetLibraryOpen(true)
-  }, [setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [])
 
   const openReviewMode = useCallback(() => {
-    setIsFormBuilderOpen(false)
-    setIsComplianceOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
+    setActivePanel('review')
     setSuggestionPreview(null)
     cancelPlacement()
     setIsReviewLoaded(true)
-    setIsReviewMode(true)
-  }, [cancelPlacement, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement])
 
   const closeReviewMode = useCallback(() => {
-    setIsReviewMode(false)
+    setActivePanel(null)
     setCommentHighlightPreview(null)
     closeComposer()
     window.requestAnimationFrame(() => {
@@ -709,23 +734,17 @@ export function EditorWorkspace({
   }, [closeComposer])
 
   const openSuggestionMode = useCallback(() => {
-    setIsFormBuilderOpen(false)
-    setIsComplianceOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
+    setActivePanel('suggestion')
     setCommentHighlightPreview(null)
     closeComposer()
     cancelPlacement()
     setIsSuggestionLoaded(true)
     setIsSuggestionMode(true)
     setIsSuggestionSidebarOpen(true)
-  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer])
 
   const closeSuggestionMode = useCallback(() => {
+    setActivePanel(null)
     setIsSuggestionMode(false)
     setIsSuggestionSidebarOpen(false)
     setSuggestionPreview(null)
@@ -735,483 +754,259 @@ export function EditorWorkspace({
   }, [])
 
   const openComparison = useCallback((seed?: DocumentComparison) => {
-    setIsFormBuilderOpen(false)
-    setIsComplianceOpen(false)
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
+    setActivePanel('comparison')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
     closeComposer()
     cancelPlacement()
     setComparisonInitialDocument(api?.getDocumentText() ?? '')
     setComparisonInitialLeft(seed?.leftDocument)
     setComparisonInitialRight(seed?.rightDocument)
-    setIsComparisonOpen(true)
-  }, [api, cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [api, cancelPlacement, closeComposer])
 
   const closeComparison = useCallback(() => {
-    setIsComparisonOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => {
       document.getElementById('comparison-trigger')?.focus()
     })
   }, [])
 
   const openPageLayout = useCallback(() => {
-    setIsFormBuilderOpen(false)
-    setIsComplianceOpen(false)
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsWatermarkOpen(false)
+    setActivePanel('pageLayout')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     closeComposer()
-    setIsPageLayoutOpen(true)
-  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer])
 
   const closePageLayout = useCallback(() => {
-    setIsPageLayoutOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => {
       document.getElementById('page-layout-trigger')?.focus()
     })
-  }, [setIsPageLayoutOpen])
+  }, [])
 
   const openWatermark = useCallback(() => {
-    setIsFormBuilderOpen(false)
-    setIsComplianceOpen(false)
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
+    setActivePanel('watermark')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     closeComposer()
-    setIsWatermarkOpen(true)
-  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer])
 
   const closeWatermark = useCallback(() => {
-    setIsWatermarkOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => {
       document.getElementById('watermark-trigger')?.focus()
     })
-  }, [setIsWatermarkOpen])
+  }, [])
 
   const openExport = useCallback(() => {
-    setIsFormBuilderOpen(false)
-    setIsComplianceOpen(false)
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
+    setActivePanel('export')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     closeComposer()
     setIsExportLoaded(true)
-    setIsExportOpen(true)
-  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer])
 
   const closeExport = useCallback(() => {
-    setIsExportOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => {
       document.getElementById('export-trigger')?.focus()
     })
   }, [])
 
   const openIntelligence = useCallback(() => {
-    setIsFormBuilderOpen(false)
-    setIsComplianceOpen(false)
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsExportOpen(false)
+    setActivePanel('intelligence')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     closeComposer()
     setIsIntelligenceLoaded(true)
-    setIsIntelligenceOpen(true)
-  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer])
 
   const closeIntelligence = useCallback(() => {
-    setIsIntelligenceOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => {
       document.getElementById('document-intelligence-trigger')?.focus()
     })
   }, [])
 
   const openCompliance = useCallback(() => {
-    setIsFormBuilderOpen(false)
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsExportOpen(false)
-    setIsIntelligenceOpen(false)
+    setActivePanel('compliance')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     closeComposer()
     setIsComplianceLoaded(true)
-    setIsComplianceOpen(true)
-  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer])
 
   const closeCompliance = useCallback(() => {
-    setIsComplianceOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => {
       document.getElementById('compliance-trigger')?.focus()
     })
   }, [])
 
   const openFormBuilder = useCallback(() => {
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsExportOpen(false)
-    setIsIntelligenceOpen(false)
-    setIsComplianceOpen(false)
+    setActivePanel('formBuilder')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     closeComposer()
     setIsFormBuilderLoaded(true)
-    setIsFormBuilderOpen(true)
-  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer])
 
   const closeFormBuilder = useCallback(() => {
-    setIsFormBuilderOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => {
       document.getElementById('form-builder-trigger')?.focus()
     })
   }, [])
 
   const openHistory = useCallback(() => {
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsExportOpen(false)
-    setIsIntelligenceOpen(false)
-    setIsComplianceOpen(false)
-    setIsFormBuilderOpen(false)
+    setActivePanel('history')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     closeComposer()
     setIsHistoryLoaded(true)
-    setIsHistoryOpen(true)
-  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer])
 
   const closeHistory = useCallback(() => {
-    setIsHistoryOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => {
       document.getElementById('history-trigger')?.focus()
     })
   }, [])
 
   const openWorkflow = useCallback(() => {
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsExportOpen(false)
-    setIsIntelligenceOpen(false)
-    setIsComplianceOpen(false)
-    setIsFormBuilderOpen(false)
-    setIsHistoryOpen(false)
+    setActivePanel('workflow')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     closeComposer()
     setIsWorkflowLoaded(true)
-    setIsWorkflowOpen(true)
-  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer])
 
   const closeWorkflow = useCallback(() => {
-    setIsWorkflowOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => document.getElementById('workflow-trigger')?.focus())
   }, [])
 
   const openSearch = useCallback(() => {
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsExportOpen(false)
-    setIsIntelligenceOpen(false)
-    setIsComplianceOpen(false)
-    setIsFormBuilderOpen(false)
-    setIsHistoryOpen(false)
-    setIsWorkflowOpen(false)
+    setActivePanel('search')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     closeComposer()
     setIsSearchLoaded(true)
-    setIsSearchOpen(true)
-  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer])
 
   const closeSearch = useCallback(() => {
-    setIsSearchOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => document.getElementById('semantic-search-trigger')?.focus())
   }, [])
 
   const openRedaction = useCallback(() => {
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsExportOpen(false)
-    setIsIntelligenceOpen(false)
-    setIsComplianceOpen(false)
-    setIsFormBuilderOpen(false)
-    setIsHistoryOpen(false)
-    setIsWorkflowOpen(false)
-    setIsSearchOpen(false)
+    setActivePanel('redaction')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     closeComposer()
     setIsRedactionLoaded(true)
-    setIsRedactionOpen(true)
-  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer])
 
   const closeRedaction = useCallback(() => {
-    setIsRedactionOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => document.getElementById('redaction-trigger')?.focus())
   }, [])
 
   const openContract = useCallback(() => {
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsExportOpen(false)
-    setIsIntelligenceOpen(false)
-    setIsComplianceOpen(false)
-    setIsFormBuilderOpen(false)
-    setIsHistoryOpen(false)
-    setIsWorkflowOpen(false)
-    setIsSearchOpen(false)
-    setIsRedactionOpen(false)
+    setActivePanel('contract')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     closeComposer()
     setIsContractLoaded(true)
-    setIsContractOpen(true)
-  }, [cancelPlacement, closeComposer, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer])
 
   const closeContract = useCallback(() => {
-    setIsContractOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => document.getElementById('contract-trigger')?.focus())
   }, [])
 
   const openWritingAssistant = useCallback(() => {
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsExportOpen(false)
-    setIsIntelligenceOpen(false)
-    setIsComplianceOpen(false)
-    setIsFormBuilderOpen(false)
-    setIsHistoryOpen(false)
-    setIsWorkflowOpen(false)
-    setIsSearchOpen(false)
-    setIsRedactionOpen(false)
-    setIsContractOpen(false)
+    setActivePanel('writingAssistant')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     if (pendingComment) closeComposer()
     setIsWritingAssistantLoaded(true)
-    setIsWritingAssistantOpen(true)
-  }, [cancelPlacement, closeComposer, pendingComment, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer, pendingComment])
 
   const closeWritingAssistant = useCallback(() => {
-    setIsWritingAssistantOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => document.getElementById('writing-assistant-trigger')?.focus())
   }, [])
 
   const openProductivity = useCallback(() => {
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsExportOpen(false)
-    setIsIntelligenceOpen(false)
-    setIsComplianceOpen(false)
-    setIsFormBuilderOpen(false)
-    setIsHistoryOpen(false)
-    setIsWorkflowOpen(false)
-    setIsSearchOpen(false)
-    setIsRedactionOpen(false)
-    setIsContractOpen(false)
-    setIsWritingAssistantOpen(false)
+    setActivePanel('productivity')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     if (pendingComment) closeComposer()
     setIsProductivityLoaded(true)
-    setIsProductivityOpen(true)
-  }, [cancelPlacement, closeComposer, pendingComment, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer, pendingComment])
 
   const closeProductivity = useCallback(() => {
-    setIsProductivityOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => document.getElementById('productivity-trigger')?.focus())
   }, [])
 
   const openIdentity = useCallback(() => {
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
-    setIsSuggestionMode(false)
-    setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsExportOpen(false)
-    setIsIntelligenceOpen(false)
-    setIsComplianceOpen(false)
-    setIsFormBuilderOpen(false)
-    setIsHistoryOpen(false)
-    setIsWorkflowOpen(false)
-    setIsSearchOpen(false)
-    setIsRedactionOpen(false)
-    setIsContractOpen(false)
-    setIsWritingAssistantOpen(false)
-    setIsProductivityOpen(false)
+    setActivePanel('identity')
     setIsShareOpen(false)
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
     cancelPlacement()
     if (pendingComment) closeComposer()
     setIsIdentityLoaded(true)
-    setIsIdentityOpen(true)
-  }, [cancelPlacement, closeComposer, pendingComment, setIsPageLayoutOpen, setIsWatermarkOpen])
+  }, [cancelPlacement, closeComposer, pendingComment])
 
   const closeIdentity = useCallback(() => {
-    setIsIdentityOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => identityButtonRef.current?.focus())
   }, [])
 
   useEffect(() => {
-    if (
-      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode || isSuggestionMode ||
-      isComparisonOpen || isPageLayoutOpen || isWatermarkOpen || isExportOpen ||
-      isIntelligenceOpen || isComplianceOpen || isFormBuilderOpen || isHistoryOpen ||
-      isWorkflowOpen || isSearchOpen || isRedactionOpen || isContractOpen ||
-      isWritingAssistantOpen
-    ) setIsProductivityOpen(false)
-  }, [
-    isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
-    isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
-    isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
-    isWorkflowOpen, isSearchOpen, isRedactionOpen, isContractOpen,
-    isWritingAssistantOpen,
-  ])
-
-  useEffect(() => {
-    if (
-      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode || isSuggestionMode ||
-      isComparisonOpen || isPageLayoutOpen || isWatermarkOpen || isExportOpen ||
-      isIntelligenceOpen || isComplianceOpen || isFormBuilderOpen || isHistoryOpen ||
-      isWorkflowOpen || isSearchOpen || isRedactionOpen || isContractOpen ||
-      isWritingAssistantOpen || isProductivityOpen
-    ) setIsIdentityOpen(false)
-  }, [
-    isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
-    isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
-    isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
-    isWorkflowOpen, isSearchOpen, isRedactionOpen, isContractOpen,
-    isWritingAssistantOpen, isProductivityOpen,
-  ])
-
-  useEffect(() => {
     if (!canComment) {
-      setIsReviewMode(false)
+      if (activePanel === 'review') setActivePanel(null)
       closeComposer()
     }
     if (!canTrackChanges) {
       setIsSuggestionMode(false)
       setIsSuggestionSidebarOpen(false)
     }
-    if (!canExport) setIsExportOpen(false)
-    if (!canRedact) setIsRedactionOpen(false)
+    if (!canExport && activePanel === 'export') setActivePanel(null)
+    if (!canRedact && activePanel === 'redaction') setActivePanel(null)
     if (!canBuildForms) {
-      setIsFormBuilderOpen(false)
+      if (activePanel === 'formBuilder') setActivePanel(null)
       setIsShareOpen(false)
     }
-    if (!canUseWorkflow) setIsWorkflowOpen(false)
-    if (!canUseContractIntelligence) setIsContractOpen(false)
-    if (!canSearch) setIsSearchOpen(false)
-    if (!canUseAi) {
-      setIsAskDocumentOpen(false)
-      setIsWritingAssistantOpen(false)
-      setIsProductivityOpen(false)
+    if (!canUseWorkflow && activePanel === 'workflow') setActivePanel(null)
+    if (!canUseContractIntelligence && activePanel === 'contract') setActivePanel(null)
+    if (!canSearch && activePanel === 'search') setActivePanel(null)
+    if (
+      !canUseAi &&
+      (activePanel === 'askDocument' || activePanel === 'writingAssistant' || activePanel === 'productivity')
+    ) {
+      setActivePanel(null)
     }
     if (!canEdit) cancelPlacement()
   }, [
+    activePanel,
     canBuildForms,
     canComment,
     canEdit,
@@ -1226,98 +1021,6 @@ export function EditorWorkspace({
     closeComposer,
   ])
 
-  useEffect(() => {
-    if (
-      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode || isSuggestionMode ||
-      isComparisonOpen || isPageLayoutOpen || isWatermarkOpen || isExportOpen ||
-      isIntelligenceOpen || isComplianceOpen || isFormBuilderOpen || isHistoryOpen ||
-      isWorkflowOpen || isSearchOpen || isRedactionOpen || isContractOpen
-    ) setIsWritingAssistantOpen(false)
-  }, [
-    isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
-    isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
-    isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
-    isWorkflowOpen, isSearchOpen, isRedactionOpen, isContractOpen,
-  ])
-
-  useEffect(() => {
-    if (
-      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode || isSuggestionMode ||
-      isComparisonOpen || isPageLayoutOpen || isWatermarkOpen || isExportOpen ||
-      isIntelligenceOpen || isComplianceOpen || isFormBuilderOpen || isHistoryOpen ||
-      isWorkflowOpen || isSearchOpen || isRedactionOpen
-    ) setIsContractOpen(false)
-  }, [
-    isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
-    isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
-    isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
-    isWorkflowOpen, isSearchOpen, isRedactionOpen,
-  ])
-
-  useEffect(() => {
-    if (
-      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
-      isSuggestionMode || isComparisonOpen || isPageLayoutOpen ||
-      isWatermarkOpen || isExportOpen || isIntelligenceOpen ||
-      isComplianceOpen || isFormBuilderOpen || isHistoryOpen || isWorkflowOpen || isRedactionOpen
-    ) setIsSearchOpen(false)
-  }, [
-    isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
-    isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
-    isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
-    isWorkflowOpen, isRedactionOpen,
-  ])
-
-  useEffect(() => {
-    if (
-      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
-      isSuggestionMode || isComparisonOpen || isPageLayoutOpen ||
-      isWatermarkOpen || isExportOpen || isIntelligenceOpen ||
-      isComplianceOpen || isFormBuilderOpen || isWorkflowOpen || isRedactionOpen
-    ) setIsHistoryOpen(false)
-  }, [
-    isAskDocumentOpen,
-    isAssetLibraryOpen,
-    isReviewMode,
-    isSuggestionMode,
-    isComparisonOpen,
-    isPageLayoutOpen,
-    isWatermarkOpen,
-    isExportOpen,
-    isIntelligenceOpen,
-    isComplianceOpen,
-    isFormBuilderOpen,
-    isWorkflowOpen, isRedactionOpen,
-  ])
-
-  useEffect(() => {
-    if (
-      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
-      isSuggestionMode || isComparisonOpen || isPageLayoutOpen ||
-      isWatermarkOpen || isExportOpen || isIntelligenceOpen ||
-      isComplianceOpen || isFormBuilderOpen || isHistoryOpen || isRedactionOpen
-    ) setIsWorkflowOpen(false)
-  }, [
-    isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
-    isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
-    isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen, isRedactionOpen,
-  ])
-
-  useEffect(() => {
-    if (
-      isAskDocumentOpen || isAssetLibraryOpen || isReviewMode ||
-      isSuggestionMode || isComparisonOpen || isPageLayoutOpen ||
-      isWatermarkOpen || isExportOpen || isIntelligenceOpen ||
-      isComplianceOpen || isFormBuilderOpen || isHistoryOpen ||
-      isWorkflowOpen || isSearchOpen
-    ) setIsRedactionOpen(false)
-  }, [
-    isAskDocumentOpen, isAssetLibraryOpen, isReviewMode, isSuggestionMode,
-    isComparisonOpen, isPageLayoutOpen, isWatermarkOpen, isExportOpen,
-    isIntelligenceOpen, isComplianceOpen, isFormBuilderOpen, isHistoryOpen,
-    isWorkflowOpen, isSearchOpen,
-  ])
-
   const hideSuggestionSidebar = useCallback(() => {
     setIsSuggestionSidebarOpen(false)
     setSuggestionPreview(null)
@@ -1325,7 +1028,7 @@ export function EditorWorkspace({
   }, [api])
 
   const closeAssetLibrary = useCallback(() => {
-    setIsAssetLibraryOpen(false)
+    setActivePanel(null)
     window.requestAnimationFrame(() => {
       document.getElementById('asset-library-trigger')?.focus()
     })
@@ -1334,7 +1037,7 @@ export function EditorWorkspace({
   const selectAsset = useCallback(
     (asset: Asset) => {
       beginPlacement(asset)
-      setIsAssetLibraryOpen(false)
+      setActivePanel(null)
     },
     [beginPlacement],
   )
@@ -1368,9 +1071,8 @@ export function EditorWorkspace({
     const comment = addComment(selection, `${finding.title}: ${finding.recommendation}`)
     if (!comment) return false
     setSelectedCommentId(comment.id)
-    setIsComplianceOpen(false)
+    setActivePanel('review')
     setIsReviewLoaded(true)
-    setIsReviewMode(true)
     return true
   }, [addComment, api])
 
@@ -1392,7 +1094,7 @@ export function EditorWorkspace({
       if (selection) api.setSuggestionMode(false)
       return false
     }
-    setIsComplianceOpen(false)
+    setActivePanel('suggestion')
     setIsSuggestionLoaded(true)
     setIsSuggestionMode(true)
     setIsSuggestionSidebarOpen(true)
@@ -1412,8 +1114,7 @@ export function EditorWorkspace({
       api.setSuggestionMode(false)
       return false
     }
-    setIsWritingAssistantOpen(false)
-    setIsProductivityOpen(false)
+    setActivePanel('suggestion')
     setIsSuggestionLoaded(true)
     setIsSuggestionMode(true)
     setIsSuggestionSidebarOpen(true)
@@ -1427,10 +1128,8 @@ export function EditorWorkspace({
     const comment = addComment(selection, `Writing suggestion: ${suggestion.reason}`)
     if (!comment) return false
     setSelectedCommentId(comment.id)
-    setIsWritingAssistantOpen(false)
-    setIsProductivityOpen(false)
+    setActivePanel('review')
     setIsReviewLoaded(true)
-    setIsReviewMode(true)
     return true
   }, [addComment, api])
 
@@ -1453,7 +1152,6 @@ export function EditorWorkspace({
   )
 
   const saveIntelligenceSource = useCallback((source: PreparedKnowledgeSource) => {
-    setIsIntelligenceOpen(false)
     openAskDocument()
     setAskDocumentCommand({
       id: crypto.randomUUID(),
@@ -1471,7 +1169,7 @@ export function EditorWorkspace({
         ?.split(/(?<=[.!?])\s+/)[0]
         ?.slice(0, 180)
       const selection = quote ? api?.findTextSelection(quote) : null
-      setIsSearchOpen(false)
+      setActivePanel(null)
       if (selection) api?.focusTextSelection(selection)
       else api?.focus()
       return
@@ -1567,25 +1265,9 @@ export function EditorWorkspace({
     selectViewMode(nextMode)
     if (nextMode === 'editor') return
 
-    setIsAskDocumentOpen(false)
-    setIsAssetLibraryOpen(false)
-    setIsReviewMode(false)
+    setActivePanel(null)
     setIsSuggestionMode(false)
     setIsSuggestionSidebarOpen(false)
-    setIsComparisonOpen(false)
-    setIsPageLayoutOpen(false)
-    setIsWatermarkOpen(false)
-    setIsExportOpen(false)
-    setIsIntelligenceOpen(false)
-    setIsComplianceOpen(false)
-    setIsFormBuilderOpen(false)
-    setIsHistoryOpen(false)
-    setIsWorkflowOpen(false)
-    setIsSearchOpen(false)
-    setIsRedactionOpen(false)
-    setIsContractOpen(false)
-    setIsWritingAssistantOpen(false)
-    setIsProductivityOpen(false)
     setIsShareOpen(false)
     cancelPlacement()
     if (pendingComment) closeComposer()
@@ -1594,9 +1276,7 @@ export function EditorWorkspace({
     closeComposer,
     pendingComment,
     selectViewMode,
-    setIsPageLayoutOpen,
     setIsPrintPreviewOpen,
-    setIsWatermarkOpen,
   ])
 
   const closeDocumentViewer = useCallback(() => {
@@ -2173,7 +1853,6 @@ export function EditorWorkspace({
                 onClose={closeHistory}
                 onCountChange={setHistoryVersionCount}
                 onOpenComparison={(result) => {
-                  setIsHistoryOpen(false)
                   openComparison(result)
                 }}
               />

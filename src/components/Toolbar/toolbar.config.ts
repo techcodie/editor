@@ -2,10 +2,6 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Undo2,
   Redo2,
-  Pilcrow,
-  Heading1,
-  Heading2,
-  Heading3,
   Bold,
   Italic,
   Underline,
@@ -26,13 +22,7 @@ import {
 } from 'lucide-react'
 import type { EditorApi } from '../../lib/editor-api'
 
-export type ToolbarGroupId =
-  | 'history'
-  | 'blockType'
-  | 'formatting'
-  | 'lists'
-  | 'alignment'
-  | 'blocks'
+export type ToolbarGroupId = 'clipboard' | 'formatting' | 'paragraph' | 'lists'
 
 export interface ToolbarItemConfig {
   id: string
@@ -55,12 +45,10 @@ export interface ToolbarSection {
 }
 
 const GROUPS: { id: ToolbarGroupId; label: string }[] = [
-  { id: 'history', label: 'History' },
-  { id: 'blockType', label: 'Text style' },
+  { id: 'clipboard', label: 'Clipboard' },
   { id: 'formatting', label: 'Formatting' },
+  { id: 'paragraph', label: 'Paragraph' },
   { id: 'lists', label: 'Lists' },
-  { id: 'alignment', label: 'Alignment' },
-  { id: 'blocks', label: 'Blocks' },
 ]
 
 const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
@@ -68,7 +56,7 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
     id: 'undo',
     icon: Undo2,
     label: 'Undo',
-    group: 'history',
+    group: 'clipboard',
     shortcut: 'Mod+Z',
     execute: (api) => api.undo(),
     canExecute: (api) => api.canUndo(),
@@ -77,47 +65,17 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
     id: 'redo',
     icon: Redo2,
     label: 'Redo',
-    group: 'history',
+    group: 'clipboard',
     shortcut: 'Shift+Mod+Z',
     execute: (api) => api.redo(),
     canExecute: (api) => api.canRedo(),
   },
-
   {
-    id: 'paragraph',
-    icon: Pilcrow,
-    label: 'Paragraph',
-    group: 'blockType',
-    shortcut: 'Mod+Alt+0',
-    execute: (api) => api.setParagraph(),
-    isActive: (api) => api.isParagraph(),
-  },
-  {
-    id: 'heading1',
-    icon: Heading1,
-    label: 'Heading 1',
-    group: 'blockType',
-    shortcut: 'Mod+Alt+1',
-    execute: (api) => api.toggleHeading(1),
-    isActive: (api) => api.isHeading(1),
-  },
-  {
-    id: 'heading2',
-    icon: Heading2,
-    label: 'Heading 2',
-    group: 'blockType',
-    shortcut: 'Mod+Alt+2',
-    execute: (api) => api.toggleHeading(2),
-    isActive: (api) => api.isHeading(2),
-  },
-  {
-    id: 'heading3',
-    icon: Heading3,
-    label: 'Heading 3',
-    group: 'blockType',
-    shortcut: 'Mod+Alt+3',
-    execute: (api) => api.toggleHeading(3),
-    isActive: (api) => api.isHeading(3),
+    id: 'clearFormatting',
+    icon: RemoveFormatting,
+    label: 'Clear formatting',
+    group: 'clipboard',
+    execute: (api) => api.clearFormatting(),
   },
 
   {
@@ -176,6 +134,43 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
   },
 
   {
+    id: 'alignLeft',
+    icon: AlignLeft,
+    label: 'Align left',
+    group: 'paragraph',
+    shortcut: 'Mod+Shift+L',
+    execute: (api) => api.setTextAlign('left'),
+    isActive: (api) => api.isTextAlign('left'),
+  },
+  {
+    id: 'alignCenter',
+    icon: AlignCenter,
+    label: 'Align center',
+    group: 'paragraph',
+    shortcut: 'Mod+Shift+E',
+    execute: (api) => api.setTextAlign('center'),
+    isActive: (api) => api.isTextAlign('center'),
+  },
+  {
+    id: 'alignRight',
+    icon: AlignRight,
+    label: 'Align right',
+    group: 'paragraph',
+    shortcut: 'Mod+Shift+R',
+    execute: (api) => api.setTextAlign('right'),
+    isActive: (api) => api.isTextAlign('right'),
+  },
+  {
+    id: 'alignJustify',
+    icon: AlignJustify,
+    label: 'Justify',
+    group: 'paragraph',
+    shortcut: 'Mod+Shift+J',
+    execute: (api) => api.setTextAlign('justify'),
+    isActive: (api) => api.isTextAlign('justify'),
+  },
+
+  {
     id: 'bulletList',
     icon: List,
     label: 'Bullet list',
@@ -202,49 +197,11 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
     execute: (api) => api.toggleTaskList(),
     isActive: (api) => api.isTaskList(),
   },
-
-  {
-    id: 'alignLeft',
-    icon: AlignLeft,
-    label: 'Align left',
-    group: 'alignment',
-    shortcut: 'Mod+Shift+L',
-    execute: (api) => api.setTextAlign('left'),
-    isActive: (api) => api.isTextAlign('left'),
-  },
-  {
-    id: 'alignCenter',
-    icon: AlignCenter,
-    label: 'Align center',
-    group: 'alignment',
-    shortcut: 'Mod+Shift+E',
-    execute: (api) => api.setTextAlign('center'),
-    isActive: (api) => api.isTextAlign('center'),
-  },
-  {
-    id: 'alignRight',
-    icon: AlignRight,
-    label: 'Align right',
-    group: 'alignment',
-    shortcut: 'Mod+Shift+R',
-    execute: (api) => api.setTextAlign('right'),
-    isActive: (api) => api.isTextAlign('right'),
-  },
-  {
-    id: 'alignJustify',
-    icon: AlignJustify,
-    label: 'Justify',
-    group: 'alignment',
-    shortcut: 'Mod+Shift+J',
-    execute: (api) => api.setTextAlign('justify'),
-    isActive: (api) => api.isTextAlign('justify'),
-  },
-
   {
     id: 'blockquote',
     icon: TextQuote,
     label: 'Quote',
-    group: 'blocks',
+    group: 'lists',
     shortcut: 'Mod+Shift+B',
     execute: (api) => api.toggleBlockquote(),
     isActive: (api) => api.isBlockquote(),
@@ -253,7 +210,7 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
     id: 'codeBlock',
     icon: SquareCode,
     label: 'Code block',
-    group: 'blocks',
+    group: 'lists',
     shortcut: 'Mod+Alt+C',
     execute: (api) => api.toggleCodeBlock(),
     isActive: (api) => api.isCodeBlock(),
@@ -262,15 +219,8 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
     id: 'horizontalRule',
     icon: Minus,
     label: 'Horizontal rule',
-    group: 'blocks',
+    group: 'lists',
     execute: (api) => api.insertHorizontalRule(),
-  },
-  {
-    id: 'clearFormatting',
-    icon: RemoveFormatting,
-    label: 'Clear formatting',
-    group: 'blocks',
-    execute: (api) => api.clearFormatting(),
   },
 ]
 
