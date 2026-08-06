@@ -799,6 +799,17 @@ Toolbar must never call:
 
 Toolbar communicates only with the Editor API.
 
+The editing workspace presents these commands as one memoized, sticky,
+single-row ribbon. Clipboard, paragraph, typography, alignment, lists,
+supported insertions, review, AI, and document controls are composed into
+labelled groups with professional separators. The ribbon never wraps;
+tablet and mobile layouts use contained horizontal scrolling without causing
+page-level overflow. Paragraph styles and insertions use native accessible
+selectors, and only commands already exposed by the Editor API or existing
+workspace features are shown. Font family, font size, link,
+attachment, duplicate, and native print controls remain absent because those
+commands are not currently supported.
+
 ### Bubble Menu
 
 Bubble Menu must also communicate only through the Editor API.
@@ -1742,7 +1753,8 @@ Avoid:
 Completed:
 
 - Editor shell
-- Professional formatting toolbar
+- Professional single-row document ribbon with grouped formatting and
+  enterprise controls
 - Rich text editing
 - Editor API
 - Responsive layout
@@ -1800,6 +1812,8 @@ Completed:
   not cover AI inputs or other panel controls
 - Editable Tiptap table nodes used by explicit table commands
 - Cohesive editor and AI UI polish across desktop and mobile
+- Centered professional page canvas with compact sticky ribbon, restrained
+  workspace contrast, stable page width, and responsive horizontal controls
 - Ask Document speech-to-text input with live, editable transcription
 - Knowledge Sources UI with Current Document, file selection, drag-and-drop
   validation, local metadata cards, and source removal

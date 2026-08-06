@@ -4,12 +4,12 @@ import { cn } from '../../lib/cn'
 import type { DocumentEditorProps } from '../../types/editor'
 
 const CONTAINER_CLASS =
-  'w-full rounded-lg border border-neutral-200 bg-white px-5 py-9 ' +
-  'shadow-[var(--document-editor-shadow-surface)] ' +
+  'w-full rounded-md border border-neutral-200/90 bg-white px-5 py-10 ' +
+  'shadow-[0_1px_2px_rgba(20,20,20,0.06),0_18px_48px_-28px_rgba(20,20,20,0.38)] ' +
   'transition-[border-color,box-shadow] duration-200 ' +
   'focus-within:border-neutral-300 ' +
-  'focus-within:shadow-[0_1px_2px_rgba(20,20,20,0.05),0_20px_52px_-28px_rgba(20,20,20,0.4),0_0_0_3px_color-mix(in_srgb,var(--document-editor-focus-ring)_35%,transparent)] ' +
-  'sm:px-12 sm:py-14 md:px-16 md:py-16'
+  'focus-within:shadow-[0_1px_2px_rgba(20,20,20,0.06),0_22px_56px_-30px_rgba(20,20,20,0.42),0_0_0_3px_color-mix(in_srgb,var(--document-editor-focus-ring)_28%,transparent)] ' +
+  'sm:px-14 sm:py-16 md:px-[4.75rem] md:py-[4.5rem]'
 
 function DocumentEditorComponent({
   editor,

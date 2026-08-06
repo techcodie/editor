@@ -1,6 +1,19 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Command, FilePenLine, LoaderCircle, MessageSquareText, MousePointer2, ShieldCheck, X } from 'lucide-react'
-import { AssetToolbarControl } from '../../assets/components/AssetToolbarControl'
+import {
+  Command,
+  FilePenLine,
+  Image as ImageIcon,
+  ListChecks,
+  LoaderCircle,
+  MessageSquareText,
+  Minus,
+  MousePointer2,
+  Plus,
+  ShieldCheck,
+  Stamp,
+  Table2,
+  X,
+} from 'lucide-react'
 import { useAssetInsertion } from '../../assets/hooks/useAssetInsertion'
 import type { Asset } from '../../assets/types/asset'
 import { ComplianceToolbarControl } from '../../compliance/components/ComplianceToolbarControl'
@@ -32,7 +45,6 @@ import {
 import type { DocumentViewMode } from '../../viewer/types/viewer'
 import { ComparisonToolbarControl } from '../../comparison/components/ComparisonToolbar'
 import { ExportToolbarControl } from '../../export/components/ExportToolbarControl'
-import { FormBuilderToolbarControl } from '../../forms/components/FormBuilderToolbarControl'
 import { HistoryToolbarControl } from '../../history/components/HistoryToolbarControl'
 import { historyNamespace } from '../../history/services/historyStorage'
 import { DocumentIntelligenceToolbarControl } from '../../intelligence/components/DocumentIntelligenceToolbarControl'
@@ -57,10 +69,7 @@ import { SuggestionPreview } from '../../review/trackChanges/components/Suggesti
 import { SuggestionToolbar } from '../../review/trackChanges/components/SuggestionToolbar'
 import { useTrackChanges } from '../../review/trackChanges/hooks/useTrackChanges'
 import { WatermarkLayer } from '../../watermark/components/WatermarkLayer'
-import {
-  WatermarkPanel,
-  WatermarkToolbarControl,
-} from '../../watermark/components/WatermarkPanel'
+import { WatermarkPanel } from '../../watermark/components/WatermarkPanel'
 import { useWatermark } from '../../watermark/hooks/useWatermark'
 import { WorkflowToolbarControl } from '../../workflow/components/WorkflowToolbarControl'
 import { loadWorkflow, saveWorkflow } from '../../workflow/services/workflowSerializer'
@@ -95,7 +104,7 @@ import {
   type WorkspaceCommandId,
 } from '../CommandPalette/CommandPalette'
 import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary'
-import { Toolbar } from '../Toolbar'
+import { Toolbar, ToolbarDropdown } from '../Toolbar'
 import { DocumentEditor } from '../DocumentEditor'
 import { SelectionAi } from '../SelectionAI'
 import type { AskDocumentCommandRequest } from '../AskDocument/AskDocumentPanel'
@@ -1439,25 +1448,54 @@ export function EditorWorkspace({
     isCommandPaletteOpen || isPrintPreviewOpen
 
   return (
-    <div className="document-editor-workspace mx-auto flex w-full max-w-[84rem] items-start justify-center px-3 pb-20 pt-4 sm:px-6 sm:py-7 lg:px-8 lg:py-6">
-      <div className={cn('min-w-0 w-full max-w-[48rem]', viewMode === 'reading' && 'reader-workspace max-w-[54rem]')}>
+    <div className="document-editor-workspace mx-auto flex w-full max-w-[96rem] items-start justify-center px-2 pb-20 pt-3 sm:px-5 sm:py-6 lg:px-7">
+      <div className={cn('min-w-0 w-full max-w-[84rem]', viewMode === 'reading' && 'reader-workspace max-w-[54rem]')}>
         {viewMode === 'reading' ? (
           <ReadingMode mode={viewMode} onModeChange={handleViewModeChange} onExit={closeDocumentViewer} />
         ) : (
-        <div className="sticky top-3 z-30 flex items-start gap-2.5 sm:top-4">
+        <div className="sticky top-2 z-30 sm:top-3">
           {config.toolbar && !config.readonly && canEdit && (
             <Toolbar
               api={api}
               className="min-w-0"
-              trailingSections={[{ id: 'workspace', label: 'Workspace tools', content: (
-                <>
-                  <AssetToolbarControl
-                    isOpen={isAssetLibraryOpen}
-                    onToggle={() => {
-                      if (isAssetLibraryOpen) closeAssetLibrary()
-                      else openAssetLibrary()
-                    }}
-                  />
+              trailingSections={[
+                {
+                  id: 'insert',
+                  label: 'Insert',
+                  content: (
+                    <ToolbarDropdown
+                      icon={Plus}
+                      label="Insert"
+                      triggerLabel="Insert"
+                      disabled={!api}
+                      items={[
+                        { id: 'table', icon: Table2, label: 'Table', onSelect: () => { api?.insertTable() } },
+                        { id: 'horizontal-rule', icon: Minus, label: 'Horizontal rule', onSelect: () => { api?.insertHorizontalRule() } },
+                        { id: 'assets', icon: ImageIcon, label: 'Image or asset', onSelect: () => {
+                          if (isAssetLibraryOpen) closeAssetLibrary()
+                          else openAssetLibrary()
+                        } },
+                        { id: 'watermark', icon: Stamp, label: 'Watermark', onSelect: () => {
+                          if (isWatermarkOpen) closeWatermark()
+                          else openWatermark()
+                        } },
+                        ...(canBuildForms ? [{
+                          id: 'form',
+                          icon: ListChecks,
+                          label: formFieldCount > 0 ? `Form fields (${formFieldCount})` : 'Form field',
+                          onSelect: () => {
+                            if (isFormBuilderOpen) closeFormBuilder()
+                            else openFormBuilder()
+                          },
+                        }] : []),
+                      ]}
+                    />
+                  ),
+                },
+                {
+                  id: 'review',
+                  label: 'Review',
+                  content: <>
                   {canComment && <ReviewToolbarControl
                     isActive={isReviewMode}
                     onToggle={() => {
@@ -1479,50 +1517,6 @@ export function EditorWorkspace({
                       else openComparison()
                     }}
                   />}
-                  <PageLayoutToolbarControl
-                    isOpen={isPageLayoutOpen}
-                    onToggle={() => {
-                      if (isPageLayoutOpen) closePageLayout()
-                      else openPageLayout()
-                    }}
-                  />
-                  <WatermarkToolbarControl
-                    isOpen={isWatermarkOpen}
-                    hasWatermark={Boolean(watermark)}
-                    onToggle={() => {
-                      if (isWatermarkOpen) closeWatermark()
-                      else openWatermark()
-                    }}
-                  />
-                  {canExport && <ExportToolbarControl
-                    isOpen={isExportOpen}
-                    onToggle={() => {
-                      if (isExportOpen) closeExport()
-                      else openExport()
-                    }}
-                  />}
-                  {canRead && <DocumentIntelligenceToolbarControl
-                    isOpen={isIntelligenceOpen}
-                    onToggle={() => {
-                      if (isIntelligenceOpen) closeIntelligence()
-                      else openIntelligence()
-                    }}
-                  />}
-                  {canRead && <ComplianceToolbarControl
-                    isOpen={isComplianceOpen}
-                    onToggle={() => {
-                      if (isComplianceOpen) closeCompliance()
-                      else openCompliance()
-                    }}
-                  />}
-                  {canBuildForms && <FormBuilderToolbarControl
-                    isOpen={isFormBuilderOpen}
-                    fieldCount={formFieldCount}
-                    onToggle={() => {
-                      if (isFormBuilderOpen) closeFormBuilder()
-                      else openFormBuilder()
-                    }}
-                  />}
                   {canRead && <HistoryToolbarControl
                     isOpen={isHistoryOpen}
                     versionCount={historyVersionCount}
@@ -1531,37 +1525,32 @@ export function EditorWorkspace({
                       else openHistory()
                     }}
                   />}
-                  {canUseWorkflow && <WorkflowToolbarControl
-                    isOpen={isWorkflowOpen}
-                    status={currentWorkflow?.status}
-                    onToggle={() => {
-                      if (isWorkflowOpen) closeWorkflow()
-                      else openWorkflow()
-                    }}
-                  />}
-                  {canSearch && <SearchToolbarControl
-                    isOpen={isSearchOpen}
-                    onToggle={() => {
-                      if (isSearchOpen) closeSearch()
-                      else openSearch()
-                    }}
-                  />}
-                  {canRedact && <RedactionToolbarControl
-                    isOpen={isRedactionOpen}
-                    count={redactionRecords.filter((record) => record.decision === 'pending').length}
-                    onToggle={() => {
-                      if (isRedactionOpen) closeRedaction()
-                      else openRedaction()
-                    }}
-                  />}
-                  {canUseContractIntelligence && <ContractToolbarControl
-                    isOpen={isContractOpen}
-                    riskScore={contractAnalysis?.overallRiskScore}
-                    onToggle={() => {
-                      if (isContractOpen) closeContract()
-                      else openContract()
-                    }}
-                  />}
+                  </>,
+                },
+                {
+                  id: 'ai',
+                  label: 'AI',
+                  content: <>
+                  {config.ai && canUseAi && (
+                    <button
+                      ref={askDocumentButtonRef}
+                      type="button"
+                      aria-label={isAskDocumentOpen ? 'Close Ask Document' : 'Open Ask Document'}
+                      aria-expanded={isAskDocumentOpen}
+                      aria-controls="ask-document-panel"
+                      title={isAskDocumentOpen ? 'Close Ask Document' : 'Ask Document'}
+                      onClick={() => {
+                        if (isAskDocumentOpen) closeAskDocument()
+                        else openAskDocument()
+                      }}
+                      className={cn(
+                        'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-[background-color,color,box-shadow,transform] duration-150 hover:bg-neutral-100 hover:text-neutral-950 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35',
+                        isAskDocumentOpen ? 'bg-neutral-900 text-white shadow-sm hover:bg-neutral-800 hover:text-white' : 'text-neutral-500',
+                      )}
+                    >
+                      <AskDocumentIcon width={16} height={16} strokeWidth={1.9} aria-hidden />
+                    </button>
+                  )}
                   {canUseAi && <WritingAssistantToolbarControl
                     isOpen={isWritingAssistantOpen}
                     score={writingAnalysis?.score}
@@ -1579,105 +1568,130 @@ export function EditorWorkspace({
                       }}
                     />
                   )}
-                </>
-              ) }]}
-            />
-          )}
-          {canRead && <div className="hidden sm:block">
-            <ViewSwitcher mode={viewMode} onChange={handleViewModeChange} />
-          </div>}
-          {canBuildForms && <div className="hidden sm:block">
-            <ShareToolbarControl
-              isOpen={isShareOpen}
-              onToggle={() => {
-                if (isShareOpen) closeShare()
-                else openShare()
-              }}
-            />
-          </div>}
-          {config.commandPalette && canRead && (
-            <button
-              type="button"
-              aria-label="Open command palette"
-              aria-keyshortcuts={
-                config.keyboardShortcuts ? 'Meta+K Control+K' : undefined
-              }
-              title={
-                config.keyboardShortcuts
-                  ? 'Command palette (Cmd/Ctrl + K)'
-                  : 'Command palette'
-              }
-              onClick={() => setIsCommandPaletteOpen(true)}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white/90 text-neutral-500 shadow-[var(--document-editor-shadow-surface)] backdrop-blur-xl transition-[border-color,background-color,color,box-shadow,transform] duration-150 hover:-translate-y-px hover:border-neutral-300 hover:bg-white hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f6f4] active:translate-y-0"
-            >
-              <CommandPaletteIcon width={17} height={17} strokeWidth={1.9} aria-hidden />
-            </button>
-          )}
-          {config.ai && canUseAi && (
-            <button
-              ref={askDocumentButtonRef}
-              type="button"
-              aria-label={
-                isAskDocumentOpen ? 'Close Ask Document' : 'Open Ask Document'
-              }
-              aria-expanded={isAskDocumentOpen}
-              aria-controls="ask-document-panel"
-              title={isAskDocumentOpen ? 'Close Ask Document' : 'Ask Document'}
-              onClick={() => {
-                if (isAskDocumentOpen) closeAskDocument()
-                else openAskDocument()
-              }}
-              className={cn(
-                'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border shadow-[var(--document-editor-shadow-surface)] backdrop-blur-xl transition-[border-color,background-color,color,box-shadow,transform] duration-150 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f6f4] active:translate-y-0',
-                isAskDocumentOpen
-                  ? 'border-neutral-800 bg-neutral-900 text-white shadow-[var(--document-editor-shadow-overlay)] hover:bg-neutral-800'
-                  : 'border-neutral-200 bg-white/90 text-neutral-500 hover:border-neutral-300 hover:bg-white hover:text-neutral-950',
-              )}
-            >
-              <AskDocumentIcon
-                width={18}
-                height={18}
-                strokeWidth={1.9}
-                aria-hidden
-              />
-            </button>
-          )}
-          {identityManager && (
-            <button
-              ref={identityButtonRef}
-              type="button"
-              aria-label={isIdentityOpen ? 'Close identity settings' : 'Open identity settings'}
-              aria-expanded={isIdentityOpen}
-              aria-controls="identity-settings"
-              title="Identity & access"
-              onClick={() => {
-                if (isIdentityOpen) closeIdentity()
-                else openIdentity()
-              }}
-              className={cn(
-                'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border shadow-[var(--document-editor-shadow-surface)] backdrop-blur-xl transition-[border-color,background-color,color,box-shadow,transform] duration-150 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f6f4] active:translate-y-0',
-                isIdentityOpen
-                  ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
-                  : 'border-neutral-200 bg-white/90 text-neutral-500 hover:border-neutral-300 hover:bg-white hover:text-neutral-950',
-              )}
-            >
-              <ShieldCheck size={17} strokeWidth={1.9} aria-hidden />
-            </button>
-          )}
-          {config.collaboration && canRead && (
-            <PresenceBar
-              collaborators={collaboration.onlineCollaborators}
-              currentUser={config.collaboration.user}
-              connectionStatus={collaboration.connectionStatus}
-              syncStatus={collaboration.syncStatus}
-              activeEditor={collaboration.activeEditor}
-              workflow={currentWorkflow}
-              onReconnect={collaboration.reconnect}
+                  {canSearch && <SearchToolbarControl
+                    isOpen={isSearchOpen}
+                    onToggle={() => {
+                      if (isSearchOpen) closeSearch()
+                      else openSearch()
+                    }}
+                  />}
+                  {canRead && <ComplianceToolbarControl
+                    isOpen={isComplianceOpen}
+                    onToggle={() => {
+                      if (isComplianceOpen) closeCompliance()
+                      else openCompliance()
+                    }}
+                  />}
+                  {canRead && <DocumentIntelligenceToolbarControl
+                    isOpen={isIntelligenceOpen}
+                    onToggle={() => {
+                      if (isIntelligenceOpen) closeIntelligence()
+                      else openIntelligence()
+                    }}
+                  />}
+                  {canUseContractIntelligence && <ContractToolbarControl
+                    isOpen={isContractOpen}
+                    riskScore={contractAnalysis?.overallRiskScore}
+                    onToggle={() => {
+                      if (isContractOpen) closeContract()
+                      else openContract()
+                    }}
+                  />}
+                  </>,
+                },
+                {
+                  id: 'document',
+                  label: 'Document',
+                  content: <>
+                  <PageLayoutToolbarControl
+                    isOpen={isPageLayoutOpen}
+                    onToggle={() => {
+                      if (isPageLayoutOpen) closePageLayout()
+                      else openPageLayout()
+                    }}
+                  />
+                  {canExport && <ExportToolbarControl
+                    isOpen={isExportOpen}
+                    onToggle={() => {
+                      if (isExportOpen) closeExport()
+                      else openExport()
+                    }}
+                  />}
+                  {canUseWorkflow && <WorkflowToolbarControl
+                    isOpen={isWorkflowOpen}
+                    status={currentWorkflow?.status}
+                    onToggle={() => {
+                      if (isWorkflowOpen) closeWorkflow()
+                      else openWorkflow()
+                    }}
+                  />}
+                  {canRedact && <RedactionToolbarControl
+                    isOpen={isRedactionOpen}
+                    count={redactionRecords.filter((record) => record.decision === 'pending').length}
+                    onToggle={() => {
+                      if (isRedactionOpen) closeRedaction()
+                      else openRedaction()
+                    }}
+                  />}
+                  {canRead && <ViewSwitcher mode={viewMode} onChange={handleViewModeChange} compact />}
+                  {canBuildForms && <ShareToolbarControl
+                    isOpen={isShareOpen}
+                    onToggle={() => {
+                      if (isShareOpen) closeShare()
+                      else openShare()
+                    }}
+                  />}
+                  {config.commandPalette && canRead && (
+                    <button
+                      type="button"
+                      aria-label="Open command palette"
+                      aria-keyshortcuts={config.keyboardShortcuts ? 'Meta+K Control+K' : undefined}
+                      title={config.keyboardShortcuts ? 'Command palette (Cmd/Ctrl + K)' : 'Command palette'}
+                      onClick={() => setIsCommandPaletteOpen(true)}
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-[background-color,color,transform] hover:bg-neutral-100 hover:text-neutral-950 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+                    >
+                      <CommandPaletteIcon width={16} height={16} strokeWidth={1.9} aria-hidden />
+                    </button>
+                  )}
+                  {identityManager && (
+                    <button
+                      ref={identityButtonRef}
+                      type="button"
+                      aria-label={isIdentityOpen ? 'Close identity settings' : 'Open identity settings'}
+                      aria-expanded={isIdentityOpen}
+                      aria-controls="identity-settings"
+                      title="Identity & access"
+                      onClick={() => {
+                        if (isIdentityOpen) closeIdentity()
+                        else openIdentity()
+                      }}
+                      className={cn(
+                        'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-[background-color,color,transform] hover:bg-neutral-100 hover:text-neutral-950 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35',
+                        isIdentityOpen ? 'bg-indigo-50 text-indigo-700' : 'text-neutral-500',
+                      )}
+                    >
+                      <ShieldCheck size={16} strokeWidth={1.9} aria-hidden />
+                    </button>
+                  )}
+                  {config.collaboration && canRead && (
+                    <PresenceBar
+                      collaborators={collaboration.onlineCollaborators}
+                      currentUser={config.collaboration.user}
+                      connectionStatus={collaboration.connectionStatus}
+                      syncStatus={collaboration.syncStatus}
+                      activeEditor={collaboration.activeEditor}
+                      workflow={currentWorkflow}
+                      onReconnect={collaboration.reconnect}
+                    />
+                  )}
+                  </>,
+                },
+              ]}
             />
           )}
         </div>
         )}
-        <div className="relative pt-3.5 sm:pt-4">
+        <div className="relative mx-auto max-w-[52rem] pt-4 sm:pt-5">
           {pendingAsset && (
             <div className="absolute left-1/2 top-6 z-20 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-[var(--document-editor-shadow-overlay)]" role="status">
               <MousePointer2 size={14} strokeWidth={1.9} className="shrink-0" aria-hidden />
@@ -1721,7 +1735,7 @@ export function EditorWorkspace({
           )}
         </div>
       </div>
-      <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">
+      <div className={cn('shrink-0 lg:sticky lg:top-6 lg:self-start', !isMobileSurfaceOpen && 'hidden')}>
         {isIdentityLoaded && identityManager && (
           <ErrorBoundary compact title="Identity settings need a retry">
             <Suspense fallback={<div className="fixed inset-y-0 right-0 z-50 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[32rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[31rem] lg:rounded-lg lg:border" role="status" aria-label="Loading identity settings"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
@@ -2030,7 +2044,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
       </div>
-      {(viewMode === 'editor' || viewMode === 'reading') && !isMobileSurfaceOpen && (
+      {viewMode === 'reading' && !isMobileSurfaceOpen && (
         <MobileToolbar
           mode={viewMode}
           aiEnabled={Boolean(config.ai && canUseAi)}

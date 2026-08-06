@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { BookOpen, ChevronDown } from 'lucide-react'
 import type { DocumentViewMode } from '../types/viewer'
 import { DOCUMENT_VIEW_MODES } from '../services/viewManager'
@@ -9,9 +10,11 @@ interface ViewSwitcherProps {
 }
 
 export function ViewSwitcher({ mode, onChange, compact = false }: ViewSwitcherProps) {
+  const selectId = useId()
+
   return (
     <div className="relative shrink-0">
-      <label htmlFor={compact ? 'document-view-mobile' : 'document-view-desktop'} className="sr-only">
+      <label htmlFor={selectId} className="sr-only">
         Document view
       </label>
       <BookOpen
@@ -21,11 +24,11 @@ export function ViewSwitcher({ mode, onChange, compact = false }: ViewSwitcherPr
         aria-hidden
       />
       <select
-        id={compact ? 'document-view-mobile' : 'document-view-desktop'}
+        id={selectId}
         value={mode}
         onChange={(event) => onChange(event.target.value as DocumentViewMode)}
         aria-label="Document view"
-        className={`${compact ? 'h-9 max-w-[8.75rem]' : 'h-10 max-w-[10.5rem]'} appearance-none rounded-lg border border-neutral-200 bg-white/95 py-0 pl-8 pr-7 text-xs font-semibold text-neutral-700 shadow-[var(--document-editor-shadow-surface)] outline-none transition-[border-color,background-color,color,box-shadow] hover:border-neutral-300 hover:text-neutral-950 focus-visible:border-indigo-400 focus-visible:ring-2 focus-visible:ring-indigo-500/25`}
+        className={`${compact ? 'h-8 max-w-[8.75rem] rounded-md shadow-none' : 'h-10 max-w-[10.5rem] rounded-lg shadow-[var(--document-editor-shadow-surface)]'} appearance-none border border-neutral-200 bg-white/95 py-0 pl-8 pr-7 text-xs font-semibold text-neutral-700 outline-none transition-[border-color,background-color,color,box-shadow] hover:border-neutral-300 hover:text-neutral-950 focus-visible:border-indigo-400 focus-visible:ring-2 focus-visible:ring-indigo-500/25`}
       >
         {DOCUMENT_VIEW_MODES.map((item) => (
           <option key={item.id} value={item.id}>{item.label}</option>
