@@ -66,6 +66,7 @@ export function Editor() {
 - [Ask Document, knowledge sources, voice, and troubleshooting](docs/GUIDES.md)
 - [Plugin guide](docs/PLUGINS.md)
 - [Migration notes](docs/MIGRATION.md)
+- [Deployment (Render + Vercel)](docs/DEPLOYMENT.md)
 - [Version history](CHANGELOG.md)
 
 ## Repository Development

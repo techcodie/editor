@@ -82,8 +82,55 @@ async function serveClient(request: IncomingMessage, response: ServerResponse): 
 
 loadLocalEnvironment()
 
+// Comma-separated allowlist for cross-origin frontend deployments (e.g. Vercel).
+// Unset means "allow any origin" — safe here because every endpoint is a
+// stateless JSON/SSE proxy with a server-only API key and no cookies/sessions.
+const ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGIN ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
+function resolveAllowedOrigin(requestOrigin: string | undefined): string | null {
+  if (ALLOWED_ORIGINS.length === 0) return '*'
+  if (requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)) return requestOrigin
+  return null
+}
+
+function applyCorsHeaders(request: IncomingMessage, response: ServerResponse): void {
+  const allowOrigin = resolveAllowedOrigin(request.headers.origin)
+  if (!allowOrigin) return
+  response.setHeader('Access-Control-Allow-Origin', allowOrigin)
+  if (allowOrigin !== '*') response.setHeader('Vary', 'Origin')
+  response.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, OPTIONS')
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  response.setHeader('Access-Control-Max-Age', '86400')
+}
+
+function sendHealth(response: ServerResponse, method: string | undefined): void {
+  response.writeHead(200, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+  })
+  response.end(method === 'HEAD' ? undefined : JSON.stringify({ status: 'ok' }))
+}
+
 const server = createServer(async (request, response) => {
+  applyCorsHeaders(request, response)
+
+  if (request.method === 'OPTIONS') {
+    response.writeHead(204)
+    response.end()
+    return
+  }
+
   const url = new URL(request.url ?? '/', 'http://localhost')
+
+  // Render (and most PaaS load balancers) poll this path to confirm the
+  // service is live; it must succeed before `dist/` is necessarily present.
+  if ((url.pathname === '/healthz' || url.pathname === '/health') && (request.method === 'GET' || request.method === 'HEAD')) {
+    sendHealth(response, request.method)
+    return
+  }
 
   if (request.method === 'POST' && url.pathname === '/api/ask-document') {
     await handleAskDocument(request, response)
@@ -110,7 +157,7 @@ const server = createServer(async (request, response) => {
     return
   }
   if (request.method !== 'GET' && request.method !== 'HEAD') {
-    response.writeHead(405, { Allow: 'GET, HEAD, POST' })
+    response.writeHead(405, { Allow: 'GET, HEAD, POST, OPTIONS' })
     response.end()
     return
   }
@@ -123,8 +170,28 @@ if (!Number.isInteger(port) || port < 1 || port > 65_535) {
   throw new Error('AI_SERVER_PORT or PORT must be a valid TCP port.')
 }
 
-const host = process.env.HOST?.trim() || '127.0.0.1'
+// Bind all interfaces by default: cloud load balancers (Render, Fly, Docker,
+// ...) connect from outside the container and cannot reach a loopback-only
+// bind. Override with HOST for a deliberately loopback-restricted local run.
+const host = process.env.HOST?.trim() || '0.0.0.0'
 
 server.listen(port, host, () => {
   console.log(`Document editor server listening on http://${host}:${port}`)
 })
+
+function shutdown(signal: string): void {
+  console.log(`${signal} received, closing server gracefully...`)
+  server.close((error) => {
+    if (error) {
+      console.error('Error while closing the server.', error)
+      process.exitCode = 1
+    }
+    process.exit()
+  })
+  // In-flight SSE streams can hold the server open indefinitely; force exit
+  // if graceful close hasn't finished shortly after the shutdown signal.
+  setTimeout(() => process.exit(1), 10_000).unref()
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))

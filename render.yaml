@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: techcodie-editor-api
+    env: node
+    plan: starter
+    region: oregon
+    branch: main
+    buildCommand: npm ci && npm run build:server
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: HOST
+        value: 0.0.0.0
+      # Render injects PORT automatically; do not set it manually.
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      # Comma-separated list of allowed frontend origins, e.g. your Vercel
+      # production domain(s). Leave unset only for early testing.
+      - key: CORS_ALLOWED_ORIGIN
+        sync: false
