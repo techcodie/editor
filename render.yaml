@@ -3,7 +3,12 @@ services:
     name: techcodie-editor-api
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run build:server
+    # NODE_ENV=production below makes npm default omit=dev, which silently
+    # skips typescript/@types/node and breaks this build (reproduced and
+    # confirmed in a clean Node 22.12.0 Linux container). --include=dev
+    # forces devDependencies in regardless of NODE_ENV; only the compiled
+    # dist-server output runs at runtime, so this has no effect there.
+    buildCommand: npm ci --include=dev && npm run build:server
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
