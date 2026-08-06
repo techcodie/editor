@@ -1449,7 +1449,7 @@ export function EditorWorkspace({
             <Toolbar
               api={api}
               className="min-w-0"
-              trailingContent={
+              trailingSections={[{ id: 'workspace', label: 'Workspace tools', content: (
                 <>
                   <AssetToolbarControl
                     isOpen={isAssetLibraryOpen}
@@ -1580,7 +1580,7 @@ export function EditorWorkspace({
                     />
                   )}
                 </>
-              }
+              ) }]}
             />
           )}
           {canRead && <div className="hidden sm:block">
