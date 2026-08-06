@@ -43,7 +43,7 @@ export function PageIndicator({ layout, pagination, onRemoveBreak }: PageIndicat
       {pagination.breaks.map((pageBreak) => (
         <PageBreakIndicator key={pageBreak.id} pageBreak={pageBreak} onRemove={onRemoveBreak} />
       ))}
-      <span className="sticky top-3 ml-auto mr-3 mt-3 block w-fit rounded-md border border-neutral-200 bg-white/90 px-2 py-1 text-[10px] font-semibold tabular-nums text-neutral-500 shadow-sm backdrop-blur">
+      <span className="sticky top-[4.5rem] z-20 ml-auto mr-3 block w-fit rounded-md border border-neutral-200 bg-white/90 px-2 py-1 text-[10px] font-semibold tabular-nums text-neutral-500 shadow-sm backdrop-blur">
         Page {pagination.currentPage} of {pagination.pages.length}
       </span>
     </div>
