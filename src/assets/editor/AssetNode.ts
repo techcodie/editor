@@ -39,6 +39,8 @@ export const AssetNode = Node.create({
       width: { default: 200 },
       height: { default: 88 },
       rotation: { default: 0 },
+      align: { default: 'center' },
+      caption: { default: '' },
     }
   },
 

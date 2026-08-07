@@ -13,6 +13,8 @@ function history(kind: ProductivityHistoryItem['kind'], title: string, detail: s
   return { id: crypto.randomUUID(), kind, title, detail, createdAt: Date.now() }
 }
 
+export type VoiceCommandsController = ReturnType<typeof useVoiceCommands>
+
 export function useVoiceCommands(api: EditorApi | null, provider: VoiceProvider) {
   const [status, setStatus] = useState<VoiceCaptureStatus>('idle')
   const [mode, setMode] = useState<VoiceInsertionMode>('cursor')

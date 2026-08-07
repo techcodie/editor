@@ -15,6 +15,9 @@ import type { WritingSuggestion } from '../../writing/types/suggestion'
 import type { WritingAnalysis } from '../../writing/types/writing'
 import { ProductivityToolbarControl } from '../../productivity/components/ProductivityToolbarControl'
 import { createProductivityProviderRegistry } from '../../productivity/services/providerRegistry'
+import { useVoiceCommands } from '../../productivity/hooks/useVoiceCommands'
+import type { VoiceProvider } from '../../productivity/types/provider'
+import { DictationToolbarControl } from '../../productivity/components/DictationToolbarControl'
 import { GoogleSearchButton } from '../../viewer/components/GoogleSearchButton'
 import { MobileToolbar } from '../../viewer/components/MobileToolbar'
 import { ReadingMode } from '../../viewer/components/ReadingMode'
@@ -255,6 +258,22 @@ type RightDockPanelId =
   | 'productivity'
   | 'identity'
 
+/**
+ * Stable fallback so `useVoiceCommands` (lifted here so the toolbar's
+ * dictation control and the Productivity panel's Voice tab share one live
+ * session) can always be called unconditionally, even when the host has
+ * disabled productivity features and `productivityRegistry` is null.
+ */
+const DISABLED_VOICE_PROVIDER: VoiceProvider = {
+  id: 'disabled',
+  name: 'Dictation unavailable',
+  kind: 'voice',
+  local: true,
+  requiresApiKey: false,
+  isAvailable: () => false,
+  createSession: () => ({ start() {}, pause() {}, resume() {}, stop() {}, cancel() {} }),
+}
+
 export function EditorWorkspace({
   config,
   events,
@@ -373,6 +392,7 @@ export function EditorWorkspace({
     () => config.productivity ? createProductivityProviderRegistry(config.productivity) : null,
     [config.productivity],
   )
+  const voice = useVoiceCommands(api, productivityRegistry?.getVoiceProvider() ?? DISABLED_VOICE_PROVIDER)
 
   useEffect(() => {
     let active = true
@@ -1414,6 +1434,27 @@ export function EditorWorkspace({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [canSearch, closeSearch, config.keyboardShortcuts, isSearchOpen, openSearch])
 
+  const voiceStatus = voice.status
+  const { start: startDictation, stop: stopDictation, resume: resumeDictation } = voice
+  useEffect(() => {
+    if (!config.keyboardShortcuts || !productivityRegistry || !canUseAi || !voice.isSupported) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key.toLocaleLowerCase() === 'd' &&
+        (event.metaKey || event.ctrlKey) &&
+        event.shiftKey &&
+        !event.altKey
+      ) {
+        event.preventDefault()
+        if (voiceStatus === 'listening') stopDictation()
+        else if (voiceStatus === 'paused') resumeDictation()
+        else startDictation()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [canUseAi, config.keyboardShortcuts, productivityRegistry, resumeDictation, startDictation, stopDictation, voice.isSupported, voiceStatus])
+
   const isMobileSurfaceOpen =
     isAskDocumentOpen || isAssetLibraryOpen || isReviewMode || isSuggestionMode ||
     isComparisonOpen || isPageLayoutOpen || isWatermarkOpen || isExportOpen ||
@@ -1457,6 +1498,11 @@ export function EditorWorkspace({
                     />
                   ),
                 },
+                ...(productivityRegistry && canUseAi ? [{
+                  id: 'dictation',
+                  label: 'Dictation',
+                  content: <DictationToolbarControl api={api} voice={voice} />,
+                }] : []),
                 {
                   id: 'document',
                   label: 'Document',
@@ -1759,6 +1805,7 @@ export function EditorWorkspace({
                 isOpen={isProductivityOpen}
                 api={api}
                 registry={productivityRegistry}
+                voice={voice}
                 onClose={closeProductivity}
                 onApplyWriting={createWritingSuggestion}
                 onCommentWriting={createWritingComment}

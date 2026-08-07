@@ -8,7 +8,7 @@ import { insertGeneratedImage } from '../services/imageInsertion'
 import { useGrammarProvider } from '../hooks/useGrammarProvider'
 import { useImageGeneration } from '../hooks/useImageGeneration'
 import { useSpeakerManager } from '../hooks/useSpeakerManager'
-import { useVoiceCommands } from '../hooks/useVoiceCommands'
+import type { VoiceCommandsController } from '../hooks/useVoiceCommands'
 import type { ImageInsertionMode, ProductivityHistoryItem, ProductivityTab } from '../types/productivity'
 import type { IdentityAuditInput } from '../../identity/types/identity'
 import { GrammarSuggestionsPanel } from './GrammarSuggestionsPanel'
@@ -30,6 +30,8 @@ interface ProductivitySidebarProps {
   isOpen: boolean
   api: EditorApi | null
   registry: ProductivityProviderRegistry
+  /** Lifted to the workspace so the main toolbar's dictation control shares the same live session. */
+  voice: VoiceCommandsController
   onClose: () => void
   onApplyWriting: (original: string, suggested: string, reason: string) => boolean
   onCommentWriting: (suggestion: WritingSuggestion) => boolean
@@ -40,14 +42,13 @@ function item(kind: ProductivityHistoryItem['kind'], title: string, detail: stri
   return { id: crypto.randomUUID(), kind, title, detail, createdAt: Date.now() }
 }
 
-export function ProductivitySidebar({ isOpen, api, registry, onClose, onApplyWriting, onCommentWriting, onAudit }: ProductivitySidebarProps) {
+export function ProductivitySidebar({ isOpen, api, registry, voice, onClose, onApplyWriting, onCommentWriting, onAudit }: ProductivitySidebarProps) {
   const [tab, setTab] = useState<ProductivityTab>('images')
   const [history, setHistory] = useState<ProductivityHistoryItem[]>([])
   const auditedVoiceIdsRef = useRef(new Set<string>())
   const images = useImageGeneration(registry.getImageProvider())
   const grammar = useGrammarProvider(registry.getGrammarProvider(), api)
   const speakers = useSpeakerManager(api)
-  const voice = useVoiceCommands(api, registry.getVoiceProvider())
   const combinedHistory = useMemo(() => [...history, ...voice.activity].toSorted((left, right) => right.createdAt - left.createdAt).slice(0, 40), [history, voice.activity])
   const addHistory = useCallback((entry: ProductivityHistoryItem) => {
     setHistory((current) => [entry, ...current].slice(0, 30))
