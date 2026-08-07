@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ArrowLeft,
   BookOpen,
@@ -103,13 +103,22 @@ export function DocumentImportPanel({
     return () => previousFocusRef.current?.focus()
   }, [isOpen])
 
+  // Closing must also clear() the last file/result — otherwise reopening
+  // Import shows the previous attempt's success or error screen instead of a
+  // fresh picker, with no visible way back to it besides the small "choose
+  // another document" arrow.
+  const closePanel = useCallback(() => {
+    clear()
+    onClose()
+  }, [clear, onClose])
+
   useEffect(() => {
     if (!isOpen) return
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
         if (isProcessing) cancel()
-        else onClose()
+        else closePanel()
         return
       }
       if (event.key !== 'Tab' || !panelRef.current) return
@@ -127,7 +136,7 @@ export function DocumentImportPanel({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [cancel, isOpen, isProcessing, onClose])
+  }, [cancel, closePanel, isOpen, isProcessing])
 
   const chooseFile = (nextFile?: File) => {
     if (!nextFile) return
@@ -178,7 +187,7 @@ export function DocumentImportPanel({
         timestamp: Date.now(),
       },
     })
-    if (didOpen) onClose()
+    if (didOpen) closePanel()
     else setNotice('Could not open the document. Try again.')
   }
 
@@ -198,7 +207,7 @@ export function DocumentImportPanel({
             <h2 id="document-intelligence-title" className="truncate text-sm font-semibold">Document Intelligence</h2>
             <p className="truncate text-[10px] text-neutral-500">OCR, layout, metadata, and AI-ready context</p>
           </div>
-          <button type="button" onClick={() => { cancel(); onClose() }} aria-label="Close document intelligence" className="ml-auto flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"><X size={16} aria-hidden /></button>
+          <button type="button" onClick={() => { cancel(); closePanel() }} aria-label="Close document intelligence" className="ml-auto flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"><X size={16} aria-hidden /></button>
         </header>
 
         {!file ? (
