@@ -817,11 +817,29 @@ full-fidelity replace-the-document Open. Its Save control opens the existing
 Version History panel rather than performing host-backed persistence, since
 no storage/upload provider exists in this milestone. Its Print control opens
 the existing Print Preview; real `window.print()` remains deferred per the
-Future Print Architecture below. Font family, font size, link, attachment,
-image insertion, table cell/row/column editing, QR codes, full-fidelity
-document import, and durable host-backed Save/Open/New remain absent because
-those commands are not currently supported without changing the Editor API,
-adding a new dependency, or adding a host storage/upload provider.
+Future Print Architecture below. Attachment, image insertion, QR codes,
+full-fidelity document import, and durable host-backed Save/Open/New remain
+absent because those commands are not currently supported without changing
+the Editor API, adding a new dependency, or adding a host storage/upload
+provider.
+
+Font family, font size, text color, and a multicolor highlight picker are
+exposed through `@tiptap/extension-text-style`'s `Color`/`FontFamily`/
+`FontSize` extensions and the existing `Highlight` extension configured with
+`multicolor: true` — all official first-party Tiptap packages already on the
+project's `@tiptap/core` version, added because the equivalent capability did
+not otherwise exist. Superscript and subscript are exposed the same way
+through `@tiptap/extension-subscript`/`@tiptap/extension-superscript`. Insert/
+edit/remove link exposes StarterKit's already-bundled (previously
+unconfigured) `Link` extension; it is now configured with `openOnClick:
+false` and `enableClickSelection: true` so clicking a link while editing
+selects it for the new Edit Link control instead of navigating away. Table
+row/column insert/delete, merge/split, and header toggles expose commands
+`@tiptap/extension-table`'s `TableKit` already registered; the toolbar's
+Table menu keeps those items disabled outside a table rather than hiding the
+control. A right-click context menu and a word/character/page-count status
+bar are new workspace-composed UI that call only existing (or the
+newly-added, equally thin) EditorApi methods.
 
 ### Bubble Menu
 

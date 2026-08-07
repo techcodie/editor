@@ -93,8 +93,10 @@ import {
   type WorkspaceCommandId,
 } from '../CommandPalette/CommandPalette'
 import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary'
-import { InsertToolbarControl, PrintToolbarControl, Toolbar, ToolbarButton } from '../Toolbar'
+import { InsertToolbarControl, PrintToolbarControl, TableToolbarControl, Toolbar, ToolbarButton } from '../Toolbar'
 import { DocumentEditor } from '../DocumentEditor'
+import { StatusBar } from './StatusBar'
+import { EditorContextMenu } from './EditorContextMenu'
 import { SelectionAi } from '../SelectionAI'
 import type { AskDocumentCommandRequest } from '../AskDocument/AskDocumentPanel'
 
@@ -1479,23 +1481,26 @@ export function EditorWorkspace({
                   id: 'insert',
                   label: 'Insert',
                   content: (
-                    <InsertToolbarControl
-                      api={api}
-                      hasWatermark={Boolean(watermark)}
-                      canBuildForms={canBuildForms}
-                      onOpenAssetLibrary={() => {
-                        if (isAssetLibraryOpen) closeAssetLibrary()
-                        else openAssetLibrary()
-                      }}
-                      onOpenWatermark={() => {
-                        if (isWatermarkOpen) closeWatermark()
-                        else openWatermark()
-                      }}
-                      onOpenFormBuilder={() => {
-                        if (isFormBuilderOpen) closeFormBuilder()
-                        else openFormBuilder()
-                      }}
-                    />
+                    <>
+                      <InsertToolbarControl
+                        api={api}
+                        hasWatermark={Boolean(watermark)}
+                        canBuildForms={canBuildForms}
+                        onOpenAssetLibrary={() => {
+                          if (isAssetLibraryOpen) closeAssetLibrary()
+                          else openAssetLibrary()
+                        }}
+                        onOpenWatermark={() => {
+                          if (isWatermarkOpen) closeWatermark()
+                          else openWatermark()
+                        }}
+                        onOpenFormBuilder={() => {
+                          if (isFormBuilderOpen) closeFormBuilder()
+                          else openFormBuilder()
+                        }}
+                      />
+                      <TableToolbarControl api={api} />
+                    </>
                   ),
                 },
                 ...(productivityRegistry && canUseAi ? [{
@@ -1757,33 +1762,36 @@ export function EditorWorkspace({
               </button>
             </div>
           )}
-          {canRead ? <DocumentEditor
-            editor={editor}
-            className={viewMode === 'reading' ? 'reader-document-surface' : undefined}
-            placementActive={viewMode === 'editor' && Boolean(pendingAsset)}
-            onSurfaceClick={placePendingAsset}
-            pageOverlay={
-              <>
-                <WatermarkLayer
-                  watermark={watermark}
-                  pages={watermarkPages}
-                  currentPage={pagination.currentPage}
-                />
-                {viewMode !== 'reading' && (
-                  <PageIndicator
-                    layout={pageLayout}
-                    pagination={pagination}
-                    onRemoveBreak={removePageBreak}
+          <EditorContextMenu api={api} enabled={!config.readonly && canEdit}>
+            {canRead ? <DocumentEditor
+              editor={editor}
+              className={viewMode === 'reading' ? 'reader-document-surface' : undefined}
+              placementActive={viewMode === 'editor' && Boolean(pendingAsset)}
+              onSurfaceClick={placePendingAsset}
+              pageOverlay={
+                <>
+                  <WatermarkLayer
+                    watermark={watermark}
+                    pages={watermarkPages}
+                    currentPage={pagination.currentPage}
                   />
-                )}
-              </>
-            }
-          /> : (
-            <AccessDenied
-              permission="document.read"
-              reason="Your identity does not have access to this document."
-            />
-          )}
+                  {viewMode !== 'reading' && (
+                    <PageIndicator
+                      layout={pageLayout}
+                      pagination={pagination}
+                      onRemoveBreak={removePageBreak}
+                    />
+                  )}
+                </>
+              }
+            /> : (
+              <AccessDenied
+                permission="document.read"
+                reason="Your identity does not have access to this document."
+              />
+            )}
+          </EditorContextMenu>
+          {canRead && viewMode !== 'reading' && <StatusBar api={api} pagination={pagination} />}
         </div>
       </div>
       <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">

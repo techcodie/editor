@@ -127,6 +127,27 @@ export interface EditorApi {
   isInlineCode(): boolean
   toggleHighlight(): void
   isHighlight(): boolean
+  setHighlightColor(color: string | null): void
+  getHighlightColor(): string | null
+  toggleSuperscript(): void
+  isSuperscript(): boolean
+  toggleSubscript(): void
+  isSubscript(): boolean
+
+  setColor(color: string): void
+  unsetColor(): void
+  getColor(): string | null
+  setFontFamily(family: string): void
+  unsetFontFamily(): void
+  getFontFamily(): string | null
+  setFontSize(size: string): void
+  unsetFontSize(): void
+  getFontSize(): string | null
+
+  isLink(): boolean
+  getLinkHref(): string | null
+  setLink(href: string): boolean
+  unsetLink(): boolean
 
   toggleBulletList(): void
   isBulletList(): boolean
@@ -144,6 +165,18 @@ export interface EditorApi {
   isCodeBlock(): boolean
   insertHorizontalRule(): void
   clearFormatting(): void
+
+  isTable(): boolean
+  addColumnBefore(): void
+  addColumnAfter(): void
+  deleteColumn(): void
+  addRowBefore(): void
+  addRowAfter(): void
+  deleteRow(): void
+  deleteTable(): void
+  mergeOrSplitCell(): void
+  toggleHeaderRow(): void
+  toggleHeaderColumn(): void
 
   getDocumentText(): string
   getDocumentSnapshot(): EditorDocumentNode

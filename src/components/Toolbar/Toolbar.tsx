@@ -8,6 +8,11 @@ import type { ToolbarButtonSize } from './ToolbarButton'
 import { ToolbarGroup } from './ToolbarGroup'
 import { ToolbarDivider } from './ToolbarDivider'
 import { ParagraphStyleDropdown } from './ParagraphStyleDropdown'
+import { FontFamilyDropdown } from './FontFamilyDropdown'
+import { FontSizeDropdown } from './FontSizeDropdown'
+import { TextColorDropdown } from './TextColorDropdown'
+import { HighlightColorDropdown } from './HighlightColorDropdown'
+import { LinkToolbarControl } from './LinkToolbarControl'
 import { TOOLBAR_SECTIONS } from './toolbar.config'
 
 const NOOP_SUBSCRIBE = () => () => {}
@@ -73,7 +78,13 @@ function ToolbarComponent({
           <Fragment key={section.id}>
             {index > 0 && <ToolbarDivider />}
             <ToolbarGroup label={section.label}>
-              {section.id === 'paragraph' && <ParagraphStyleDropdown api={api} size={size} />}
+              {section.id === 'paragraph' && (
+                <>
+                  <ParagraphStyleDropdown api={api} size={size} />
+                  <FontFamilyDropdown api={api} size={size} />
+                  <FontSizeDropdown api={api} size={size} />
+                </>
+              )}
               {section.items.map((item) => {
                 const isActive = api && item.isActive ? item.isActive(api) : undefined
                 const disabled = !api || (item.canExecute ? !item.canExecute(api) : false)
@@ -91,6 +102,13 @@ function ToolbarComponent({
                   />
                 )
               })}
+              {section.id === 'formatting' && (
+                <>
+                  <TextColorDropdown api={api} size={size} />
+                  <HighlightColorDropdown api={api} size={size} />
+                  <LinkToolbarControl api={api} size={size} />
+                </>
+              )}
             </ToolbarGroup>
           </Fragment>
         ))}

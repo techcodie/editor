@@ -116,6 +116,7 @@
     "prepublishOnly": "npm run typecheck && npm run lint && npm run build:sdk && npm run test:server && npm run verify:sdk"
   },
   "dependencies": {
+    "@radix-ui/react-context-menu": "^2.3.7",
     "@radix-ui/react-dropdown-menu": "^2.1.24",
     "@radix-ui/react-toolbar": "^1.1.16",
     "@radix-ui/react-tooltip": "^1.2.13",
@@ -123,8 +124,11 @@
     "@tiptap/extension-highlight": "^3.28.0",
     "@tiptap/extension-list": "^3.28.0",
     "@tiptap/extension-placeholder": "^3.28.0",
+    "@tiptap/extension-subscript": "^3.28.0",
+    "@tiptap/extension-superscript": "^3.28.0",
     "@tiptap/extension-table": "^3.28.0",
     "@tiptap/extension-text-align": "^3.28.0",
+    "@tiptap/extension-text-style": "^3.28.0",
     "@tiptap/pm": "^3.28.0",
     "@tiptap/react": "^3.28.0",
     "@tiptap/starter-kit": "^3.28.0",

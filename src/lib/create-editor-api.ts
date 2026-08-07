@@ -614,6 +614,49 @@ export function createEditorApi(editor: Editor): EditorApi {
       editor.chain().focus().toggleHighlight().run()
     },
     isHighlight: () => editor.isActive('highlight'),
+    setHighlightColor: (color) => {
+      if (color) editor.chain().focus().setHighlight({ color }).run()
+      else editor.chain().focus().unsetHighlight().run()
+    },
+    getHighlightColor: () => (editor.getAttributes('highlight').color as string | undefined) ?? null,
+    toggleSuperscript: () => {
+      editor.chain().focus().toggleSuperscript().run()
+    },
+    isSuperscript: () => editor.isActive('superscript'),
+    toggleSubscript: () => {
+      editor.chain().focus().toggleSubscript().run()
+    },
+    isSubscript: () => editor.isActive('subscript'),
+
+    setColor: (color) => {
+      editor.chain().focus().setColor(color).run()
+    },
+    unsetColor: () => {
+      editor.chain().focus().unsetColor().run()
+    },
+    getColor: () => (editor.getAttributes('textStyle').color as string | undefined) ?? null,
+    setFontFamily: (family) => {
+      editor.chain().focus().setFontFamily(family).run()
+    },
+    unsetFontFamily: () => {
+      editor.chain().focus().unsetFontFamily().run()
+    },
+    getFontFamily: () => (editor.getAttributes('textStyle').fontFamily as string | undefined) ?? null,
+    setFontSize: (size) => {
+      editor.chain().focus().setFontSize(size).run()
+    },
+    unsetFontSize: () => {
+      editor.chain().focus().unsetFontSize().run()
+    },
+    getFontSize: () => (editor.getAttributes('textStyle').fontSize as string | undefined) ?? null,
+
+    isLink: () => editor.isActive('link'),
+    getLinkHref: () => (editor.getAttributes('link').href as string | undefined) ?? null,
+    setLink: (href) => {
+      if (!href.trim()) return false
+      return editor.chain().focus().extendMarkRange('link').setLink({ href: href.trim() }).run()
+    },
+    unsetLink: () => editor.chain().focus().extendMarkRange('link').unsetLink().run(),
 
     toggleBulletList: () => {
       editor.chain().focus().toggleBulletList().run()
@@ -662,6 +705,38 @@ export function createEditorApi(editor: Editor): EditorApi {
         })
         .clearNodes()
         .run()
+    },
+
+    isTable: () => editor.isActive('table'),
+    addColumnBefore: () => {
+      editor.chain().focus().addColumnBefore().run()
+    },
+    addColumnAfter: () => {
+      editor.chain().focus().addColumnAfter().run()
+    },
+    deleteColumn: () => {
+      editor.chain().focus().deleteColumn().run()
+    },
+    addRowBefore: () => {
+      editor.chain().focus().addRowBefore().run()
+    },
+    addRowAfter: () => {
+      editor.chain().focus().addRowAfter().run()
+    },
+    deleteRow: () => {
+      editor.chain().focus().deleteRow().run()
+    },
+    deleteTable: () => {
+      editor.chain().focus().deleteTable().run()
+    },
+    mergeOrSplitCell: () => {
+      editor.chain().focus().mergeOrSplit().run()
+    },
+    toggleHeaderRow: () => {
+      editor.chain().focus().toggleHeaderRow().run()
+    },
+    toggleHeaderColumn: () => {
+      editor.chain().focus().toggleHeaderColumn().run()
     },
 
     getDocumentText: () =>
