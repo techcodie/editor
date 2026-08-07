@@ -4,6 +4,7 @@ import {
   BookOpen,
   FileInput,
   FileText,
+  FolderOpen,
   Image as ImageIcon,
   Layers3,
   RotateCcw,
@@ -153,6 +154,28 @@ export function DocumentImportPanel({
     setNotice(didInsert ? 'Recognized content inserted at the cursor.' : 'Place the cursor in the editor and try again.')
   }
 
+  // "Open" as a file-open action distinct from "Import" (insert): clears the
+  // current document first, through the same Editor API `insert` already
+  // uses — no new capability, just a different insertion target.
+  const openAsNewDocument = () => {
+    if (!api || !model) return
+    if (!window.confirm('Replace the current document with this file? Your current content will be cleared (Undo will restore it).')) {
+      return
+    }
+    api.replaceDocumentSnapshot({ type: 'doc', content: [{ type: 'paragraph' }] })
+    const didOpen = api.insertStructuredContent({
+      target: 'cursor',
+      content: documentModelToEditorHtml(model),
+      provenance: {
+        responseId: `document-intelligence:${model.id}`,
+        sourceIds: [model.id],
+        timestamp: Date.now(),
+      },
+    })
+    if (didOpen) onClose()
+    else setNotice('Could not open the document. Try again.')
+  }
+
   if (!isOpen) return null
 
   return (
@@ -239,6 +262,7 @@ export function DocumentImportPanel({
               {canSaveSource && (
                 <button type="button" disabled={!model.text.trim()} onClick={() => onSaveSource(toPreparedSource(file, model))} className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-[11px] font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"><BookOpen size={14} aria-hidden />Save as source</button>
               )}
+              <button type="button" disabled={!api || !model.text.trim()} onClick={openAsNewDocument} className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-[11px] font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"><FolderOpen size={14} aria-hidden />Open as new document</button>
               <button type="button" disabled={!api || !model.text.trim()} onClick={insert} className="inline-flex h-9 items-center gap-2 rounded-md bg-neutral-900 px-4 text-[11px] font-semibold text-white shadow-sm hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"><FileInput size={14} aria-hidden />Insert into editor</button>
             </footer>
           </>

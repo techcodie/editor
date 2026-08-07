@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Check, ChevronDown } from 'lucide-react'
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
@@ -10,8 +11,12 @@ export interface ToolbarDropdownItem {
   id: string
   icon?: LucideIcon
   label: string
+  /** Small muted line under the label — e.g. explaining why an item is disabled. */
+  description?: string
   isActive?: boolean
   disabled?: boolean
+  /** Renders a divider above this item, for lightly grouping a long item list. */
+  separatorBefore?: boolean
   onSelect: () => void
 }
 
@@ -122,26 +127,37 @@ export function ToolbarDropdown({
             onCloseAutoFocus()
           }}
         >
-          {items.map((item) => (
-            <DropdownMenuPrimitive.Item
-              key={item.id}
-              disabled={item.disabled}
-              onSelect={() => item.onSelect()}
-              className={ITEM_CLASS}
-            >
-              {item.icon && (
-                <item.icon
-                  size={15}
-                  strokeWidth={1.9}
-                  className="shrink-0 text-neutral-500"
-                  aria-hidden
-                />
+          {items.map((item, index) => (
+            <Fragment key={item.id}>
+              {item.separatorBefore && index > 0 && (
+                <DropdownMenuPrimitive.Separator className="my-1 h-px bg-neutral-200/70" />
               )}
-              <span className="flex-1 truncate">{item.label}</span>
-              {item.isActive && (
-                <Check size={14} strokeWidth={2.2} className="shrink-0 text-neutral-900" aria-hidden />
-              )}
-            </DropdownMenuPrimitive.Item>
+              <DropdownMenuPrimitive.Item
+                disabled={item.disabled}
+                onSelect={() => item.onSelect()}
+                className={ITEM_CLASS}
+              >
+                {item.icon && (
+                  <item.icon
+                    size={15}
+                    strokeWidth={1.9}
+                    className="mt-0.5 shrink-0 self-start text-neutral-500"
+                    aria-hidden
+                  />
+                )}
+                <span className="flex-1 min-w-0">
+                  <span className="block truncate">{item.label}</span>
+                  {item.description && (
+                    <span className="block truncate text-[11px] font-normal text-neutral-400">
+                      {item.description}
+                    </span>
+                  )}
+                </span>
+                {item.isActive && (
+                  <Check size={14} strokeWidth={2.2} className="shrink-0 text-neutral-900" aria-hidden />
+                )}
+              </DropdownMenuPrimitive.Item>
+            </Fragment>
           ))}
         </DropdownMenuPrimitive.Content>
       </DropdownMenuPrimitive.Portal>

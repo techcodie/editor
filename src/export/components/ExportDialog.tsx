@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Download, FileDown } from 'lucide-react'
 import type { EditorApi } from '../../lib/editor-api'
 import type { PageLayout } from '../../layout/types/layout'
@@ -27,6 +27,8 @@ import { FormatSelector } from './FormatSelector'
 
 interface ExportDialogProps {
   isOpen: boolean
+  /** Preselects the format when the dialog opens (e.g. a "Export as DOCX" entry point). Defaults to the last-used format on later opens. */
+  initialFormat?: ExportFormat
   api: EditorApi | null
   layout: PageLayout
   pagination: PaginationSnapshot
@@ -46,6 +48,7 @@ function documentTitle(text: string): string {
 
 export function ExportDialog({
   isOpen,
+  initialFormat,
   api,
   layout,
   pagination,
@@ -59,6 +62,13 @@ export function ExportDialog({
 }: ExportDialogProps) {
   const [format, setFormat] = useState<ExportFormat>('pdf')
   const [options, setOptions] = useState<ExportOptionsModel>(DEFAULT_EXPORT_OPTIONS)
+  // The dialog stays mounted between opens (its visibility, not its
+  // existence, is what `isOpen` controls), so re-apply the requested format
+  // each time it's reopened rather than only on first mount.
+  useEffect(() => {
+    if (isOpen && initialFormat) setFormat(initialFormat)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
   const {
     jobs,
     activeJob,

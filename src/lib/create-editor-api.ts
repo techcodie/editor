@@ -37,6 +37,7 @@ export function createEditorApi(editor: Editor): EditorApi {
   ).trackChange
   let pageLayout: PageLayout | null = null
   let paginationFrame: number | null = null
+  let paginationTimeout: ReturnType<typeof setTimeout> | null = null
   let editableBeforePreview = editor.isEditable
   let manualPageBreaks: { id: string; position: number }[] = []
   let resizeObserver: ResizeObserver | null = null
@@ -194,8 +195,23 @@ export function createEditorApi(editor: Editor): EditorApi {
   }
 
   const schedulePagination = () => {
-    if (paginationFrame !== null) cancelAnimationFrame(paginationFrame)
-    paginationFrame = requestAnimationFrame(applyPagination)
+    // applyPagination() measures every top-level block (getComputedStyle,
+    // offsetTop, getBoundingClientRect, posAtDOM) — cheap for a few dozen
+    // blocks, but on a 150-200 page document that's over a thousand forced
+    // layout reads. The previous single requestAnimationFrame debounce only
+    // coalesces calls scheduled within the same frame; once a recompute
+    // itself takes longer than one frame (as it does at that size), each
+    // keystroke's rAF runs serially instead of batching, and typing became
+    // audibly laggy. Debouncing by a short idle delay first means a fast
+    // typing burst schedules exactly one recompute after it pauses, not one
+    // per keystroke — pagination still updates well within human-perceptible
+    // time, it just no longer fights every keystroke for the same frame.
+    if (paginationTimeout !== null) clearTimeout(paginationTimeout)
+    paginationTimeout = setTimeout(() => {
+      paginationTimeout = null
+      if (paginationFrame !== null) cancelAnimationFrame(paginationFrame)
+      paginationFrame = requestAnimationFrame(applyPagination)
+    }, 120)
   }
 
   editor.on('transaction', ({ transaction }) => {
@@ -218,6 +234,7 @@ export function createEditorApi(editor: Editor): EditorApi {
   editor.on('destroy', () => {
     resizeObserver?.disconnect()
     if (paginationFrame !== null) cancelAnimationFrame(paginationFrame)
+    if (paginationTimeout !== null) clearTimeout(paginationTimeout)
   })
   const insertStructuredContent = ({
     target,

@@ -7,6 +7,7 @@ import {
   Link2,
   List,
   ListOrdered,
+  MessageSquarePlus,
   Redo2,
   RemoveFormatting,
   Rows3,
@@ -21,6 +22,8 @@ export interface EditorContextMenuProps {
   api: EditorApi | null
   /** Disabled in readonly/reading modes — children render without the custom menu so the native browser menu still works. */
   enabled: boolean
+  /** Omitted (not just disabled) when the current principal lacks comment permission. */
+  onComment?: () => void
   children: ReactNode
 }
 
@@ -42,10 +45,11 @@ const SEPARATOR_CLASS = 'my-1.5 h-px bg-neutral-200/80'
  * capability. Table entries stay disabled outside a table instead of being
  * hidden, matching TableToolbarControl.
  */
-export function EditorContextMenu({ api, enabled, children }: EditorContextMenuProps) {
+export function EditorContextMenu({ api, enabled, onComment, children }: EditorContextMenuProps) {
   if (!enabled || !api) return <>{children}</>
 
   const inTable = api.isTable()
+  const hasSelection = Boolean(api.getTextSelection())
 
   return (
     <ContextMenuPrimitive.Root
@@ -69,6 +73,15 @@ export function EditorContextMenu({ api, enabled, children }: EditorContextMenuP
             <Redo2 size={15} strokeWidth={1.9} className="shrink-0 text-neutral-500" aria-hidden />
             Redo
           </ContextMenuPrimitive.Item>
+          {onComment && (
+            <>
+              <ContextMenuPrimitive.Separator className={SEPARATOR_CLASS} />
+              <ContextMenuPrimitive.Item className={ITEM_CLASS} onSelect={onComment} disabled={!hasSelection}>
+                <MessageSquarePlus size={15} strokeWidth={1.9} className="shrink-0 text-neutral-500" aria-hidden />
+                Comment
+              </ContextMenuPrimitive.Item>
+            </>
+          )}
           <ContextMenuPrimitive.Separator className={SEPARATOR_CLASS} />
           <ContextMenuPrimitive.Item className={ITEM_CLASS} onSelect={() => api.toggleBold()}>
             <Bold size={15} strokeWidth={1.9} className="shrink-0 text-neutral-500" aria-hidden />

@@ -7,7 +7,6 @@ export type { ToolbarDropdownProps, ToolbarDropdownItem } from './ToolbarDropdow
 export { ToolbarDivider } from './ToolbarDivider'
 export { ToolbarGroup } from './ToolbarGroup'
 export { ParagraphStyleDropdown } from './ParagraphStyleDropdown'
-export { PrintToolbarControl } from './PrintToolbarControl'
 export { EnterpriseToolbarControl } from './EnterpriseToolbarControl'
 export type { EnterpriseEntry, EnterpriseToolbarControlProps } from './EnterpriseToolbarControl'
 export { FontFamilyDropdown } from './FontFamilyDropdown'

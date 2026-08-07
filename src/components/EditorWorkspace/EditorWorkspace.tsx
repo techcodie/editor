@@ -1,18 +1,27 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Command,
+  CopyPlus,
   Droplets,
   FileDiff,
+  FileDown,
   FilePenLine,
+  FilePlus2,
   FileSearch2,
+  FileText,
+  FolderOpen,
   History,
   Image,
+  Info,
   KeyRound,
   ListChecks,
   LoaderCircle,
   MessageSquareText,
   MessagesSquare,
   MousePointer2,
+  PenLine,
+  Printer,
+  Ruler,
   Save,
   ScanEye,
   Search,
@@ -51,16 +60,12 @@ import {
   normalizeSubmissionValues,
 } from '../../viewer/services/shareEngine'
 import type { DocumentViewMode } from '../../viewer/types/viewer'
-import { ExportToolbarControl } from '../../export/components/ExportToolbarControl'
+import type { ExportFormat } from '../../export/types/export'
 import { historyNamespace } from '../../history/services/historyStorage'
-import { DocumentIntelligenceToolbarControl } from '../../intelligence/components/DocumentIntelligenceToolbarControl'
 import type { KnowledgeSource, PreparedKnowledgeSource } from '../../knowledge/types/source'
 import type { ComparisonDocument, DocumentComparison } from '../../comparison/types/comparison'
 import { PageIndicator } from '../../layout/components/PageIndicator'
-import {
-  PageLayoutPanel,
-  PageLayoutToolbarControl,
-} from '../../layout/components/PageLayoutPanel'
+import { PageLayoutPanel } from '../../layout/components/PageLayoutPanel'
 import { usePageLayout } from '../../layout/hooks/usePageLayout'
 import { usePagination } from '../../layout/hooks/usePagination'
 import { CommentHighlightPreview } from '../../review/components/CommentHighlightPreview'
@@ -108,14 +113,15 @@ import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary'
 import {
   EnterpriseToolbarControl,
   type EnterpriseEntry,
-  PrintToolbarControl,
   TableToolbarControl,
   Toolbar,
   ToolbarButton,
+  ToolbarDropdown,
 } from '../Toolbar'
 import { DocumentEditor } from '../DocumentEditor'
 import { StatusBar } from './StatusBar'
 import { EditorContextMenu } from './EditorContextMenu'
+import { DocumentPropertiesDialog } from './DocumentPropertiesDialog'
 import { SelectionAi } from '../SelectionAI'
 import type { AskDocumentCommandRequest } from '../AskDocument/AskDocumentPanel'
 
@@ -379,6 +385,8 @@ export function EditorWorkspace({
   const [isIdentityLoaded, setIsIdentityLoaded] = useState(false)
   const [isShareOpen, setIsShareOpen] = useState(false)
   const [isShareLoaded, setIsShareLoaded] = useState(false)
+  const [isDocPropertiesOpen, setIsDocPropertiesOpen] = useState(false)
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('pdf')
   const [searchKnowledgeSources, setSearchKnowledgeSources] = useState<KnowledgeSource[]>([])
   const [complianceReport, setComplianceReport] = useState<ComplianceReport | null>(null)
   const [collaborationLayoutTick, setCollaborationLayoutTick] = useState(0)
@@ -802,9 +810,6 @@ export function EditorWorkspace({
 
   const closePageLayout = useCallback(() => {
     setActivePanel(null)
-    window.requestAnimationFrame(() => {
-      document.getElementById('page-layout-trigger')?.focus()
-    })
   }, [])
 
   const openWatermark = useCallback(() => {
@@ -833,9 +838,6 @@ export function EditorWorkspace({
 
   const closeExport = useCallback(() => {
     setActivePanel(null)
-    window.requestAnimationFrame(() => {
-      document.getElementById('export-trigger')?.focus()
-    })
   }, [])
 
   const openIntelligence = useCallback(() => {
@@ -849,10 +851,19 @@ export function EditorWorkspace({
 
   const closeIntelligence = useCallback(() => {
     setActivePanel(null)
-    window.requestAnimationFrame(() => {
-      document.getElementById('document-intelligence-trigger')?.focus()
-    })
   }, [])
+
+  // Purely in-memory — clears the current ProseMirror document through the
+  // same Editor API replace used by Version History restore. No storage or
+  // multi-document capability is added (both are intentionally deferred).
+  const newDocument = useCallback(() => {
+    if (!api) return
+    if (!window.confirm('Start a new document? Your current content will be cleared (Undo will restore it).')) {
+      return
+    }
+    api.replaceDocumentSnapshot({ type: 'doc', content: [{ type: 'paragraph' }] })
+    api.focus()
+  }, [api])
 
   const openCompliance = useCallback(() => {
     setActivePanel('compliance')
@@ -1660,45 +1671,97 @@ export function EditorWorkspace({
                   content: <DictationToolbarControl api={api} voice={voice} />,
                 }] : []),
                 {
-                  id: 'document',
-                  label: 'Document',
+                  id: 'file',
+                  label: 'File',
                   content: (
-                    <>
-                      {canRead && <DocumentIntelligenceToolbarControl
-                        isOpen={isIntelligenceOpen}
-                        onToggle={() => {
-                          if (isIntelligenceOpen) closeIntelligence()
-                          else openIntelligence()
-                        }}
-                      />}
-                      {canRead && <ToolbarButton
-                        icon={Save}
-                        label="Save (opens Version History)"
-                        onClick={() => {
-                          if (isHistoryOpen) closeHistory()
-                          else openHistory()
-                        }}
-                        isActive={isHistoryOpen}
-                      />}
-                      <PageLayoutToolbarControl
-                        isOpen={isPageLayoutOpen}
-                        onToggle={() => {
-                          if (isPageLayoutOpen) closePageLayout()
-                          else openPageLayout()
-                        }}
-                      />
-                      {canExport && <ExportToolbarControl
-                        isOpen={isExportOpen}
-                        onToggle={() => {
-                          if (isExportOpen) closeExport()
-                          else openExport()
-                        }}
-                      />}
-                      <PrintToolbarControl
-                        isActive={isPrintPreviewOpen}
-                        onToggle={() => handleViewModeChange(isPrintPreviewOpen ? 'editor' : 'pdf-preview')}
-                      />
-                    </>
+                    <ToolbarDropdown
+                      icon={FileText}
+                      label="File"
+                      triggerLabel="File"
+                      disabled={!api}
+                      onCloseAutoFocus={() => api?.focus()}
+                      items={[
+                        {
+                          id: 'file-new',
+                          icon: FilePlus2,
+                          label: 'New document',
+                          onSelect: newDocument,
+                        },
+                        ...(canRead ? [{
+                          id: 'file-open',
+                          icon: FolderOpen,
+                          label: 'Open / Import…',
+                          description: 'PDF, DOCX, TXT, Markdown, HTML, images',
+                          separatorBefore: true,
+                          isActive: isIntelligenceOpen,
+                          onSelect: () => (isIntelligenceOpen ? closeIntelligence() : openIntelligence()),
+                        }] : []),
+                        ...(canRead ? [{
+                          id: 'file-save',
+                          icon: Save,
+                          label: 'Save',
+                          description: 'Opens Version History',
+                          isActive: isHistoryOpen,
+                          onSelect: () => (isHistoryOpen ? closeHistory() : openHistory()),
+                        }] : []),
+                        {
+                          id: 'file-save-as',
+                          icon: CopyPlus,
+                          label: 'Save As',
+                          description: 'Requires host storage integration',
+                          disabled: true,
+                          onSelect: () => {},
+                        },
+                        {
+                          id: 'file-rename',
+                          icon: PenLine,
+                          label: 'Rename',
+                          description: 'Requires host storage integration',
+                          disabled: true,
+                          onSelect: () => {},
+                        },
+                        ...(canExport ? [{
+                          id: 'file-export-pdf',
+                          icon: FileDown,
+                          label: 'Export as PDF…',
+                          separatorBefore: true,
+                          onSelect: () => {
+                            setExportFormat('pdf')
+                            if (!isExportOpen) openExport()
+                          },
+                        }] : []),
+                        ...(canExport ? [{
+                          id: 'file-export-docx',
+                          icon: FileDown,
+                          label: 'Export as DOCX…',
+                          onSelect: () => {
+                            setExportFormat('docx')
+                            if (!isExportOpen) openExport()
+                          },
+                        }] : []),
+                        {
+                          id: 'file-print',
+                          icon: Printer,
+                          label: 'Print…',
+                          isActive: isPrintPreviewOpen,
+                          onSelect: () => handleViewModeChange(isPrintPreviewOpen ? 'editor' : 'pdf-preview'),
+                        },
+                        {
+                          id: 'file-page-setup',
+                          icon: Ruler,
+                          label: 'Page setup',
+                          separatorBefore: true,
+                          isActive: isPageLayoutOpen,
+                          onSelect: () => (isPageLayoutOpen ? closePageLayout() : openPageLayout()),
+                        },
+                        {
+                          id: 'file-properties',
+                          icon: Info,
+                          label: 'Document properties',
+                          onSelect: () => setIsDocPropertiesOpen(true),
+                        },
+                      ]}
+                    />
                   ),
                 },
                 ...(enterpriseEntries.length > 0 ? [{
@@ -1767,7 +1830,11 @@ export function EditorWorkspace({
               </button>
             </div>
           )}
-          <EditorContextMenu api={api} enabled={!config.readonly && canEdit}>
+          <EditorContextMenu
+            api={api}
+            enabled={!config.readonly && canEdit}
+            onComment={canComment ? () => (isReviewMode ? openComposer() : openReviewMode()) : undefined}
+          >
             {canRead ? <DocumentEditor
               editor={editor}
               className={viewMode === 'reading' ? 'reader-document-surface' : undefined}
@@ -2225,6 +2292,7 @@ export function EditorWorkspace({
           >
             <ExportDialog
               isOpen={isExportOpen}
+              initialFormat={exportFormat}
               api={api}
               layout={pageLayout}
               pagination={pagination}
@@ -2336,6 +2404,12 @@ export function EditorWorkspace({
           onSelect={runWorkspaceCommand}
         />
       )}
+      <DocumentPropertiesDialog
+        isOpen={isDocPropertiesOpen}
+        onClose={() => setIsDocPropertiesOpen(false)}
+        api={api}
+        pagination={pagination}
+      />
       {config.collaboration && canRead && (
         <>
           <SelectionLayer decorations={collaboratorDecorations} />
