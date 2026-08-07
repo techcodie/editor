@@ -39,7 +39,7 @@ export function MobileToolbar({
             type="button"
             onClick={onAskAi}
             aria-label="Open Ask Document"
-            className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+            className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
           >
             <MessageSquareText size={16} strokeWidth={1.9} aria-hidden />
           </button>
@@ -49,7 +49,7 @@ export function MobileToolbar({
             type="button"
             onClick={onProductivity}
             aria-label="Open AI productivity"
-            className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+            className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
           >
             <WandSparkles size={16} strokeWidth={1.9} aria-hidden />
           </button>
@@ -59,7 +59,7 @@ export function MobileToolbar({
             type="button"
             onClick={onIdentity}
             aria-label="Open identity settings"
-            className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+            className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
           >
             <ShieldCheck size={16} strokeWidth={1.9} aria-hidden />
           </button>
@@ -68,7 +68,7 @@ export function MobileToolbar({
           type="button"
           onClick={onShare}
           aria-label="Share HTML form"
-          className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+          className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
         >
           <Share2 size={16} strokeWidth={1.9} aria-hidden />
         </button>}

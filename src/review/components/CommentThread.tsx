@@ -48,7 +48,7 @@ function CommentThreadComponent({
           type="button"
           onClick={onBack}
           aria-label="Back to comments"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+          className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
         >
           <ArrowLeft size={16} strokeWidth={2} aria-hidden />
         </button>
@@ -64,7 +64,7 @@ function CommentThreadComponent({
         <button
           type="button"
           onClick={() => onJump(comment.id)}
-          className="mb-4 block w-full rounded-md border-l-2 border-amber-400 bg-amber-50/70 px-3 py-2 text-left text-xs leading-5 text-neutral-600 transition-colors hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+          className="mb-4 block w-full rounded-md border-l-2 border-amber-400 bg-amber-50/70 px-3 py-2 text-left text-xs leading-5 text-neutral-600 transition-colors hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
         >
           “{comment.anchor.quote}”
         </button>
@@ -111,7 +111,7 @@ function CommentThreadComponent({
           <button
             type="button"
             onClick={() => onResolve(comment.id, !comment.resolved)}
-            className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+            className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
           >
             {comment.resolved ? <RotateCcw size={13} aria-hidden /> : <CheckCircle2 size={13} aria-hidden />}
             {comment.resolved ? 'Reopen' : 'Resolve'}
@@ -119,7 +119,7 @@ function CommentThreadComponent({
           <button
             type="button"
             onClick={() => onJump(comment.id)}
-            className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+            className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
           >
             <LocateFixed size={13} aria-hidden />
             Jump
@@ -128,7 +128,7 @@ function CommentThreadComponent({
             <button
               type="button"
               onClick={() => setIsEditing(true)}
-              className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
             >
               <Pencil size={13} aria-hidden />
               Edit
@@ -140,7 +140,7 @@ function CommentThreadComponent({
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(false)}
-                  className="h-7 rounded-md px-2 text-[11px] font-medium text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+                  className="h-7 rounded-md px-2 text-[11px] font-medium text-neutral-500 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
                 >
                   Keep
                 </button>

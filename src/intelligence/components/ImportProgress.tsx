@@ -33,7 +33,7 @@ export function ImportProgress({ progress, onCancel }: ImportProgressProps) {
         <button
           type="button"
           onClick={onCancel}
-          className="mt-6 inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[11px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+          className="mt-6 inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[11px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
         >
           <X size={13} aria-hidden />
           Cancel analysis

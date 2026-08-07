@@ -59,7 +59,7 @@ export function CollaboratorList({
       <div className="flex items-center justify-between border-t border-neutral-100 px-2 pt-2">
         <SyncStatus status={syncStatus} />
         {(connectionStatus === 'error' || connectionStatus === 'disconnected') && (
-          <button type="button" onClick={onReconnect} className="rounded px-2 py-1 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35">Reconnect</button>
+          <button type="button" onClick={onReconnect} className="rounded px-2 py-1 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]">Reconnect</button>
         )}
       </div>
     </div>

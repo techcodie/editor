@@ -1,7 +1,40 @@
-import { RotateCcw, X } from 'lucide-react'
+import { RotateCcw } from 'lucide-react'
+import { Dialog } from '../../components/ui/Dialog'
 import type { RedactionRecord } from '../types/redaction'
 
 export function RestoreDialog({ record, onConfirm, onClose }: { record: RedactionRecord | null; onConfirm: () => void; onClose: () => void }) {
   if (!record) return null
-  return <div className="fixed inset-0 z-[90] flex items-center justify-center bg-neutral-950/35 p-4 backdrop-blur-[1px]" role="presentation"><div role="alertdialog" aria-modal="true" aria-labelledby="restore-redaction-title" className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-4 shadow-[var(--document-editor-shadow-overlay)] dark:border-neutral-700 dark:bg-neutral-950"><div className="flex items-start gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"><RotateCcw size={15} aria-hidden /></span><div><h2 id="restore-redaction-title" className="text-sm font-semibold text-neutral-950 dark:text-white">Restore original visibility?</h2><p className="mt-1 text-[10px] leading-4 text-neutral-500">The document itself was never changed. This removes the approved export redaction and records the restore decision.</p></div><button type="button" onClick={onClose} aria-label="Close restore dialog" className="ml-auto flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"><X size={13} aria-hidden /></button></div><div className="mt-4 flex justify-end gap-2"><button type="button" onClick={onClose} className="h-8 rounded-md border border-neutral-200 px-3 text-[10px] font-semibold text-neutral-600 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 dark:border-neutral-700 dark:text-neutral-300">Cancel</button><button type="button" onClick={onConfirm} className="h-8 rounded-md bg-neutral-900 px-3 text-[10px] font-semibold text-white hover:bg-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 dark:bg-white dark:text-neutral-950">Restore</button></div></div></div>
+  return (
+    <Dialog
+      isOpen
+      onClose={onClose}
+      title="Restore original visibility?"
+      subtitle="The document itself was never changed."
+      icon={RotateCcw}
+      iconTone="accent"
+      maxWidthClassName="max-w-sm"
+      footer={
+        <div className="ml-auto flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 rounded-md border border-neutral-200 px-3 text-[10px] font-semibold text-neutral-600 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="h-8 rounded-md bg-neutral-900 px-3 text-[10px] font-semibold text-white hover:bg-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
+          >
+            Restore
+          </button>
+        </div>
+      }
+    >
+      <p className="text-[10px] leading-4 text-neutral-500">
+        This removes the approved export redaction and records the restore decision.
+      </p>
+    </Dialog>
+  )
 }

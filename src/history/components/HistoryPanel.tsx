@@ -88,7 +88,7 @@ export function HistoryPanel({ isOpen, api, author, storageNamespace, onClose, o
       className="history-panel"
       widthClassName="sm:max-w-[29rem] lg:w-[28rem]"
       headerActions={
-        <button type="button" onClick={history.exportTimeline} disabled={history.versions.length === 0} aria-label="Export version timeline" title="Export timeline" className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"><Download size={14} aria-hidden /></button>
+        <button type="button" onClick={history.exportTimeline} disabled={history.versions.length === 0} aria-label="Export version timeline" title="Export timeline" className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"><Download size={14} aria-hidden /></button>
       }
     >
       {(notice || history.error) && <p role="status" className={`border-b px-4 py-2 text-[10px] ${history.error ? 'border-red-100 bg-red-50 text-red-700' : 'border-emerald-100 bg-emerald-50 text-emerald-800'}`}>{history.error ?? notice}</p>}

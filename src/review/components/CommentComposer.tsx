@@ -74,7 +74,7 @@ export function CommentComposer({
             <button
               type="button"
               onClick={onCancel}
-              className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+              className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
             >
               <X size={13} strokeWidth={2} aria-hidden />
               Cancel
@@ -84,7 +84,7 @@ export function CommentComposer({
             type="button"
             onClick={submit}
             disabled={!text.trim()}
-            className="inline-flex h-7 items-center gap-1.5 rounded-md bg-neutral-900 px-2.5 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-neutral-800 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-35"
+            className="inline-flex h-7 items-center gap-1.5 rounded-md bg-neutral-900 px-2.5 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-neutral-800 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-35"
           >
             <Send size={12} strokeWidth={2} aria-hidden />
             {submitLabel}

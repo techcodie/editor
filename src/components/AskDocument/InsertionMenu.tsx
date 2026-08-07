@@ -34,7 +34,7 @@ export function InsertionMenu({
   }
 
   const optionClassName =
-    'flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[10px] font-medium text-neutral-700 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 disabled:cursor-not-allowed disabled:text-neutral-300 disabled:hover:bg-transparent'
+    'flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[10px] font-medium text-neutral-700 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] disabled:cursor-not-allowed disabled:text-neutral-300 disabled:hover:bg-transparent'
 
   if (!canInsert) {
     return (
@@ -55,7 +55,7 @@ export function InsertionMenu({
         ref={summaryRef}
         role="button"
         aria-label="Insert response into editor"
-        className="inline-flex h-7 cursor-pointer list-none items-center gap-1 rounded-md px-1.5 text-[9px] font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 [&::-webkit-details-marker]:hidden"
+        className="inline-flex h-7 cursor-pointer list-none items-center gap-1 rounded-md px-1.5 text-[9px] font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] [&::-webkit-details-marker]:hidden"
       >
         <ListPlus size={10} strokeWidth={2} aria-hidden />
         Insert

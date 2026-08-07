@@ -51,7 +51,7 @@ export const KnowledgeSources = memo(function KnowledgeSources({
         <button
           type="button"
           onClick={() => setIsUploadOpen(true)}
-          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
         >
           <Plus size={13} strokeWidth={2} aria-hidden />
           Add Source
@@ -83,7 +83,7 @@ export const KnowledgeSources = memo(function KnowledgeSources({
               <button
                 type="button"
                 onClick={() => setIsUploadOpen(true)}
-                className="mt-2 inline-flex h-7 items-center gap-1.5 rounded-md bg-white px-2.5 text-[11px] font-semibold text-neutral-700 shadow-sm ring-1 ring-inset ring-neutral-200 transition-[background-color,box-shadow,transform] hover:bg-neutral-50 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+                className="mt-2 inline-flex h-7 items-center gap-1.5 rounded-md bg-white px-2.5 text-[11px] font-semibold text-neutral-700 shadow-sm ring-1 ring-inset ring-neutral-200 transition-[background-color,box-shadow,transform] hover:bg-neutral-50 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
               >
                 <Plus size={12} strokeWidth={2} aria-hidden />
                 Add Source

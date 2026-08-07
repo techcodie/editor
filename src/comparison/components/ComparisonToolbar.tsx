@@ -68,7 +68,7 @@ export function ComparisonToolbar({
               aria-pressed={viewMode === mode}
               title={label}
               className={cn(
-                'inline-flex h-7 items-center gap-1.5 rounded px-2 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 sm:px-2.5',
+                'inline-flex h-7 items-center gap-1.5 rounded px-2 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] sm:px-2.5',
                 viewMode === mode
                   ? 'bg-white text-neutral-950 shadow-sm'
                   : 'text-neutral-500 hover:text-neutral-900',
@@ -87,7 +87,7 @@ export function ComparisonToolbar({
           onClick={onReset}
           title="New comparison"
           aria-label="New comparison"
-          className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 sm:ml-0"
+          className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] sm:ml-0"
         >
           <PanelTopClose size={16} strokeWidth={1.9} aria-hidden />
         </button>
@@ -97,7 +97,7 @@ export function ComparisonToolbar({
         onClick={onClose}
         aria-label="Close comparison"
         className={cn(
-          'flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35',
+          'flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]',
           !hasComparison && 'ml-auto',
         )}
       >

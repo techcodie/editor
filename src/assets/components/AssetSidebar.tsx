@@ -64,7 +64,7 @@ function SidebarButton({
       aria-label={label}
       aria-pressed={isActive}
       className={cn(
-        'flex h-9 w-full shrink-0 items-center gap-2 rounded-md px-2.5 text-left text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35',
+        'flex h-9 w-full shrink-0 items-center gap-2 rounded-md px-2.5 text-left text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]',
         isActive
           ? 'bg-neutral-900 text-white'
           : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950',

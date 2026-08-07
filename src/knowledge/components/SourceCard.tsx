@@ -100,7 +100,7 @@ export const SourceCard = memo(function SourceCard({
             type="button"
             disabled={!canPreview}
             onClick={() => onPreview?.(source)}
-            className="flex w-full items-start gap-2.5 rounded-t-lg px-3 pb-1 pt-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500/35 disabled:cursor-default"
+            className="flex w-full items-start gap-2.5 rounded-t-lg px-3 pb-1 pt-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--document-editor-focus-ring)] disabled:cursor-default"
             aria-label={canPreview ? `Open preview for ${source.name}` : undefined}
           >
             {sourceDetails}

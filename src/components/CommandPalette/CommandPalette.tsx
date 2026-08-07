@@ -215,7 +215,7 @@ export function CommandPalette({
             onClick={onClose}
             aria-label="Close command palette"
             title="Close"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
           >
             <X size={16} strokeWidth={2} aria-hidden />
           </button>

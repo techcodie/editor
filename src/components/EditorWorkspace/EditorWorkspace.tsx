@@ -110,6 +110,7 @@ import {
   type WorkspaceCommandId,
 } from '../CommandPalette/CommandPalette'
 import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary'
+import { PanelLoadingFallback } from '../ui/PanelLoadingFallback'
 import {
   EnterpriseToolbarControl,
   type EnterpriseEntry,
@@ -1797,7 +1798,7 @@ export function EditorWorkspace({
                   : 'Command palette'
               }
               onClick={() => setIsCommandPaletteOpen(true)}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white/90 text-neutral-500 shadow-[var(--document-editor-shadow-surface)] backdrop-blur-xl transition-[border-color,background-color,color,box-shadow,transform] duration-150 hover:-translate-y-px hover:border-neutral-300 hover:bg-white hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f6f4] active:translate-y-0"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white/90 text-neutral-500 shadow-[var(--document-editor-shadow-surface)] backdrop-blur-xl transition-[border-color,background-color,color,box-shadow,transform] duration-150 hover:-translate-y-px hover:border-neutral-300 hover:bg-white hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f6f4] active:translate-y-0"
             >
               <CommandPaletteIcon width={17} height={17} strokeWidth={1.9} aria-hidden />
             </button>
@@ -1869,7 +1870,7 @@ export function EditorWorkspace({
       <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">
         {isIdentityLoaded && identityManager && (
           <ErrorBoundary compact title="Identity settings need a retry">
-            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-50 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[32rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[31rem] lg:rounded-lg lg:border" role="status" aria-label="Loading identity settings"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+            <Suspense fallback={<PanelLoadingFallback label="Loading identity settings" widthClassName="sm:max-w-[32rem] lg:w-[31rem]" />}>
               <IdentitySettings
                 isOpen={isIdentityOpen}
                 manager={identityManager}
@@ -1880,7 +1881,7 @@ export function EditorWorkspace({
         )}
         {isProductivityLoaded && productivityRegistry && (
           <ErrorBoundary compact title="AI productivity needs a retry">
-            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-50 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[31rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[30rem] lg:rounded-lg lg:border" role="status" aria-label="Loading AI productivity"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+            <Suspense fallback={<PanelLoadingFallback label="Loading AI productivity" widthClassName="sm:max-w-[31rem] lg:w-[30rem]" />}>
               <ProductivitySidebar
                 isOpen={isProductivityOpen}
                 api={api}
@@ -1896,7 +1897,7 @@ export function EditorWorkspace({
         )}
         {isWritingAssistantLoaded && (
           <ErrorBoundary compact title="Writing assistant needs a retry">
-            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[30rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[29rem] lg:rounded-lg lg:border" role="status" aria-label="Loading writing assistant"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+            <Suspense fallback={<PanelLoadingFallback label="Loading writing assistant" widthClassName="sm:max-w-[30rem] lg:w-[29rem]" />}>
               <WritingAssistantPanel
                 isOpen={isWritingAssistantOpen}
                 api={api}
@@ -1914,7 +1915,7 @@ export function EditorWorkspace({
         )}
         {isContractLoaded && (
           <ErrorBoundary compact title="Contract intelligence needs a retry">
-            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[32rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[31rem] lg:rounded-lg lg:border" role="status" aria-label="Loading contract intelligence"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+            <Suspense fallback={<PanelLoadingFallback label="Loading contract intelligence" widthClassName="sm:max-w-[32rem] lg:w-[31rem]" />}>
               <ContractPanel
                 isOpen={isContractOpen}
                 api={api}
@@ -1932,7 +1933,7 @@ export function EditorWorkspace({
         )}
         {isRedactionLoaded && (
           <ErrorBoundary compact title="Redaction review needs a retry">
-            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[30rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[29rem] lg:rounded-lg lg:border" role="status" aria-label="Loading redaction review"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+            <Suspense fallback={<PanelLoadingFallback label="Loading redaction review" widthClassName="sm:max-w-[30rem] lg:w-[29rem]" />}>
               <RedactionPanel
                 isOpen={isRedactionOpen}
                 api={api}
@@ -1948,7 +1949,7 @@ export function EditorWorkspace({
         )}
         {isSearchLoaded && (
           <ErrorBoundary compact title="Semantic search needs a retry">
-            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[31rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[30rem] lg:rounded-lg lg:border" role="status" aria-label="Loading semantic search"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+            <Suspense fallback={<PanelLoadingFallback label="Loading semantic search" widthClassName="sm:max-w-[31rem] lg:w-[30rem]" />}>
               <SearchPanel
                 isOpen={isSearchOpen}
                 api={api}
@@ -1971,7 +1972,7 @@ export function EditorWorkspace({
         )}
         {isWorkflowLoaded && (
           <ErrorBoundary compact title="Approval workflow needs a retry">
-            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[30rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[29rem] lg:rounded-lg lg:border" role="status" aria-label="Loading approval workflow"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+            <Suspense fallback={<PanelLoadingFallback label="Loading approval workflow" widthClassName="sm:max-w-[30rem] lg:w-[29rem]" />}>
               <WorkflowPanel
                 isOpen={isWorkflowOpen}
                 api={api}
@@ -1990,7 +1991,7 @@ export function EditorWorkspace({
         )}
         {isHistoryLoaded && (
           <ErrorBoundary compact title="Version history needs a retry">
-            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[29rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[28rem] lg:rounded-lg lg:border" role="status" aria-label="Loading version history"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+            <Suspense fallback={<PanelLoadingFallback label="Loading version history" widthClassName="sm:max-w-[29rem] lg:w-[28rem]" />}>
               <HistoryPanel
                 isOpen={isHistoryOpen}
                 api={api}
@@ -2007,7 +2008,7 @@ export function EditorWorkspace({
         )}
         {isFormBuilderLoaded && (
           <ErrorBoundary compact title="Form builder needs a retry">
-            <Suspense fallback={<div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[28rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[27rem] lg:rounded-lg lg:border" role="status" aria-label="Loading form builder"><LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden /></div>}>
+            <Suspense fallback={<PanelLoadingFallback label="Loading form builder" widthClassName="sm:max-w-[28rem] lg:w-[27rem]" />}>
               <FormBuilderPanel
                 isOpen={isFormBuilderOpen}
                 api={api}
@@ -2020,11 +2021,7 @@ export function EditorWorkspace({
         {isComplianceLoaded && (
           <ErrorBoundary compact title="Compliance analysis needs a retry">
             <Suspense
-              fallback={
-                <div className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[27rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[26rem] lg:rounded-lg lg:border" role="status" aria-label="Loading compliance analysis">
-                  <LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden />
-                </div>
-              }
+              fallback={<PanelLoadingFallback label="Loading compliance analysis" widthClassName="sm:max-w-[27rem] lg:w-[26rem]" />}
             >
               <CompliancePanel
                 isOpen={isComplianceOpen}

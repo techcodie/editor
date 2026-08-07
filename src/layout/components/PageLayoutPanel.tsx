@@ -52,7 +52,7 @@ export function PageLayoutPanel({
             <button
               type="button"
               onClick={() => setStatus(onInsertBreak() ? 'Page break inserted' : 'Move the cursor to a new position')}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-neutral-200 bg-white text-[11px] font-semibold text-neutral-700 shadow-sm hover:border-neutral-300 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-neutral-200 bg-white text-[11px] font-semibold text-neutral-700 shadow-sm hover:border-neutral-300 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
             >
               <FilePlus2 size={14} aria-hidden />
               Page break
@@ -60,7 +60,7 @@ export function PageLayoutPanel({
             <button
               type="button"
               onClick={onOpenPreview}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-neutral-900 text-[11px] font-semibold text-white shadow-sm hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-neutral-900 text-[11px] font-semibold text-white shadow-sm hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
             >
               <Eye size={14} aria-hidden />
               Print preview

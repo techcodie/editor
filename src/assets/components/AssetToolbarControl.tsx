@@ -21,7 +21,7 @@ export function AssetToolbarControl({ isOpen, onToggle }: AssetToolbarControlPro
           aria-pressed={isOpen}
           onClick={onToggle}
           className={cn(
-            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-[background-color,color,box-shadow,transform] duration-150 hover:bg-neutral-100 hover:text-neutral-950 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-1 focus-visible:ring-offset-white',
+            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-[background-color,color,box-shadow,transform] duration-150 hover:bg-neutral-100 hover:text-neutral-950 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-white',
             isOpen && 'bg-neutral-900 text-white shadow-sm hover:bg-neutral-800 hover:text-white',
           )}
         >

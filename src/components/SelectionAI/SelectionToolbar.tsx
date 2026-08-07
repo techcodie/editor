@@ -45,7 +45,7 @@ export function SelectionToolbar({ bounds, onSelect }: SelectionToolbarProps) {
             key={action.id}
             type="button"
             onClick={() => onSelect(action.id)}
-            className={`${index > 0 ? 'max-sm:hidden' : ''} inline-flex h-8 shrink-0 items-center rounded-md px-2.5 text-xs font-medium text-neutral-700 transition-[background-color,color,transform] duration-150 hover:bg-neutral-100 hover:text-neutral-950 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35`}
+            className={`${index > 0 ? 'max-sm:hidden' : ''} inline-flex h-8 shrink-0 items-center rounded-md px-2.5 text-xs font-medium text-neutral-700 transition-[background-color,color,transform] duration-150 hover:bg-neutral-100 hover:text-neutral-950 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]`}
           >
             {action.label}
           </button>
@@ -61,7 +61,7 @@ export function SelectionToolbar({ bounds, onSelect }: SelectionToolbarProps) {
           onChange={(event) => {
             if (event.target.value) onSelect(event.target.value as SelectionAiAction)
           }}
-          className="h-8 cursor-pointer appearance-none rounded-md border-0 bg-neutral-100 py-0 pl-2.5 pr-7 text-xs font-medium text-neutral-700 outline-none transition-colors hover:bg-neutral-200/70 focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+          className="h-8 cursor-pointer appearance-none rounded-md border-0 bg-neutral-100 py-0 pl-2.5 pr-7 text-xs font-medium text-neutral-700 outline-none transition-colors hover:bg-neutral-200/70 focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
         >
           <option value="">More</option>
           {SELECTION_AI_ACTIONS.filter(({ id }) => id !== 'improve-writing').map((action) => (

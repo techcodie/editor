@@ -19,7 +19,7 @@ export function PageNavigator({ pages, currentPage, onSelect }: PageNavigatorPro
             onClick={() => onSelect(index + 1)}
             aria-current={currentPage === index + 1 ? 'page' : undefined}
             className={cn(
-              'w-full rounded-md border bg-white p-2 text-left shadow-sm transition-[border-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35',
+              'w-full rounded-md border bg-white p-2 text-left shadow-sm transition-[border-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]',
               currentPage === index + 1 ? 'border-indigo-400 ring-2 ring-indigo-500/15' : 'border-neutral-200 hover:border-neutral-300',
             )}
           >

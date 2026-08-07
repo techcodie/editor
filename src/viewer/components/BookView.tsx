@@ -79,7 +79,7 @@ export function BookView({ pages, layout, zoom, onZoomIn, onZoomOut, onModeChang
           <span className="w-11 text-center text-[10px] font-semibold tabular-nums">{zoom}%</span>
           <button type="button" onClick={onZoomIn} disabled={zoom === 150} aria-label="Zoom in" className="flex h-7 w-7 items-center justify-center rounded hover:bg-white disabled:opacity-30"><Plus size={14} aria-hidden /></button>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close book view" className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"><X size={17} aria-hidden /></button>
+        <button type="button" onClick={onClose} aria-label="Close book view" className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"><X size={17} aria-hidden /></button>
       </header>
       <main className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto p-3 sm:p-6">
         <button type="button" onClick={() => move(-step)} disabled={page === 1} aria-label="Previous pages" className="fixed left-2 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white/95 shadow-md hover:bg-white disabled:opacity-30 sm:left-5"><ChevronLeft size={19} aria-hidden /></button>

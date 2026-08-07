@@ -37,7 +37,7 @@ export function KnowledgeGraphView({ graph, selectedDocumentId, onSelectDocument
           <div>
             <p className="mb-2 text-[9px] font-semibold uppercase text-neutral-400">Documents</p>
             <div className="grid grid-cols-2 gap-2">
-              {documentNodes.map((node) => <button key={node.id} type="button" onClick={() => node.documentId && onSelectDocument(node.documentId)} className={`min-h-14 rounded-md border p-2.5 text-left text-[10px] font-semibold leading-4 transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 ${TYPE_STYLE[node.type]}`}><span className="line-clamp-2">{node.label}</span></button>)}
+              {documentNodes.map((node) => <button key={node.id} type="button" onClick={() => node.documentId && onSelectDocument(node.documentId)} className={`min-h-14 rounded-md border p-2.5 text-left text-[10px] font-semibold leading-4 transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] ${TYPE_STYLE[node.type]}`}><span className="line-clamp-2">{node.label}</span></button>)}
             </div>
           </div>
           <div>

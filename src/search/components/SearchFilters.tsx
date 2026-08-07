@@ -60,14 +60,14 @@ export function SearchFilters({ mode, filters, onModeChange, onFiltersChange }: 
               type="button"
               aria-pressed={active}
               onClick={() => toggleKind(kind.value)}
-              className={`h-6 rounded-md border px-2 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 ${active ? 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'}`}
+              className={`h-6 rounded-md border px-2 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] ${active ? 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'}`}
             >
               {kind.label}
             </button>
           )
         })}
         {(filters.kinds?.length ?? 0) > 0 && (
-          <button type="button" onClick={() => onFiltersChange({ ...filters, kinds: [] })} className="h-6 px-1.5 text-[10px] font-medium text-neutral-400 hover:text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35">Clear</button>
+          <button type="button" onClick={() => onFiltersChange({ ...filters, kinds: [] })} className="h-6 px-1.5 text-[10px] font-medium text-neutral-400 hover:text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]">Clear</button>
         )}
       </div>
       <div className="mt-2 grid grid-cols-2 gap-2">

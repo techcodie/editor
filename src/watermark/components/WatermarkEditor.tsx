@@ -100,7 +100,7 @@ export function WatermarkEditor({
                   onClick={() => onChange({ ...watermark, text: preset })}
                   aria-pressed={watermark.text === preset}
                   className={cn(
-                    'rounded-md border px-2 py-1 text-[9px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35',
+                    'rounded-md border px-2 py-1 text-[9px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]',
                     watermark.text === preset
                       ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
                       : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:text-neutral-900',

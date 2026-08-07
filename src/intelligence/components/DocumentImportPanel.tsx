@@ -183,7 +183,7 @@ export function DocumentImportPanel({
       <div id="document-intelligence-panel" ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="document-intelligence-title" className="mx-auto flex h-full w-full max-w-[78rem] flex-col overflow-hidden bg-white text-neutral-950 shadow-[var(--document-editor-shadow-overlay)] sm:rounded-lg sm:border sm:border-neutral-200">
         <header className="flex h-14 shrink-0 items-center border-b border-neutral-200 px-3 sm:px-4">
           {file && (
-            <button type="button" onClick={clear} disabled={isProcessing} aria-label="Choose another document" className="mr-2 flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35">
+            <button type="button" onClick={clear} disabled={isProcessing} aria-label="Choose another document" className="mr-2 flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]">
               <ArrowLeft size={16} aria-hidden />
             </button>
           )}
@@ -192,7 +192,7 @@ export function DocumentImportPanel({
             <h2 id="document-intelligence-title" className="truncate text-sm font-semibold">Document Intelligence</h2>
             <p className="truncate text-[10px] text-neutral-500">OCR, layout, metadata, and AI-ready context</p>
           </div>
-          <button type="button" onClick={() => { cancel(); onClose() }} aria-label="Close document intelligence" className="ml-auto flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"><X size={16} aria-hidden /></button>
+          <button type="button" onClick={() => { cancel(); onClose() }} aria-label="Close document intelligence" className="ml-auto flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"><X size={16} aria-hidden /></button>
         </header>
 
         {!file ? (
@@ -205,7 +205,7 @@ export function DocumentImportPanel({
                 onDragOver={(event) => event.preventDefault()}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={(event) => { event.preventDefault(); setIsDragging(false); chooseFile(event.dataTransfer.files[0]) }}
-                className={cn('flex min-h-72 w-full flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center transition-[border-color,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35', isDragging ? 'border-indigo-500 bg-indigo-50/70 shadow-inner' : 'border-neutral-300 bg-neutral-50 hover:border-neutral-400 hover:bg-white')}
+                className={cn('flex min-h-72 w-full flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center transition-[border-color,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]', isDragging ? 'border-indigo-500 bg-indigo-50/70 shadow-inner' : 'border-neutral-300 bg-neutral-50 hover:border-neutral-400 hover:bg-white')}
               >
                 <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-white text-indigo-700 shadow-sm ring-1 ring-neutral-200"><Upload size={21} aria-hidden /></span>
                 <strong className="mt-4 text-sm">Import a document</strong>
@@ -243,7 +243,7 @@ export function DocumentImportPanel({
                   ['structure', Layers3, 'Structure'],
                   ['text', FileText, 'Text'],
                 ] as const).map(([mode, Icon, label]) => (
-                  <button key={mode} type="button" role="tab" aria-label={label} aria-selected={previewMode === mode} onClick={() => setPreviewMode(mode)} className={cn('inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35', previewMode === mode ? 'bg-white text-neutral-950 shadow-sm' : 'text-neutral-500 hover:text-neutral-900')}><Icon size={13} aria-hidden /><span className="hidden sm:inline">{label}</span></button>
+                  <button key={mode} type="button" role="tab" aria-label={label} aria-selected={previewMode === mode} onClick={() => setPreviewMode(mode)} className={cn('inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]', previewMode === mode ? 'bg-white text-neutral-950 shadow-sm' : 'text-neutral-500 hover:text-neutral-900')}><Icon size={13} aria-hidden /><span className="hidden sm:inline">{label}</span></button>
                 ))}
               </div>
               <span className="ml-auto truncate text-[10px] text-neutral-500">{file.name}</span>
@@ -260,9 +260,9 @@ export function DocumentImportPanel({
               {notice && <p className="mr-auto text-[11px] text-neutral-600" role="status">{notice}</p>}
               {!notice && <span className="mr-auto text-[10px] text-neutral-500">Review recognized content before adding it.</span>}
               {canSaveSource && (
-                <button type="button" disabled={!model.text.trim()} onClick={() => onSaveSource(toPreparedSource(file, model))} className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-[11px] font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"><BookOpen size={14} aria-hidden />Save as source</button>
+                <button type="button" disabled={!model.text.trim()} onClick={() => onSaveSource(toPreparedSource(file, model))} className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-[11px] font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"><BookOpen size={14} aria-hidden />Save as source</button>
               )}
-              <button type="button" disabled={!api || !model.text.trim()} onClick={openAsNewDocument} className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-[11px] font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"><FolderOpen size={14} aria-hidden />Open as new document</button>
+              <button type="button" disabled={!api || !model.text.trim()} onClick={openAsNewDocument} className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-[11px] font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"><FolderOpen size={14} aria-hidden />Open as new document</button>
               <button type="button" disabled={!api || !model.text.trim()} onClick={insert} className="inline-flex h-9 items-center gap-2 rounded-md bg-neutral-900 px-4 text-[11px] font-semibold text-white shadow-sm hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"><FileInput size={14} aria-hidden />Insert into editor</button>
             </footer>
           </>

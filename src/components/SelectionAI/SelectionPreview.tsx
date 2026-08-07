@@ -86,7 +86,7 @@ export function SelectionPreview({
           aria-label="Cancel Selection AI"
           title="Cancel"
           onClick={onCancel}
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-[background-color,color,transform] duration-150 hover:bg-neutral-100 hover:text-neutral-950 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-[background-color,color,transform] duration-150 hover:bg-neutral-100 hover:text-neutral-950 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
         >
           <X size={15} strokeWidth={2} aria-hidden />
         </button>
@@ -104,7 +104,7 @@ export function SelectionPreview({
           <button
             type="button"
             onClick={onCancel}
-            className="mt-1 inline-flex h-7 items-center rounded-md px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+            className="mt-1 inline-flex h-7 items-center rounded-md px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
           >
             Cancel
           </button>
@@ -120,7 +120,7 @@ export function SelectionPreview({
             <button
               type="button"
               onClick={onTryAgain}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-neutral-900 px-3 text-xs font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] duration-150 hover:bg-neutral-800 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-neutral-900 px-3 text-xs font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] duration-150 hover:bg-neutral-800 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] focus-visible:ring-offset-2"
             >
               <RefreshCw size={13} strokeWidth={2} aria-hidden />
               Try Again
@@ -128,7 +128,7 @@ export function SelectionPreview({
             <button
               type="button"
               onClick={onCancel}
-              className="inline-flex h-8 items-center rounded-md px-3 text-xs font-medium text-neutral-600 transition-colors hover:bg-red-100/70 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+              className="inline-flex h-8 items-center rounded-md px-3 text-xs font-medium text-neutral-600 transition-colors hover:bg-red-100/70 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
             >
               Cancel
             </button>
@@ -145,7 +145,7 @@ export function SelectionPreview({
             <button
               type="button"
               onClick={onReplace}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-neutral-900 px-3 text-xs font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] duration-150 hover:bg-neutral-800 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-neutral-900 px-3 text-xs font-semibold text-white shadow-sm transition-[background-color,box-shadow,transform] duration-150 hover:bg-neutral-800 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] focus-visible:ring-offset-2"
             >
               <WandSparkles size={13} strokeWidth={2} aria-hidden />
               Replace Selection
@@ -153,7 +153,7 @@ export function SelectionPreview({
             <button
               type="button"
               onClick={() => void copyResult()}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-neutral-600 transition-[background-color,color,transform] duration-150 hover:bg-neutral-100 hover:text-neutral-950 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-neutral-600 transition-[background-color,color,transform] duration-150 hover:bg-neutral-100 hover:text-neutral-950 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
             >
               {copied ? <Check size={13} aria-hidden /> : <Copy size={13} aria-hidden />}
               {copied ? 'Copied' : 'Copy Result'}
@@ -161,7 +161,7 @@ export function SelectionPreview({
             <button
               type="button"
               onClick={onTryAgain}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-neutral-600 transition-[background-color,color,transform] duration-150 hover:bg-neutral-100 hover:text-neutral-950 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-neutral-600 transition-[background-color,color,transform] duration-150 hover:bg-neutral-100 hover:text-neutral-950 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
             >
               <RefreshCw size={13} aria-hidden />
               Try Again
@@ -169,7 +169,7 @@ export function SelectionPreview({
             <button
               type="button"
               onClick={onCancel}
-              className="ml-auto inline-flex h-8 items-center rounded-md px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+              className="ml-auto inline-flex h-8 items-center rounded-md px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
             >
               Cancel
             </button>

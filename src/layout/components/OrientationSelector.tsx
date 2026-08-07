@@ -22,7 +22,7 @@ export function OrientationSelector({ value, onChange }: OrientationSelectorProp
             onClick={() => onChange(orientation)}
             aria-pressed={value === orientation}
             className={cn(
-              'inline-flex h-8 items-center justify-center gap-1.5 rounded text-[11px] font-medium capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35',
+              'inline-flex h-8 items-center justify-center gap-1.5 rounded text-[11px] font-medium capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]',
               value === orientation ? 'bg-white text-neutral-950 shadow-sm' : 'text-neutral-500 hover:text-neutral-900',
             )}
           >

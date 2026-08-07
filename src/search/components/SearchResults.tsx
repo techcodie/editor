@@ -46,7 +46,7 @@ export function SearchResults({ results, documents, pinnedDocumentIds, onOpen, o
               <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 shadow-sm dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300"><ResultIcon kind={result.metadata.kind} /></span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start gap-2">
-                  <button type="button" onClick={() => onOpen(document)} className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35">
+                  <button type="button" onClick={() => onOpen(document)} className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]">
                     <h3 className="truncate text-xs font-semibold text-neutral-950 dark:text-neutral-100">{result.title}</h3>
                   </button>
                   <span className="shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-emerald-700">{Math.round(result.score * 100)}%</span>
@@ -62,7 +62,7 @@ export function SearchResults({ results, documents, pinnedDocumentIds, onOpen, o
                   <ActionButton label="Ask AI" onClick={() => onAskAI(document)} icon={<Bot size={12} aria-hidden />} />
                   {document.metadata.kind === 'version' && <ActionButton label="Add as source" onClick={() => onAddSource(document)} icon={<Plus size={12} aria-hidden />} />}
                   {result.relatedDocumentIds.length > 0 && <ActionButton label="Related documents" onClick={() => onRelated(document.id)} icon={<Link2 size={12} aria-hidden />} />}
-                  <button type="button" onClick={() => onTogglePinned(document.id)} aria-label={pinned ? 'Unpin result' : 'Pin result'} title={pinned ? 'Unpin' : 'Pin'} className="ml-auto flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35">{pinned ? <PinOff size={12} aria-hidden /> : <Pin size={12} aria-hidden />}</button>
+                  <button type="button" onClick={() => onTogglePinned(document.id)} aria-label={pinned ? 'Unpin result' : 'Pin result'} title={pinned ? 'Unpin' : 'Pin'} className="ml-auto flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]">{pinned ? <PinOff size={12} aria-hidden /> : <Pin size={12} aria-hidden />}</button>
                 </div>
               </div>
             </div>
@@ -74,7 +74,7 @@ export function SearchResults({ results, documents, pinnedDocumentIds, onOpen, o
 }
 
 function ActionButton({ label, icon, onClick }: { label: string; icon: ReactNode; onClick: () => void }) {
-  return <button type="button" onClick={onClick} aria-label={label} title={label} className="flex h-7 items-center gap-1 rounded-md border border-neutral-200 bg-white px-2 text-[9px] font-medium text-neutral-600 shadow-sm transition-colors hover:border-neutral-300 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:text-white">{icon}<span className="hidden min-[420px]:inline">{label}</span></button>
+  return <button type="button" onClick={onClick} aria-label={label} title={label} className="flex h-7 items-center gap-1 rounded-md border border-neutral-200 bg-white px-2 text-[9px] font-medium text-neutral-600 shadow-sm transition-colors hover:border-neutral-300 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:text-white">{icon}<span className="hidden min-[420px]:inline">{label}</span></button>
 }
 
 function SearchIcon() {

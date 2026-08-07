@@ -32,7 +32,7 @@ export const AssetSearch = forwardRef<HTMLInputElement, AssetSearchProps>(
             type="button"
             onClick={() => onChange('')}
             aria-label="Clear asset search"
-            className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+            className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
           >
             <X size={14} strokeWidth={2} aria-hidden />
           </button>

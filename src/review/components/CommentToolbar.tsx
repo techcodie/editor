@@ -31,7 +31,7 @@ export function CommentToolbar({ bounds, onComment }: CommentToolbarProps) {
         type="button"
         onClick={onComment}
         aria-keyshortcuts="Alt+Meta+M Alt+Control+M"
-        className="inline-flex h-8 items-center gap-2 rounded-md bg-neutral-900 px-3 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-neutral-800 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2"
+        className="inline-flex h-8 items-center gap-2 rounded-md bg-neutral-900 px-3 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-neutral-800 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] focus-visible:ring-offset-2"
       >
         <MessageSquarePlus size={15} strokeWidth={1.9} aria-hidden />
         Comment

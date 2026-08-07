@@ -23,7 +23,7 @@ export function ChangeNavigator({
         disabled={total === 0 || currentIndex <= 0}
         aria-label="Previous suggestion"
         title="Previous suggestion"
-        className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 disabled:pointer-events-none disabled:opacity-30"
+        className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] disabled:pointer-events-none disabled:opacity-30"
       >
         <ChevronUp size={15} strokeWidth={2} aria-hidden />
       </button>
@@ -33,7 +33,7 @@ export function ChangeNavigator({
         disabled={total === 0 || currentIndex >= total - 1}
         aria-label="Next suggestion"
         title="Next suggestion"
-        className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 disabled:pointer-events-none disabled:opacity-30"
+        className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] disabled:pointer-events-none disabled:opacity-30"
       >
         <ChevronDown size={15} strokeWidth={2} aria-hidden />
       </button>

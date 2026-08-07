@@ -27,6 +27,8 @@ export interface DialogProps {
   describedById?: string
   /** DOM id for the dialog container, useful as an `aria-controls` target from the trigger button. */
   id?: string
+  /** Overrides the default `space-y-5 p-4 sm:p-5` body padding, e.g. for a full-bleed content area. */
+  bodyClassName?: string
 }
 
 /**
@@ -48,6 +50,7 @@ export function Dialog({
   labelledById = 'de-dialog-title',
   describedById,
   id,
+  bodyClassName = 'space-y-5 p-4 sm:p-5',
 }: DialogProps) {
   const containerRef = useFocusTrap<HTMLDivElement>(
     isOpen,
@@ -96,7 +99,7 @@ export function Dialog({
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 sm:p-5">
+        <div className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain', bodyClassName)}>
           {children}
         </div>
 

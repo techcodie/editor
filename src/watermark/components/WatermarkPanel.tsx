@@ -30,7 +30,7 @@ export function WatermarkToolbarControl({
           aria-pressed={isOpen}
           onClick={onToggle}
           className={cn(
-            'relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-[background-color,color,box-shadow,transform] duration-150 hover:bg-neutral-100 hover:text-neutral-950 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-1 focus-visible:ring-offset-white',
+            'relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-[background-color,color,box-shadow,transform] duration-150 hover:bg-neutral-100 hover:text-neutral-950 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-white',
             isOpen && 'bg-indigo-700 text-white shadow-sm hover:bg-indigo-600 hover:text-white',
           )}
         >
@@ -146,7 +146,7 @@ export function WatermarkPanel({
                 key={type}
                 type="button"
                 onClick={() => onAdd(type)}
-                className="flex h-20 flex-col items-center justify-center gap-2 rounded-md border border-neutral-200 bg-white text-[11px] font-semibold text-neutral-700 shadow-sm transition-[border-color,box-shadow] hover:border-neutral-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+                className="flex h-20 flex-col items-center justify-center gap-2 rounded-md border border-neutral-200 bg-white text-[11px] font-semibold text-neutral-700 shadow-sm transition-[border-color,box-shadow] hover:border-neutral-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
               >
                 <Icon size={17} strokeWidth={1.8} className="text-neutral-400" aria-hidden />
                 {label}

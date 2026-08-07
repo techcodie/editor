@@ -23,7 +23,7 @@ export function ExportHistory({ jobs, onDownload, onClear }: ExportHistoryProps)
           type="button"
           onClick={onClear}
           aria-label="Clear export history"
-          className="ml-auto flex h-7 w-7 items-center justify-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+          className="ml-auto flex h-7 w-7 items-center justify-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
         >
           <Trash2 size={13} aria-hidden />
         </button>
@@ -47,7 +47,7 @@ export function ExportHistory({ jobs, onDownload, onClear }: ExportHistoryProps)
                 type="button"
                 onClick={() => onDownload(job.result as ExportResult)}
                 aria-label={`Download ${job.result.fileName} again`}
-                className="flex h-7 w-7 items-center justify-center rounded text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 dark:hover:bg-neutral-800 dark:hover:text-white"
+                className="flex h-7 w-7 items-center justify-center rounded text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] dark:hover:bg-neutral-800 dark:hover:text-white"
               >
                 <Download size={13} aria-hidden />
               </button>

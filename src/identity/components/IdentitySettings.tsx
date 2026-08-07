@@ -53,7 +53,7 @@ export function IdentitySettings({ isOpen, manager, onClose }: IdentitySettingsP
     >
       <nav className="grid shrink-0 grid-cols-5 border-b border-neutral-200 bg-neutral-50 p-1.5 dark:border-neutral-800 dark:bg-neutral-900" aria-label="Identity settings views">
         {VIEWS.map(({ id, label, icon: Icon }) => (
-          <button key={id} type="button" onClick={() => setView(id)} aria-pressed={view === id} className={view === id ? 'flex h-9 min-w-0 items-center justify-center gap-1 rounded-md bg-white px-1 text-[9px] font-semibold text-neutral-950 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 dark:bg-neutral-800 dark:text-white' : 'flex h-9 min-w-0 items-center justify-center gap-1 rounded-md px-1 text-[9px] font-semibold text-neutral-500 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 dark:hover:text-neutral-200'}>
+          <button key={id} type="button" onClick={() => setView(id)} aria-pressed={view === id} className={view === id ? 'flex h-9 min-w-0 items-center justify-center gap-1 rounded-md bg-white px-1 text-[9px] font-semibold text-neutral-950 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] dark:bg-neutral-800 dark:text-white' : 'flex h-9 min-w-0 items-center justify-center gap-1 rounded-md px-1 text-[9px] font-semibold text-neutral-500 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] dark:hover:text-neutral-200'}>
             <Icon size={11} aria-hidden />
             <span className="truncate">{label}</span>
           </button>

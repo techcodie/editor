@@ -22,7 +22,7 @@ export function PageBreakIndicator({ pageBreak, onRemove }: PageBreakIndicatorPr
           type="button"
           onClick={() => onRemove(pageBreak.id)}
           aria-label="Remove manual page break"
-          className="pointer-events-auto flex h-6 w-6 items-center justify-center rounded-md bg-white text-neutral-500 shadow-sm transition-colors hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+          className="pointer-events-auto flex h-6 w-6 items-center justify-center rounded-md bg-white text-neutral-500 shadow-sm transition-colors hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
         >
           <X size={12} aria-hidden />
         </button>

@@ -162,7 +162,7 @@ export function ChatInput({
                 disabled={disabled || !isSpeechSupported || isProcessingSpeech}
                 onClick={toggleListening}
                 className={cn(
-                  'relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-[background-color,color,box-shadow,transform] duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2 disabled:pointer-events-none',
+                  'relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-[background-color,color,box-shadow,transform] duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] focus-visible:ring-offset-2 disabled:pointer-events-none',
                   isListening
                     ? 'bg-red-50 text-red-600 shadow-sm ring-1 ring-inset ring-red-200 hover:bg-red-100'
                     : speechError
@@ -186,7 +186,7 @@ export function ChatInput({
               aria-label="Send question"
               title="Send question"
               disabled={!canSend}
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-neutral-900 text-white shadow-sm transition-[background-color,box-shadow,transform] duration-150 hover:bg-neutral-800 hover:shadow-md active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-neutral-900 text-white shadow-sm transition-[background-color,box-shadow,transform] duration-150 hover:bg-neutral-800 hover:shadow-md active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
             >
               <ArrowUp size={16} strokeWidth={2.2} aria-hidden />
             </button>

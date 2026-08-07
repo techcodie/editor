@@ -49,7 +49,7 @@ function SuggestionCardComponent({
       <button
         type="button"
         onClick={() => onSelect(change.id)}
-        className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+        className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
       >
         <span className="flex items-center gap-2">
           <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-md', TYPE_STYLES[change.type])}>
@@ -90,7 +90,7 @@ function SuggestionCardComponent({
         <button
           type="button"
           onClick={() => onJump(change.id)}
-          className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+          className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
         >
           <LocateFixed size={13} aria-hidden />
           Jump

@@ -88,7 +88,7 @@ export function ComparisonSidebar({
             type="button"
             onClick={onClose}
             aria-label="Hide change sidebar"
-            className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 lg:hidden"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] lg:hidden"
           >
             <X size={16} aria-hidden />
           </button>
@@ -112,7 +112,7 @@ export function ComparisonSidebar({
               onClick={() => onFilterChange(item.id)}
               aria-pressed={filter === item.id}
               className={cn(
-                'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35',
+                'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]',
                 filter === item.id
                   ? 'bg-neutral-900 text-white'
                   : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200/80 hover:text-neutral-950',
@@ -178,7 +178,7 @@ export function ComparisonSidebar({
                 onFilterChange('all')
                 onQueryChange('')
               }}
-              className="mt-2 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+              className="mt-2 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
             >
               Clear filters
             </button>

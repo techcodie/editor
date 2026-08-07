@@ -18,7 +18,7 @@ export function AnalysisProgress({ progress, onCancel }: AnalysisProgressProps) 
         <div className="h-full rounded bg-indigo-600 transition-[width] duration-300" style={{ width: `${progress.progress}%` }} />
       </div>
       <span className="mt-2 text-[10px] tabular-nums text-neutral-400">{Math.round(progress.progress)}%</span>
-      <button type="button" onClick={onCancel} className="mt-5 inline-flex h-8 items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-3 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35">
+      <button type="button" onClick={onCancel} className="mt-5 inline-flex h-8 items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-3 text-[11px] font-semibold text-neutral-700 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]">
         <Square size={11} fill="currentColor" aria-hidden /> Stop
       </button>
     </div>

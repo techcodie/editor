@@ -19,7 +19,7 @@ export function ReadingMode({ mode, onModeChange, onExit }: ReadingModeProps) {
           onClick={onExit}
           aria-label="Exit reading mode"
           title="Exit reading mode"
-          className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+          className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
         >
           <Minimize2 size={16} strokeWidth={1.9} aria-hidden />
         </button>

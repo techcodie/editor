@@ -38,7 +38,7 @@ function AlignmentControl({
           aria-label={`${label}: ${alignment}`}
           aria-pressed={value === alignment}
           className={cn(
-            'flex h-7 w-7 items-center justify-center rounded text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35',
+            'flex h-7 w-7 items-center justify-center rounded text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]',
             value === alignment && 'bg-white text-neutral-950 shadow-sm',
           )}
         >

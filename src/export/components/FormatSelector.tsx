@@ -27,7 +27,7 @@ export function FormatSelector({ value, onChange }: FormatSelectorProps) {
             aria-pressed={value === format}
             onClick={() => onChange(format)}
             className={cn(
-              'flex min-h-20 flex-col items-center justify-center rounded-md border px-2 text-center transition-[border-color,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35',
+              'flex min-h-20 flex-col items-center justify-center rounded-md border px-2 text-center transition-[border-color,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]',
               value === format
                 ? 'border-indigo-300 bg-indigo-50 text-indigo-800 shadow-sm dark:border-indigo-500 dark:bg-indigo-950/60 dark:text-indigo-200'
                 : 'border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800',

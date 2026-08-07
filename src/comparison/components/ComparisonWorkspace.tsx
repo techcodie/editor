@@ -199,7 +199,7 @@ export function ComparisonWorkspace({
                 setLeftDocument({ ...rightDocument, id: leftDocument.id })
                 setRightDocument({ ...leftDocument, id: rightDocument.id })
               }}
-              className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-200/70 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+              className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-200/70 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
             >
               <ArrowLeftRight size={15} strokeWidth={1.9} aria-hidden />
               Swap
@@ -232,7 +232,7 @@ export function ComparisonWorkspace({
               aria-expanded={isSidebarOpen}
               aria-label={isSidebarOpen ? 'Hide change sidebar' : 'Show change sidebar'}
               className={cn(
-                'inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35',
+                'inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]',
                 isSidebarOpen ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900',
               )}
             >

@@ -103,7 +103,7 @@ export function DocumentPreview({
               onClick={onClose}
               aria-label="Close document preview"
               title="Close preview"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
             >
               <X size={18} strokeWidth={2} aria-hidden />
             </button>
@@ -115,7 +115,7 @@ export function DocumentPreview({
             <button
               type="button"
               onClick={() => onAskAi(source)}
-              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-neutral-900 px-2.5 text-[11px] font-semibold text-white shadow-sm transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2"
+              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-neutral-900 px-2.5 text-[11px] font-semibold text-white shadow-sm transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] focus-visible:ring-offset-2"
             >
               <MessageSquareText size={13} strokeWidth={1.9} aria-hidden />
               Ask AI

@@ -17,7 +17,7 @@ function CommentCardComponent({ comment, onSelect }: CommentCardProps) {
       <button
         type="button"
         onClick={() => onSelect(comment.id)}
-        className="group w-full px-4 py-3.5 text-left transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500/35"
+        className="group w-full px-4 py-3.5 text-left transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--document-editor-focus-ring)]"
       >
         <span className="flex items-center gap-2">
           <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${comment.resolved ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>

@@ -51,7 +51,7 @@ export function ComparisonNavigator({
         onClick={onPrevious}
         disabled={changes.length === 0 || currentIndex <= 0}
         aria-label="Previous change"
-        className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 disabled:pointer-events-none disabled:opacity-30"
+        className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] disabled:pointer-events-none disabled:opacity-30"
       >
         <ChevronUp size={15} strokeWidth={2} aria-hidden />
       </button>
@@ -60,7 +60,7 @@ export function ComparisonNavigator({
         onClick={onNext}
         disabled={changes.length === 0 || currentIndex >= changes.length - 1}
         aria-label="Next change"
-        className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 disabled:pointer-events-none disabled:opacity-30"
+        className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] disabled:pointer-events-none disabled:opacity-30"
       >
         <ChevronDown size={15} strokeWidth={2} aria-hidden />
       </button>

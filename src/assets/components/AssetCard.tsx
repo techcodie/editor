@@ -48,7 +48,7 @@ export function AssetCard({
         onClick={() => onToggleFavorite(asset.id)}
         aria-label={isFavorite ? `Remove ${asset.title} from favorites` : `Add ${asset.title} to favorites`}
         aria-pressed={isFavorite}
-        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md border border-neutral-200 bg-white/90 text-neutral-400 opacity-0 shadow-sm backdrop-blur-sm transition-[opacity,color,background-color] hover:text-rose-600 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 group-hover:opacity-100 aria-pressed:opacity-100 aria-pressed:text-rose-600"
+        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md border border-neutral-200 bg-white/90 text-neutral-400 opacity-0 shadow-sm backdrop-blur-sm transition-[opacity,color,background-color] hover:text-rose-600 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] group-hover:opacity-100 aria-pressed:opacity-100 aria-pressed:text-rose-600"
       >
         <Heart size={14} strokeWidth={2} fill={isFavorite ? 'currentColor' : 'none'} aria-hidden />
       </button>

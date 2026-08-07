@@ -84,7 +84,7 @@ export function ReplacementDiffDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="replacement-diff-title"
-        className="flex max-h-[calc(100vh-1.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-[0_30px_90px_-35px_rgba(20,20,20,0.7)] outline-none"
+        className="flex max-h-[calc(100vh-1.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-[var(--document-editor-shadow-overlay)] outline-none"
       >
         <header className="flex items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3.5">
           <div className="flex min-w-0 items-center gap-2.5">
@@ -103,7 +103,7 @@ export function ReplacementDiffDialog({
             onClick={onCancel}
             aria-label="Cancel replacement"
             title="Cancel"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
           >
             <X size={15} strokeWidth={2} aria-hidden />
           </button>
@@ -144,14 +144,14 @@ export function ReplacementDiffDialog({
             ref={cancelButtonRef}
             type="button"
             onClick={onCancel}
-            className="inline-flex h-8 items-center rounded-md px-3 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35"
+            className="inline-flex h-8 items-center rounded-md px-3 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={apply}
-            className="inline-flex h-8 items-center rounded-md bg-neutral-900 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2"
+            className="inline-flex h-8 items-center rounded-md bg-neutral-900 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] focus-visible:ring-offset-2"
           >
             Apply replacement
           </button>

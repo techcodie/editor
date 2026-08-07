@@ -9,6 +9,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { cn } from '../../../lib/cn'
+import { EmptyState } from '../../../components/ui/EmptyState'
 import { PanelShell } from '../../../components/ui/PanelShell'
 import { ChangeNavigator } from './ChangeNavigator'
 import { SuggestionCard } from './SuggestionCard'
@@ -154,7 +155,7 @@ export function SuggestionSidebar({
               aria-label={label}
               aria-pressed={filter === id}
               className={cn(
-                'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35',
+                'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]',
                 filter === id
                   ? 'bg-neutral-900 text-white'
                   : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200/70 hover:text-neutral-950',
@@ -196,7 +197,7 @@ export function SuggestionSidebar({
                 onClick={() => setSort(value)}
                 aria-pressed={sort === value}
                 className={cn(
-                  'h-6 rounded px-2 text-[10px] font-medium capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35',
+                  'h-6 rounded px-2 text-[10px] font-medium capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]',
                   sort === value
                     ? 'bg-white text-neutral-900 shadow-sm'
                     : 'text-neutral-500 hover:text-neutral-900',
@@ -223,19 +224,15 @@ export function SuggestionSidebar({
             />
           ))
         ) : (
-          <div className="flex min-h-64 flex-col items-center justify-center px-8 text-center">
-            <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-neutral-400">
-              <FilePenLine size={18} strokeWidth={1.8} aria-hidden />
-            </span>
-            <p className="text-sm font-semibold text-neutral-900">
-              {query ? 'No matching suggestions' : 'No suggestions here'}
-            </p>
-            <p className="mt-1 max-w-56 text-xs leading-5 text-neutral-500">
-              {query
+          <EmptyState
+            icon={FilePenLine}
+            title={query ? 'No matching suggestions' : 'No suggestions here'}
+            description={
+              query
                 ? 'Try another author, type, status, or date.'
-                : 'Edits made in Suggestion Mode will appear here.'}
-            </p>
-          </div>
+                : 'Edits made in Suggestion Mode will appear here.'
+            }
+          />
         )}
       </div>
     </PanelShell>

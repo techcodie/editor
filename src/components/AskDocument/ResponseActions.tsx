@@ -61,7 +61,7 @@ export function ResponseActions({
   }
 
   const actionClassName =
-    'inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-1.5 text-[9px] font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 disabled:cursor-not-allowed disabled:text-neutral-300 disabled:hover:bg-transparent'
+    'inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-1.5 text-[9px] font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)] disabled:cursor-not-allowed disabled:text-neutral-300 disabled:hover:bg-transparent'
 
   return (
     <div className="mt-1">
