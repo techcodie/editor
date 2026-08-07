@@ -800,15 +800,30 @@ Toolbar must never call:
 Toolbar communicates only with the Editor API.
 
 The editing workspace presents these commands as one memoized, sticky
-ribbon that spans the full toolbar row. Clipboard, formatting, paragraph,
-lists, insert, document, review, and AI controls are composed into labelled
-groups with professional separators. From the `sm` breakpoint up the ribbon
-wraps onto as many rows as its groups need so every command stays visible
-with no horizontal scrolling; below `sm`, where the ribbon shares its row
-with fixed-width workspace icons, it falls back to contained horizontal
-scrolling without causing page-level overflow. Paragraph styles and
-insertions use native accessible selectors, and only commands already
+ribbon that spans the full toolbar row. From the `sm` breakpoint up the
+ribbon wraps onto as many rows as its groups need so every command stays
+visible with no horizontal scrolling; below `sm`, where the ribbon shares
+its row with fixed-width workspace icons, it falls back to contained
+horizontal scrolling without causing page-level overflow. Paragraph styles
+and insertions use native accessible selectors, and only commands already
 exposed by the Editor API or existing workspace features are shown.
+
+The ribbon's groups are deliberately two-tier. Clipboard, formatting,
+paragraph, lists, insert (image/table/page break), and document
+(open/import/save/page layout/export/print) are core editing commands and
+stay directly on the ribbon, always visible, so the first thing a new user
+sees is a document editor — not a wall of enterprise tool icons. Every
+enterprise-tier capability (Ask AI, Writing Assistant, AI Productivity,
+Semantic Search, Compliance, Contract Intelligence, Sensitive Data
+Redaction, Comments, Track Changes, Comparison, Version History, Approval
+Workflow, Forms, Watermark, Identity & Access) is consolidated into one
+"Enterprise" menu at the end of the ribbon instead of its own toolbar group
+or standalone header button. This removes no functionality and changes no
+permission gate — each entry still calls the exact same open/close handler
+and respects the exact same identity permission check its former standalone
+toolbar button used; only the trigger's location changed, from competing
+with editing commands for ribbon space to one labelled, categorized,
+one-click-away menu.
 
 The Document group's Import control reuses the existing Document
 Intelligence import pipeline (no separate upload/parsing path); it inserts
@@ -817,11 +832,13 @@ full-fidelity replace-the-document Open. Its Save control opens the existing
 Version History panel rather than performing host-backed persistence, since
 no storage/upload provider exists in this milestone. Its Print control opens
 the existing Print Preview; real `window.print()` remains deferred per the
-Future Print Architecture below. Attachment, image insertion, QR codes,
-full-fidelity document import, and durable host-backed Save/Open/New remain
-absent because those commands are not currently supported without changing
-the Editor API, adding a new dependency, or adding a host storage/upload
-provider.
+Future Print Architecture below. The Insert group's Image control opens the
+existing Asset Library (AI-generated images and stamps, with the existing
+resize/align/caption/replace/delete affordances) — direct local-file image
+upload, attachment insertion, QR codes, full-fidelity document import, and
+durable host-backed Save/Open/New remain absent because those commands are
+not currently supported without changing the Editor API, adding a new
+dependency, or adding a host storage/upload provider.
 
 Font family, font size, text color, and a multicolor highlight picker are
 exposed through `@tiptap/extension-text-style`'s `Color`/`FontFamily`/

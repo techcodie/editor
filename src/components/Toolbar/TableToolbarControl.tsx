@@ -8,6 +8,7 @@ import {
   ArrowUpToLine,
   ArrowDownToLine,
   Combine,
+  Grid3x3,
 } from 'lucide-react'
 import type { EditorApi } from '../../lib/editor-api'
 import { ToolbarDropdown } from './ToolbarDropdown'
@@ -19,10 +20,11 @@ export interface TableToolbarControlProps {
 }
 
 /**
- * Row/column/header/merge editing for the table the caret is currently
- * inside. `@tiptap/extension-table`'s TableKit already registers every one
- * of these commands (see src/extensions/index.ts) — this only adds the thin
- * EditorApi wrapper and menu. Items stay disabled outside a table instead of
+ * The one "Table" entry point: inserting a brand new table, and every
+ * row/column/header/merge edit for the table the caret is currently inside.
+ * `@tiptap/extension-table`'s TableKit already registers every one of these
+ * commands (see src/extensions/index.ts) — this only adds the thin EditorApi
+ * wrapper and menu. Edit items stay disabled outside a table instead of
  * hiding the whole control, so it's discoverable even before a table exists.
  */
 export function TableToolbarControl({ api, size = 'md' }: TableToolbarControlProps) {
@@ -36,6 +38,13 @@ export function TableToolbarControl({ api, size = 'md' }: TableToolbarControlPro
       disabled={!api}
       onCloseAutoFocus={() => api?.focus()}
       items={[
+        {
+          id: 'table-insert',
+          icon: Grid3x3,
+          label: 'Insert table',
+          disabled: inTable,
+          onSelect: () => api?.insertTable(),
+        },
         {
           id: 'table-row-above',
           icon: ArrowUpToLine,

@@ -1,19 +1,38 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Command, FilePenLine, LoaderCircle, MessageSquareText, MousePointer2, Save, ShieldCheck, X } from 'lucide-react'
+import {
+  Command,
+  Droplets,
+  FileDiff,
+  FilePenLine,
+  FileSearch2,
+  History,
+  Image,
+  KeyRound,
+  ListChecks,
+  LoaderCircle,
+  MessageSquareText,
+  MessagesSquare,
+  MousePointer2,
+  Save,
+  ScanEye,
+  Search,
+  SeparatorHorizontal,
+  ShieldCheck,
+  SpellCheck2,
+  WandSparkles,
+  Workflow as WorkflowIcon,
+  X,
+} from 'lucide-react'
 import { useAssetInsertion } from '../../assets/hooks/useAssetInsertion'
 import type { Asset } from '../../assets/types/asset'
-import { ComplianceToolbarControl } from '../../compliance/components/ComplianceToolbarControl'
 import type {
   ComplianceFinding,
   ComplianceReport,
   ComplianceRecommendation,
 } from '../../compliance/types/compliance'
-import { ContractToolbarControl } from '../../contract/components/ContractToolbarControl'
 import type { ContractAnalysis } from '../../contract/types/contract'
-import { WritingAssistantToolbarControl } from '../../writing/components/WritingAssistantToolbarControl'
 import type { WritingSuggestion } from '../../writing/types/suggestion'
 import type { WritingAnalysis } from '../../writing/types/writing'
-import { ProductivityToolbarControl } from '../../productivity/components/ProductivityToolbarControl'
 import { createProductivityProviderRegistry } from '../../productivity/services/providerRegistry'
 import { useVoiceCommands } from '../../productivity/hooks/useVoiceCommands'
 import type { VoiceProvider } from '../../productivity/types/provider'
@@ -32,9 +51,7 @@ import {
   normalizeSubmissionValues,
 } from '../../viewer/services/shareEngine'
 import type { DocumentViewMode } from '../../viewer/types/viewer'
-import { ComparisonToolbarControl } from '../../comparison/components/ComparisonToolbar'
 import { ExportToolbarControl } from '../../export/components/ExportToolbarControl'
-import { HistoryToolbarControl } from '../../history/components/HistoryToolbarControl'
 import { historyNamespace } from '../../history/services/historyStorage'
 import { DocumentIntelligenceToolbarControl } from '../../intelligence/components/DocumentIntelligenceToolbarControl'
 import type { KnowledgeSource, PreparedKnowledgeSource } from '../../knowledge/types/source'
@@ -48,19 +65,16 @@ import { usePageLayout } from '../../layout/hooks/usePageLayout'
 import { usePagination } from '../../layout/hooks/usePagination'
 import { CommentHighlightPreview } from '../../review/components/CommentHighlightPreview'
 import { CommentToolbar } from '../../review/components/CommentToolbar'
-import { ReviewToolbarControl } from '../../review/components/ReviewToolbarControl'
 import { SelectionCommentComposer } from '../../review/components/SelectionCommentComposer'
 import { useComments } from '../../review/hooks/useComments'
 import { useSelectionComment } from '../../review/hooks/useSelectionComment'
 import type { Comment } from '../../review/types/comment'
 import type { CommentHighlightPreviewState } from '../../review/types/review'
 import { SuggestionPreview } from '../../review/trackChanges/components/SuggestionPreview'
-import { SuggestionToolbar } from '../../review/trackChanges/components/SuggestionToolbar'
 import { useTrackChanges } from '../../review/trackChanges/hooks/useTrackChanges'
 import { WatermarkLayer } from '../../watermark/components/WatermarkLayer'
 import { WatermarkPanel } from '../../watermark/components/WatermarkPanel'
 import { useWatermark } from '../../watermark/hooks/useWatermark'
-import { WorkflowToolbarControl } from '../../workflow/components/WorkflowToolbarControl'
 import { loadWorkflow, saveWorkflow } from '../../workflow/services/workflowSerializer'
 import type { Workflow } from '../../workflow/types/workflow'
 import { ConflictBanner } from '../../collaboration/components/ConflictBanner'
@@ -70,9 +84,7 @@ import { SelectionLayer } from '../../collaboration/components/SelectionLayer'
 import { useCollaboration } from '../../collaboration/hooks/useCollaboration'
 import { renderCollaboratorDecorations } from '../../collaboration/services/collaborationRenderer'
 import type { CollaborationEntityState } from '../../collaboration/services/collaborationEngine'
-import { SearchToolbarControl } from '../../search/components/SearchToolbarControl'
 import type { IndexedDocument } from '../../search/types/search'
-import { RedactionToolbarControl } from '../../redaction/components/RedactionToolbarControl'
 import type { RedactionRecord } from '../../redaction/types/redaction'
 import { useDocumentEditor } from '../../hooks/useDocumentEditor'
 import { useEditorApi } from '../../hooks/useEditorApi'
@@ -93,7 +105,14 @@ import {
   type WorkspaceCommandId,
 } from '../CommandPalette/CommandPalette'
 import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary'
-import { InsertToolbarControl, PrintToolbarControl, TableToolbarControl, Toolbar, ToolbarButton } from '../Toolbar'
+import {
+  EnterpriseToolbarControl,
+  type EnterpriseEntry,
+  PrintToolbarControl,
+  TableToolbarControl,
+  Toolbar,
+  ToolbarButton,
+} from '../Toolbar'
 import { DocumentEditor } from '../DocumentEditor'
 import { StatusBar } from './StatusBar'
 import { EditorContextMenu } from './EditorContextMenu'
@@ -369,13 +388,10 @@ export function EditorWorkspace({
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [askDocumentCommand, setAskDocumentCommand] =
     useState<AskDocumentCommandRequest | null>(null)
-  const askDocumentButtonRef = useRef<HTMLButtonElement>(null)
-  const identityButtonRef = useRef<HTMLButtonElement>(null)
   const validShareIdsRef = useRef<string[]>([])
   const shareChannelsRef = useRef(new Map<string, BroadcastChannel>())
   const lastDocumentTextRef = useRef<string | null>(null)
   const lastSelectionRef = useRef<string | null>(null)
-  const AskDocumentIcon = config.theme.icons.askDocument ?? MessageSquareText
   const CommandPaletteIcon = config.theme.icons.commandPalette ?? Command
   const availableCommands: WorkspaceCommandId[] = [
     ...(config.ai && canUseAi ? (['ask-ai', 'toggle-sidebar'] as const) : []),
@@ -713,7 +729,6 @@ export function EditorWorkspace({
 
   const closeAskDocument = useCallback(() => {
     setActivePanel(null)
-    window.requestAnimationFrame(() => askDocumentButtonRef.current?.focus())
   }, [])
 
   const openAssetLibrary = useCallback(() => {
@@ -983,7 +998,6 @@ export function EditorWorkspace({
 
   const closeIdentity = useCallback(() => {
     setActivePanel(null)
-    window.requestAnimationFrame(() => identityButtonRef.current?.focus())
   }, [])
 
   useEffect(() => {
@@ -1465,6 +1479,144 @@ export function EditorWorkspace({
     isWritingAssistantOpen || isProductivityOpen || isIdentityOpen || isShareOpen ||
     isCommandPaletteOpen || isPrintPreviewOpen
 
+  // Every enterprise-tier tool in one place instead of five toolbar groups —
+  // same handlers as before, just no longer competing with editing commands
+  // for ribbon space. Each entry still respects the exact permission gate
+  // its old standalone toolbar button used.
+  const enterpriseEntries: EnterpriseEntry[] = [
+    ...(config.ai && canUseAi ? [{
+      id: 'enterprise-ask-ai',
+      section: 'AI & writing',
+      // A fixed icon (not the host-overridable AskDocumentIcon used by the
+      // Command Palette) — this is one row among many fixed-icon entries
+      // here, not a standalone branded button anymore.
+      icon: MessageSquareText,
+      label: 'Ask AI',
+      isActive: isAskDocumentOpen,
+      onSelect: () => (isAskDocumentOpen ? closeAskDocument() : openAskDocument()),
+    }] : []),
+    ...(canUseAi ? [{
+      id: 'enterprise-writing-assistant',
+      section: 'AI & writing',
+      icon: SpellCheck2,
+      label: 'Writing assistant',
+      isActive: isWritingAssistantOpen,
+      badge: writingAnalysis?.score != null ? `Score ${writingAnalysis.score}` : undefined,
+      onSelect: () => (isWritingAssistantOpen ? closeWritingAssistant() : openWritingAssistant()),
+    }] : []),
+    ...(productivityRegistry && canUseAi ? [{
+      id: 'enterprise-productivity',
+      section: 'AI & writing',
+      icon: WandSparkles,
+      label: 'AI productivity',
+      isActive: isProductivityOpen,
+      onSelect: () => (isProductivityOpen ? closeProductivity() : openProductivity()),
+    }] : []),
+    ...(canSearch ? [{
+      id: 'enterprise-search',
+      section: 'AI & writing',
+      icon: Search,
+      label: 'Semantic search',
+      isActive: isSearchOpen,
+      onSelect: () => (isSearchOpen ? closeSearch() : openSearch()),
+    }] : []),
+    ...(canRead ? [{
+      id: 'enterprise-compliance',
+      section: 'AI & writing',
+      icon: ShieldCheck,
+      label: 'Compliance',
+      isActive: isComplianceOpen,
+      onSelect: () => (isComplianceOpen ? closeCompliance() : openCompliance()),
+    }] : []),
+    ...(canUseContractIntelligence ? [{
+      id: 'enterprise-contract',
+      section: 'AI & writing',
+      icon: FileSearch2,
+      label: 'Contract intelligence',
+      isActive: isContractOpen,
+      badge: contractAnalysis?.overallRiskScore != null ? `Risk ${contractAnalysis.overallRiskScore}` : undefined,
+      onSelect: () => (isContractOpen ? closeContract() : openContract()),
+    }] : []),
+    ...(canRedact ? [{
+      id: 'enterprise-redaction',
+      section: 'AI & writing',
+      icon: ScanEye,
+      label: 'Sensitive data',
+      isActive: isRedactionOpen,
+      badge: (() => {
+        const pending = redactionRecords.filter((record) => record.decision === 'pending').length
+        return pending > 0 ? String(pending) : undefined
+      })(),
+      onSelect: () => (isRedactionOpen ? closeRedaction() : openRedaction()),
+    }] : []),
+    ...(canComment ? [{
+      id: 'enterprise-review',
+      section: 'Review & compare',
+      icon: MessagesSquare,
+      label: 'Comments',
+      isActive: isReviewMode,
+      onSelect: () => (isReviewMode ? closeReviewMode() : openReviewMode()),
+    }] : []),
+    ...(canTrackChanges ? [{
+      id: 'enterprise-track-changes',
+      section: 'Review & compare',
+      icon: FilePenLine,
+      label: 'Track changes',
+      isActive: isSuggestionMode,
+      onSelect: () => (isSuggestionMode ? closeSuggestionMode() : openSuggestionMode()),
+    }] : []),
+    ...(canRead ? [{
+      id: 'enterprise-comparison',
+      section: 'Review & compare',
+      icon: FileDiff,
+      label: 'Comparison',
+      isActive: isComparisonOpen,
+      onSelect: () => (isComparisonOpen ? closeComparison() : openComparison()),
+    }] : []),
+    ...(canRead ? [{
+      id: 'enterprise-history',
+      section: 'Review & compare',
+      icon: History,
+      label: 'Version history',
+      isActive: isHistoryOpen,
+      badge: historyVersionCount > 0 ? String(historyVersionCount) : undefined,
+      onSelect: () => (isHistoryOpen ? closeHistory() : openHistory()),
+    }] : []),
+    ...(canUseWorkflow ? [{
+      id: 'enterprise-workflow',
+      section: 'Review & compare',
+      icon: WorkflowIcon,
+      label: 'Approvals',
+      isActive: isWorkflowOpen,
+      badge: currentWorkflow?.status,
+      onSelect: () => (isWorkflowOpen ? closeWorkflow() : openWorkflow()),
+    }] : []),
+    ...(canBuildForms ? [{
+      id: 'enterprise-forms',
+      section: 'Documents & access',
+      icon: ListChecks,
+      label: 'Forms',
+      isActive: isFormBuilderOpen,
+      onSelect: () => (isFormBuilderOpen ? closeFormBuilder() : openFormBuilder()),
+    }] : []),
+    {
+      id: 'enterprise-watermark',
+      section: 'Documents & access',
+      icon: Droplets,
+      label: 'Watermark',
+      isActive: Boolean(watermark),
+      onSelect: () => (isWatermarkOpen ? closeWatermark() : openWatermark()),
+    },
+    ...(identityManager ? [{
+      id: 'enterprise-identity',
+      section: 'Documents & access',
+      icon: KeyRound,
+      label: 'Identity & access',
+      isActive: isIdentityOpen,
+      onSelect: () => (isIdentityOpen ? closeIdentity() : openIdentity()),
+    }] : []),
+  ]
+
   return (
     <div className="document-editor-workspace mx-auto flex w-full max-w-[84rem] items-start justify-center px-3 pb-20 pt-4 sm:px-6 sm:py-7 lg:px-8 lg:py-6">
       <div className={cn('min-w-0 w-full', viewMode === 'reading' && 'reader-workspace max-w-[54rem]')}>
@@ -1482,24 +1634,23 @@ export function EditorWorkspace({
                   label: 'Insert',
                   content: (
                     <>
-                      <InsertToolbarControl
-                        api={api}
-                        hasWatermark={Boolean(watermark)}
-                        canBuildForms={canBuildForms}
-                        onOpenAssetLibrary={() => {
+                      <ToolbarButton
+                        icon={Image}
+                        label={isAssetLibraryOpen ? 'Close image & stamp library' : 'Insert image'}
+                        isActive={isAssetLibraryOpen}
+                        disabled={!api}
+                        onClick={() => {
                           if (isAssetLibraryOpen) closeAssetLibrary()
                           else openAssetLibrary()
                         }}
-                        onOpenWatermark={() => {
-                          if (isWatermarkOpen) closeWatermark()
-                          else openWatermark()
-                        }}
-                        onOpenFormBuilder={() => {
-                          if (isFormBuilderOpen) closeFormBuilder()
-                          else openFormBuilder()
-                        }}
                       />
                       <TableToolbarControl api={api} />
+                      <ToolbarButton
+                        icon={SeparatorHorizontal}
+                        label="Page break"
+                        disabled={!api}
+                        onClick={() => api?.insertPageBreak()}
+                      />
                     </>
                   ),
                 },
@@ -1550,106 +1701,11 @@ export function EditorWorkspace({
                     </>
                   ),
                 },
-                {
-                  id: 'review',
-                  label: 'Review',
-                  content: (
-                    <>
-                      {canComment && <ReviewToolbarControl
-                        isActive={isReviewMode}
-                        onToggle={() => {
-                          if (isReviewMode) closeReviewMode()
-                          else openReviewMode()
-                        }}
-                      />}
-                      {canTrackChanges && <SuggestionToolbar
-                        isActive={isSuggestionMode}
-                        onToggle={() => {
-                          if (isSuggestionMode) closeSuggestionMode()
-                          else openSuggestionMode()
-                        }}
-                      />}
-                      {canRead && <ComparisonToolbarControl
-                        isActive={isComparisonOpen}
-                        onToggle={() => {
-                          if (isComparisonOpen) closeComparison()
-                          else openComparison()
-                        }}
-                      />}
-                      {canRead && <HistoryToolbarControl
-                        isOpen={isHistoryOpen}
-                        versionCount={historyVersionCount}
-                        onToggle={() => {
-                          if (isHistoryOpen) closeHistory()
-                          else openHistory()
-                        }}
-                      />}
-                      {canUseWorkflow && <WorkflowToolbarControl
-                        isOpen={isWorkflowOpen}
-                        status={currentWorkflow?.status}
-                        onToggle={() => {
-                          if (isWorkflowOpen) closeWorkflow()
-                          else openWorkflow()
-                        }}
-                      />}
-                    </>
-                  ),
-                },
-                {
-                  id: 'ai',
-                  label: 'AI',
-                  content: (
-                    <>
-                      {canRead && <ComplianceToolbarControl
-                        isOpen={isComplianceOpen}
-                        onToggle={() => {
-                          if (isComplianceOpen) closeCompliance()
-                          else openCompliance()
-                        }}
-                      />}
-                      {canSearch && <SearchToolbarControl
-                        isOpen={isSearchOpen}
-                        onToggle={() => {
-                          if (isSearchOpen) closeSearch()
-                          else openSearch()
-                        }}
-                      />}
-                      {canRedact && <RedactionToolbarControl
-                        isOpen={isRedactionOpen}
-                        count={redactionRecords.filter((record) => record.decision === 'pending').length}
-                        onToggle={() => {
-                          if (isRedactionOpen) closeRedaction()
-                          else openRedaction()
-                        }}
-                      />}
-                      {canUseContractIntelligence && <ContractToolbarControl
-                        isOpen={isContractOpen}
-                        riskScore={contractAnalysis?.overallRiskScore}
-                        onToggle={() => {
-                          if (isContractOpen) closeContract()
-                          else openContract()
-                        }}
-                      />}
-                      {canUseAi && <WritingAssistantToolbarControl
-                        isOpen={isWritingAssistantOpen}
-                        score={writingAnalysis?.score}
-                        onToggle={() => {
-                          if (isWritingAssistantOpen) closeWritingAssistant()
-                          else openWritingAssistant()
-                        }}
-                      />}
-                      {productivityRegistry && canUseAi && (
-                        <ProductivityToolbarControl
-                          isOpen={isProductivityOpen}
-                          onToggle={() => {
-                            if (isProductivityOpen) closeProductivity()
-                            else openProductivity()
-                          }}
-                        />
-                      )}
-                    </>
-                  ),
-                },
+                ...(enterpriseEntries.length > 0 ? [{
+                  id: 'enterprise',
+                  label: 'Enterprise',
+                  content: <EnterpriseToolbarControl entries={enterpriseEntries} onCloseAutoFocus={() => api?.focus()} />,
+                }] : []),
               ]}
             />
           )}
@@ -1681,57 +1737,6 @@ export function EditorWorkspace({
               className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white/90 text-neutral-500 shadow-[var(--document-editor-shadow-surface)] backdrop-blur-xl transition-[border-color,background-color,color,box-shadow,transform] duration-150 hover:-translate-y-px hover:border-neutral-300 hover:bg-white hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f6f4] active:translate-y-0"
             >
               <CommandPaletteIcon width={17} height={17} strokeWidth={1.9} aria-hidden />
-            </button>
-          )}
-          {config.ai && canUseAi && (
-            <button
-              ref={askDocumentButtonRef}
-              type="button"
-              aria-label={
-                isAskDocumentOpen ? 'Close Ask Document' : 'Open Ask Document'
-              }
-              aria-expanded={isAskDocumentOpen}
-              aria-controls="ask-document-panel"
-              title={isAskDocumentOpen ? 'Close Ask Document' : 'Ask Document'}
-              onClick={() => {
-                if (isAskDocumentOpen) closeAskDocument()
-                else openAskDocument()
-              }}
-              className={cn(
-                'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border shadow-[var(--document-editor-shadow-surface)] backdrop-blur-xl transition-[border-color,background-color,color,box-shadow,transform] duration-150 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f6f4] active:translate-y-0',
-                isAskDocumentOpen
-                  ? 'border-neutral-800 bg-neutral-900 text-white shadow-[var(--document-editor-shadow-overlay)] hover:bg-neutral-800'
-                  : 'border-neutral-200 bg-white/90 text-neutral-500 hover:border-neutral-300 hover:bg-white hover:text-neutral-950',
-              )}
-            >
-              <AskDocumentIcon
-                width={18}
-                height={18}
-                strokeWidth={1.9}
-                aria-hidden
-              />
-            </button>
-          )}
-          {identityManager && (
-            <button
-              ref={identityButtonRef}
-              type="button"
-              aria-label={isIdentityOpen ? 'Close identity settings' : 'Open identity settings'}
-              aria-expanded={isIdentityOpen}
-              aria-controls="identity-settings"
-              title="Identity & access"
-              onClick={() => {
-                if (isIdentityOpen) closeIdentity()
-                else openIdentity()
-              }}
-              className={cn(
-                'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border shadow-[var(--document-editor-shadow-surface)] backdrop-blur-xl transition-[border-color,background-color,color,box-shadow,transform] duration-150 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f6f4] active:translate-y-0',
-                isIdentityOpen
-                  ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
-                  : 'border-neutral-200 bg-white/90 text-neutral-500 hover:border-neutral-300 hover:bg-white hover:text-neutral-950',
-              )}
-            >
-              <ShieldCheck size={17} strokeWidth={1.9} aria-hidden />
             </button>
           )}
           {config.collaboration && canRead && (
