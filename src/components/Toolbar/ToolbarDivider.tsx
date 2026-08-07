@@ -8,7 +8,7 @@ export interface ToolbarDividerProps {
 export function ToolbarDivider({ className }: ToolbarDividerProps) {
   return (
     <ToolbarPrimitive.Separator
-      className={cn('mx-1 h-5 w-px shrink-0 self-center bg-neutral-200/90', className)}
+      className={cn('mx-1.5 h-4 w-px shrink-0 self-center bg-neutral-200/70', className)}
     />
   )
 }

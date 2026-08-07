@@ -15,9 +15,10 @@
   margin: 0;
 }
 
-/* Consistent vertical rhythm between top-level blocks. */
+/* Consistent vertical rhythm between top-level blocks — a touch more air
+   than single-spaced so a long document doesn't read as a dense text wall. */
 .tiptap > * + * {
-  margin-top: 0.8em;
+  margin-top: 0.95em;
 }
 .tiptap > h1 {
   margin-top: 1.6em;
@@ -214,7 +215,7 @@
 }
 
 .tiptap ::selection {
-  background: var(--document-editor-selection, rgba(79, 70, 229, 0.2));
+  background: var(--document-editor-selection, rgba(79, 70, 229, 0.15));
 }
 
 /* Review comments remain in document content while visibility follows Review Mode. */

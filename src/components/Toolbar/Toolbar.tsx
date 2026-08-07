@@ -38,9 +38,12 @@ export interface ToolbarProps {
 }
 
 const TOOLBAR_CLASS =
-  'flex w-full items-center gap-x-0.5 gap-y-1 rounded-lg border border-neutral-200 bg-white/90 p-1.5 ' +
-  'shadow-[0_1px_2px_rgba(20,20,20,0.04),0_8px_24px_-16px_rgba(20,20,20,0.28)] ' +
-  'supports-[backdrop-filter]:bg-white/80 backdrop-blur-xl ' +
+  // Lighter chrome than a boxed panel — the ribbon should recede so the page
+  // stays the visual focus. A soft single shadow reads as "floating" instead
+  // of the previous harder double-shadow + opaque border combination.
+  'flex w-full items-center gap-x-1 gap-y-1.5 rounded-lg border border-neutral-200/70 bg-white/90 p-2 ' +
+  'shadow-[0_1px_2px_rgba(20,20,20,0.03),0_6px_20px_-16px_rgba(20,20,20,0.22)] ' +
+  'supports-[backdrop-filter]:bg-white/75 backdrop-blur-xl ' +
   // Below `sm`, the ribbon still shares its row with fixed-width workspace
   // icons (command palette, Ask Document, identity, presence) that leave too
   // little width for even one group to wrap sensibly — keep that width class

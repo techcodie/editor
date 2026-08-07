@@ -28,7 +28,7 @@ const DEFAULT_THEME: DocumentEditorTheme = {
     border: '#e5e5e5',
     borderStrong: '#d4d4d4',
     accent: '#4f46e5',
-    selection: 'rgba(79, 70, 229, 0.2)',
+    selection: 'rgba(79, 70, 229, 0.15)',
     hoverSurface: 'rgba(23, 23, 23, 0.04)',
     activeSurface: 'rgba(23, 23, 23, 0.07)',
     focusRing: 'rgba(79, 70, 229, 0.45)',
