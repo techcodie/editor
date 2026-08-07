@@ -111,6 +111,7 @@ import {
 } from '../CommandPalette/CommandPalette'
 import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary'
 import { PanelLoadingFallback } from '../ui/PanelLoadingFallback'
+import { ConfirmDialog } from '../ui/ConfirmDialog'
 import {
   EnterpriseToolbarControl,
   type EnterpriseEntry,
@@ -854,14 +855,19 @@ export function EditorWorkspace({
     setActivePanel(null)
   }, [])
 
+  const [isNewDocumentConfirmOpen, setIsNewDocumentConfirmOpen] = useState(false)
+
   // Purely in-memory — clears the current ProseMirror document through the
   // same Editor API replace used by Version History restore. No storage or
   // multi-document capability is added (both are intentionally deferred).
   const newDocument = useCallback(() => {
     if (!api) return
-    if (!window.confirm('Start a new document? Your current content will be cleared (Undo will restore it).')) {
-      return
-    }
+    setIsNewDocumentConfirmOpen(true)
+  }, [api])
+
+  const confirmNewDocument = useCallback(() => {
+    setIsNewDocumentConfirmOpen(false)
+    if (!api) return
     api.replaceDocumentSnapshot({ type: 'doc', content: [{ type: 'paragraph' }] })
     api.focus()
   }, [api])
@@ -1642,36 +1648,6 @@ export function EditorWorkspace({
               className="min-w-0 flex-1"
               trailingSections={[
                 {
-                  id: 'insert',
-                  label: 'Insert',
-                  content: (
-                    <>
-                      <ToolbarButton
-                        icon={Image}
-                        label={isAssetLibraryOpen ? 'Close image & stamp library' : 'Insert image'}
-                        isActive={isAssetLibraryOpen}
-                        disabled={!api}
-                        onClick={() => {
-                          if (isAssetLibraryOpen) closeAssetLibrary()
-                          else openAssetLibrary()
-                        }}
-                      />
-                      <TableToolbarControl api={api} />
-                      <ToolbarButton
-                        icon={SeparatorHorizontal}
-                        label="Page break"
-                        disabled={!api}
-                        onClick={() => api?.insertPageBreak()}
-                      />
-                    </>
-                  ),
-                },
-                ...(productivityRegistry && canUseAi ? [{
-                  id: 'dictation',
-                  label: 'Dictation',
-                  content: <DictationToolbarControl api={api} voice={voice} />,
-                }] : []),
-                {
                   id: 'file',
                   label: 'File',
                   content: (
@@ -1765,6 +1741,36 @@ export function EditorWorkspace({
                     />
                   ),
                 },
+                {
+                  id: 'insert',
+                  label: 'Insert',
+                  content: (
+                    <>
+                      <ToolbarButton
+                        icon={Image}
+                        label={isAssetLibraryOpen ? 'Close stamps & assets' : 'Stamps & assets'}
+                        isActive={isAssetLibraryOpen}
+                        disabled={!api}
+                        onClick={() => {
+                          if (isAssetLibraryOpen) closeAssetLibrary()
+                          else openAssetLibrary()
+                        }}
+                      />
+                      <TableToolbarControl api={api} />
+                      <ToolbarButton
+                        icon={SeparatorHorizontal}
+                        label="Page break"
+                        disabled={!api}
+                        onClick={() => api?.insertPageBreak()}
+                      />
+                    </>
+                  ),
+                },
+                ...(productivityRegistry && canUseAi ? [{
+                  id: 'dictation',
+                  label: 'Dictation',
+                  content: <DictationToolbarControl api={api} voice={voice} />,
+                }] : []),
                 ...(enterpriseEntries.length > 0 ? [{
                   id: 'enterprise',
                   label: 'Enterprise',
@@ -2406,6 +2412,14 @@ export function EditorWorkspace({
         onClose={() => setIsDocPropertiesOpen(false)}
         api={api}
         pagination={pagination}
+      />
+      <ConfirmDialog
+        isOpen={isNewDocumentConfirmOpen}
+        title="Start a new document?"
+        description="Your current content will be cleared. Undo will restore it."
+        confirmLabel="Start new document"
+        onConfirm={confirmNewDocument}
+        onCancel={() => setIsNewDocumentConfirmOpen(false)}
       />
       {config.collaboration && canRead && (
         <>

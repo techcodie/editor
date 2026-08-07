@@ -40,7 +40,7 @@ export function PageIndicator({ layout, pagination, onRemoveBreak }: PageIndicat
           </div>
         )
       })}
-      {pagination.breaks.map((pageBreak) => (
+      {pagination.breaks.filter((pageBreak) => pageBreak.manual).map((pageBreak) => (
         <PageBreakIndicator key={pageBreak.id} pageBreak={pageBreak} onRemove={onRemoveBreak} />
       ))}
       <span className="sticky top-[4.5rem] z-20 ml-auto mr-3 block w-fit rounded-md bg-white/85 px-2 py-1 text-[10px] font-semibold tabular-nums text-neutral-400 shadow-[0_1px_2px_rgba(20,20,20,0.06)] backdrop-blur">

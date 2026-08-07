@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Clock3, Download, LoaderCircle, Plus, Search } from 'lucide-react'
 import type { DocumentComparison } from '../../comparison/types/comparison'
 import type { EditorApi } from '../../lib/editor-api'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { PanelShell } from '../../components/ui/PanelShell'
 import { useHistory } from '../hooks/useHistory'
 import { createHistoryStorage } from '../services/historyStorage'
@@ -41,6 +42,7 @@ export function HistoryPanel({ isOpen, api, author, storageNamespace, onClose, o
   const [comparing, setComparing] = useState(false)
   const [restoreVersion, setRestoreVersion] = useState<Version | null>(null)
   const [restoreComparison, setRestoreComparison] = useState<DocumentComparison | null>(null)
+  const [deleteVersion, setDeleteVersion] = useState<Version | null>(null)
   const visible = useMemo(() => filterVersions(history.versions, query, filter, sort), [filter, history.versions, query, sort])
   const groups = useMemo(() => groupVersions(visible), [visible])
 
@@ -101,10 +103,19 @@ export function HistoryPanel({ isOpen, api, author, storageNamespace, onClose, o
             <div className="relative mt-3"><Search size={13} className="pointer-events-none absolute left-2.5 top-2.5 text-neutral-400" aria-hidden /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, author, reason…" aria-label="Search version history" className="h-8 w-full rounded-md border border-neutral-200 pl-8 pr-2.5 text-[10px] outline-none placeholder:text-neutral-400 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-500/15" /></div>
             <div className="mt-2 grid grid-cols-2 gap-2"><select value={filter} onChange={(event) => setFilter(event.target.value as HistoryFilter)} aria-label="Filter versions" className="h-8 rounded-md border border-neutral-200 bg-white px-2 text-[10px] text-neutral-600 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-500/15"><option value="all">All versions</option><option value="bookmarked">Bookmarks</option><option value="favorites">Favourites</option><option value="manual">Manual</option><option value="workflow">Workflow</option><option value="contract">Contract</option><option value="writing">Writing</option><option value="recovery">Recovery</option></select><select value={sort} onChange={(event) => setSort(event.target.value as HistorySort)} aria-label="Sort versions" className="h-8 rounded-md border border-neutral-200 bg-white px-2 text-[10px] text-neutral-600 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-500/15"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name">Name</option></select></div>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{!history.loaded ? <div className="flex h-48 items-center justify-center" role="status"><LoaderCircle size={18} className="animate-spin text-neutral-400" aria-hidden /><span className="sr-only">Loading version history</span></div> : comparing ? <div className="flex h-48 items-center justify-center gap-2 text-[10px] text-neutral-500" role="status"><LoaderCircle size={15} className="animate-spin" aria-hidden />Comparing versions</div> : <VersionTimeline groups={groups} selectedId={selectedId} busy={history.saving} onSelect={setSelectedId} onUpdate={(version, patch) => void history.update(version.id, patch)} onCompare={(version) => void showComparison(version)} onRestore={(version) => void previewRestore(version)} onExport={(version) => void history.exportVersion(version)} onDelete={(version) => { if (window.confirm(`Delete “${version.name}”? This cannot be undone.`)) void history.remove(version.id) }} />}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{!history.loaded ? <div className="flex h-48 items-center justify-center" role="status"><LoaderCircle size={18} className="animate-spin text-neutral-400" aria-hidden /><span className="sr-only">Loading version history</span></div> : comparing ? <div className="flex h-48 items-center justify-center gap-2 text-[10px] text-neutral-500" role="status"><LoaderCircle size={15} className="animate-spin" aria-hidden />Comparing versions</div> : <VersionTimeline groups={groups} selectedId={selectedId} busy={history.saving} onSelect={setSelectedId} onUpdate={(version, patch) => void history.update(version.id, patch)} onCompare={(version) => void showComparison(version)} onRestore={(version) => void previewRestore(version)} onExport={(version) => void history.exportVersion(version)} onDelete={(version) => setDeleteVersion(version)} />}</div>
         </div>
       )}
       {restoreVersion && <RestoreDialog version={restoreVersion} comparison={restoreComparison} busy={history.saving} onConfirm={() => void confirmRestore()} onCancel={() => { if (!history.saving) { setRestoreVersion(null); setRestoreComparison(null) } }} />}
+      <ConfirmDialog
+        isOpen={deleteVersion !== null}
+        title={`Delete "${deleteVersion?.name ?? ''}"?`}
+        description="This cannot be undone."
+        confirmLabel="Delete version"
+        tone="danger"
+        onConfirm={() => { if (deleteVersion) void history.remove(deleteVersion.id); setDeleteVersion(null) }}
+        onCancel={() => setDeleteVersion(null)}
+      />
     </PanelShell>
   )
 }

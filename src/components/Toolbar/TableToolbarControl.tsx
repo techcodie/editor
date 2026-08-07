@@ -20,12 +20,16 @@ export interface TableToolbarControlProps {
 }
 
 /**
- * The one "Table" entry point: inserting a brand new table, and every
- * row/column/header/merge edit for the table the caret is currently inside.
+ * The one "Table" entry point. Outside a table this shows a single obvious
+ * "Insert table" action — not the full row/column/header/merge command set,
+ * which means nothing yet and previously buried that one relevant action
+ * under ten disabled ones. Once the caret is inside a table, the same
+ * control switches to the full management list, right where those commands
+ * become actionable — mirroring the contextual "Table" menu convention in
+ * Word/Google Docs/Jodit rather than showing every command at all times.
  * `@tiptap/extension-table`'s TableKit already registers every one of these
  * commands (see src/extensions/index.ts) — this only adds the thin EditorApi
- * wrapper and menu. Edit items stay disabled outside a table instead of
- * hiding the whole control, so it's discoverable even before a table exists.
+ * wrapper and menu.
  */
 export function TableToolbarControl({ api, size = 'md' }: TableToolbarControlProps) {
   const inTable = api?.isTable() ?? false
@@ -37,81 +41,73 @@ export function TableToolbarControl({ api, size = 'md' }: TableToolbarControlPro
       size={size}
       disabled={!api}
       onCloseAutoFocus={() => api?.focus()}
-      items={[
-        {
-          id: 'table-insert',
-          icon: Grid3x3,
-          label: 'Insert table',
-          disabled: inTable,
-          onSelect: () => api?.insertTable(),
-        },
+      items={inTable ? [
         {
           id: 'table-row-above',
           icon: ArrowUpToLine,
           label: 'Insert row above',
-          disabled: !inTable,
           onSelect: () => api?.addRowBefore(),
         },
         {
           id: 'table-row-below',
           icon: ArrowDownToLine,
           label: 'Insert row below',
-          disabled: !inTable,
           onSelect: () => api?.addRowAfter(),
         },
         {
           id: 'table-delete-row',
           icon: Rows3,
           label: 'Delete row',
-          disabled: !inTable,
           onSelect: () => api?.deleteRow(),
         },
         {
           id: 'table-column-before',
           icon: ArrowLeftToLine,
           label: 'Insert column left',
-          disabled: !inTable,
           onSelect: () => api?.addColumnBefore(),
         },
         {
           id: 'table-column-after',
           icon: ArrowRightToLine,
           label: 'Insert column right',
-          disabled: !inTable,
           onSelect: () => api?.addColumnAfter(),
         },
         {
           id: 'table-delete-column',
           icon: Columns3,
           label: 'Delete column',
-          disabled: !inTable,
           onSelect: () => api?.deleteColumn(),
         },
         {
           id: 'table-merge-split',
           icon: Combine,
           label: 'Merge / split cells',
-          disabled: !inTable,
           onSelect: () => api?.mergeOrSplitCell(),
         },
         {
           id: 'table-header-row',
           label: 'Toggle header row',
-          disabled: !inTable,
+          separatorBefore: true,
           onSelect: () => api?.toggleHeaderRow(),
         },
         {
           id: 'table-header-column',
           label: 'Toggle header column',
-          disabled: !inTable,
           onSelect: () => api?.toggleHeaderColumn(),
         },
         {
           id: 'table-delete',
           icon: Trash2,
           label: 'Delete table',
-          disabled: !inTable,
+          separatorBefore: true,
           onSelect: () => api?.deleteTable(),
+        },
+      ] : [
+        {
+          id: 'table-insert',
+          icon: Grid3x3,
+          label: 'Insert table',
+          onSelect: () => api?.insertTable(),
         },
       ]}
     />

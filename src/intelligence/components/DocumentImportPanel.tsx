@@ -15,6 +15,7 @@ import {
 import type { PreparedKnowledgeSource } from '../../knowledge/types/source'
 import type { EditorApi } from '../../lib/editor-api'
 import { cn } from '../../lib/cn'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useDocumentImport } from '../hooks/useDocumentImport'
 import {
   DOCUMENT_INTELLIGENCE_ACCEPT,
@@ -157,11 +158,16 @@ export function DocumentImportPanel({
   // "Open" as a file-open action distinct from "Import" (insert): clears the
   // current document first, through the same Editor API `insert` already
   // uses — no new capability, just a different insertion target.
+  const [isOpenConfirmOpen, setIsOpenConfirmOpen] = useState(false)
+
   const openAsNewDocument = () => {
     if (!api || !model) return
-    if (!window.confirm('Replace the current document with this file? Your current content will be cleared (Undo will restore it).')) {
-      return
-    }
+    setIsOpenConfirmOpen(true)
+  }
+
+  const confirmOpenAsNewDocument = () => {
+    setIsOpenConfirmOpen(false)
+    if (!api || !model) return
     api.replaceDocumentSnapshot({ type: 'doc', content: [{ type: 'paragraph' }] })
     const didOpen = api.insertStructuredContent({
       target: 'cursor',
@@ -263,11 +269,19 @@ export function DocumentImportPanel({
                 <button type="button" disabled={!model.text.trim()} onClick={() => onSaveSource(toPreparedSource(file, model))} className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-[11px] font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"><BookOpen size={14} aria-hidden />Save as source</button>
               )}
               <button type="button" disabled={!api || !model.text.trim()} onClick={openAsNewDocument} className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-[11px] font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"><FolderOpen size={14} aria-hidden />Open as new document</button>
-              <button type="button" disabled={!api || !model.text.trim()} onClick={insert} className="inline-flex h-9 items-center gap-2 rounded-md bg-neutral-900 px-4 text-[11px] font-semibold text-white shadow-sm hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"><FileInput size={14} aria-hidden />Insert into editor</button>
+              <button type="button" disabled={!api || !model.text.trim()} onClick={insert} className="inline-flex h-9 items-center gap-2 rounded-md bg-neutral-900 px-4 text-[11px] font-semibold text-white shadow-sm hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"><FileInput size={14} aria-hidden />Insert into editor</button>
             </footer>
           </>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={isOpenConfirmOpen}
+        title="Replace the current document?"
+        description="Your current content will be cleared. Undo will restore it."
+        confirmLabel="Open document"
+        onConfirm={confirmOpenAsNewDocument}
+        onCancel={() => setIsOpenConfirmOpen(false)}
+      />
     </div>
   )
 }

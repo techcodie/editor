@@ -3,6 +3,7 @@ import { Archive, Check, Download, FileCheck2, LoaderCircle, MessageSquarePlus, 
 import type { EditorApi } from '../../lib/editor-api'
 import type { ContractAnalysis } from '../../contract/types/contract'
 import type { Comment, CommentAuthor } from '../../review/types/comment'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { PanelShell } from '../../components/ui/PanelShell'
 import { useWorkflow } from '../hooks/useWorkflow'
 import { serializeWorkflow } from '../services/workflowSerializer'
@@ -49,6 +50,7 @@ function downloadWorkflow(workflow: Workflow) {
 export function WorkflowPanel({ isOpen, api, author, namespace, unresolvedSuggestions, comments, onClose, onChange, contractAnalysis, canApprove = true, onAudit }: WorkflowPanelProps) {
   const [tab, setTab] = useState<PanelTab>('overview')
   const [dialog, setDialog] = useState<ApprovalDialogMode | null>(null)
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [newName, setNewName] = useState('Document approval')
   const workflowState = useWorkflow({ active: isOpen, api, namespace, author, unresolvedSuggestions, onChange, contractAnalysis, onAudit })
   const { workflow, currentStage, stageReviewers, loaded, saving, error, validation } = workflowState
@@ -85,7 +87,7 @@ export function WorkflowPanel({ isOpen, api, author, namespace, unresolvedSugges
             {workflow.status === 'archived' ? <button type="button" onClick={() => void workflowState.restore()} disabled={saving} className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md bg-neutral-900 text-[10px] font-semibold text-white hover:bg-neutral-800 disabled:opacity-40 dark:bg-white dark:text-neutral-950"><RotateCcw size={12} aria-hidden />Restore workflow</button> : <button type="button" onClick={() => setDialog('note')} disabled={saving} aria-label="Add workflow note" title="Add note" className="flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-950"><MessageSquarePlus size={12} aria-hidden /></button>}
             {['approved', 'rejected'].includes(workflow.status) && <button type="button" onClick={() => void workflowState.archive()} disabled={saving} className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-neutral-200 bg-white text-[10px] font-semibold text-neutral-600 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-300"><Archive size={12} aria-hidden />Archive</button>}
           </div>
-          <div className="mt-2 flex items-center justify-between gap-3"><div className="flex items-center gap-2">{currentStage && <span className="truncate text-[9px] text-neutral-500">Stage {workflow.currentStage + 1}: {currentStage.name}</span>}<StatusBadge status={workflow.status} /></div>{['draft', 'archived'].includes(workflow.status) && <button type="button" onClick={() => { if (window.confirm('Delete this local workflow and its audit timeline?')) void workflowState.remove() }} disabled={saving} className="text-[9px] font-medium text-neutral-400 hover:text-red-600">Delete</button>}</div>
+          <div className="mt-2 flex items-center justify-between gap-3"><div className="flex items-center gap-2">{currentStage && <span className="truncate text-[9px] text-neutral-500">Stage {workflow.currentStage + 1}: {currentStage.name}</span>}<StatusBadge status={workflow.status} /></div>{['draft', 'archived'].includes(workflow.status) && <button type="button" onClick={() => setIsDeleteConfirmOpen(true)} disabled={saving} className="text-[9px] font-medium text-neutral-400 hover:text-red-600">Delete</button>}</div>
         </div>
       ) : undefined}
     >
@@ -103,6 +105,15 @@ export function WorkflowPanel({ isOpen, api, author, namespace, unresolvedSugges
         </>
       )}
       {dialog && workflow && <ApprovalDialog mode={dialog} reviewers={stageReviewers} comments={comments} author={author} busy={saving} onSubmit={(value) => void submitDialog(value)} onCancel={() => { if (!saving) setDialog(null) }} />}
+      <ConfirmDialog
+        isOpen={isDeleteConfirmOpen}
+        title="Delete this workflow?"
+        description="This removes the local workflow and its audit timeline. This cannot be undone."
+        confirmLabel="Delete workflow"
+        tone="danger"
+        onConfirm={() => { setIsDeleteConfirmOpen(false); void workflowState.remove() }}
+        onCancel={() => setIsDeleteConfirmOpen(false)}
+      />
     </PanelShell>
   )
 }
