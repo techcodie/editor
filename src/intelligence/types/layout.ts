@@ -24,7 +24,14 @@ export interface LayoutBlock {
   text: string
   confidence: number
   boundingBox?: BoundingBox
-  headingLevel?: 1 | 2 | 3
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6
+  /**
+   * Pre-sanitized source HTML for this block, when the originating parser
+   * already produced real markup (DOCX/Markdown tables) instead of plain
+   * text. Editor insertion uses this verbatim instead of re-deriving markup
+   * from `text`.
+   */
+  html?: string
 }
 
 export interface LayoutSummary {

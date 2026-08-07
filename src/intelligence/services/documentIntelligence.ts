@@ -9,7 +9,7 @@ import type {
 } from '../types/documentModel'
 import type { LayoutBlock } from '../types/layout'
 import { classifyDocument, validateIntelligenceFile } from './documentClassifier'
-import { analyzeOCRLayout, analyzeTextLayout, summarizeLayout } from './layoutAnalyzer'
+import { analyzeHtmlLayout, analyzeOCRLayout, analyzeTextLayout, summarizeLayout } from './layoutAnalyzer'
 import { extractMetadata } from './metadataExtractor'
 import { buildSearchIndex } from './searchIndexer'
 
@@ -182,7 +182,12 @@ async function analyzeTextDocument(
 ): Promise<{ pages: DocumentPage[]; hints: Record<string, never> }> {
   const sourceType: KnowledgeSourceType = type === 'text' ? 'txt' : type
   const parsed = await parseKnowledgeSourceFile(file, sourceType)
-  const blocks = analyzeTextLayout(parsed.text, { pageNumber: 1 })
+  // DOCX and Markdown already produce real HTML (mammoth/marked); use it for
+  // accurate heading/table/list detection instead of re-guessing structure
+  // from plain text, which misclassifies short table cells as headings.
+  const blocks = parsed.html
+    ? analyzeHtmlLayout(parsed.html, { pageNumber: 1 })
+    : analyzeTextLayout(parsed.text, { pageNumber: 1 })
   return {
     pages: [{
       pageNumber: 1,
@@ -331,6 +336,7 @@ export function documentModelToEditorHtml(model: DocumentModel): string {
     .filter((block) => block.type !== 'image' && block.type !== 'header' && block.type !== 'footer')
     .map((block) => {
       const text = escapeHtml(block.text).replaceAll('\n', '<br>')
+      if (block.type === 'table' && block.html) return block.html
       if (block.type === 'heading') return `<h${block.headingLevel ?? 2}>${text}</h${block.headingLevel ?? 2}>`
       if (block.type === 'list') {
         const items = block.text

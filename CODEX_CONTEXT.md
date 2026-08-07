@@ -652,6 +652,14 @@ confidence and bounding boxes. The pipeline then classifies layout blocks,
 extracts available metadata, and creates a browser-memory token index and an
 AI-ready context string.
 
+DOCX and Markdown inputs classify layout directly from the parser's own
+sanitized HTML (mammoth/marked) instead of re-deriving structure from plain
+text: real `<h1>`-`<h6>` tags become headings at their true level, `<table>`
+markup is preserved verbatim and inserted as a native editor table, and
+`<ul>`/`<ol>` become list blocks. Plain text and OCR output, which carry no
+real markup, keep the existing heuristic classifier. PDF, TXT, and image/OCR
+inputs are unaffected.
+
 The framework-neutral `DocumentModel` owns pages, blocks, paragraphs, tables,
 images, metadata, recognized text, language, confidence, and search data. The
 responsive import workspace renders original, structure, and text views from

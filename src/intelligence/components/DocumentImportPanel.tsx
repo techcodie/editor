@@ -66,9 +66,9 @@ function OriginalPreview({ file }: { file: File }) {
   return (
     <section className="flex h-full items-center justify-center overflow-auto bg-neutral-100 p-4 sm:p-6" aria-label="Original document">
       {type === 'image' ? (
-        <img src={url} alt={`Original ${file.name}`} className="max-h-full max-w-full rounded-md bg-white object-contain shadow-lg" />
+        url && <img src={url} alt={`Original ${file.name}`} className="max-h-full max-w-full rounded-md bg-white object-contain shadow-lg" />
       ) : type === 'pdf' ? (
-        <iframe src={url} title={`Original ${file.name}`} className="h-full min-h-[30rem] w-full max-w-[54rem] rounded-md border border-neutral-200 bg-white shadow-sm" />
+        url && <iframe src={url} title={`Original ${file.name}`} className="h-full min-h-[30rem] w-full max-w-[54rem] rounded-md border border-neutral-200 bg-white shadow-sm" />
       ) : (
         <div className="max-w-sm rounded-lg border border-neutral-200 bg-white p-8 text-center shadow-sm">
           <FileText size={30} className="mx-auto text-neutral-400" aria-hidden />

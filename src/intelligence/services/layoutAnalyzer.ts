@@ -77,6 +77,116 @@ export function analyzeTextLayout(
   })
 }
 
+const HEADING_TAGS: Record<string, 1 | 2 | 3 | 4 | 5 | 6> = {
+  H1: 1,
+  H2: 2,
+  H3: 3,
+  H4: 4,
+  H5: 5,
+  H6: 6,
+}
+
+/**
+ * Builds layout blocks directly from a parser's own sanitized HTML (DOCX via
+ * mammoth, Markdown via marked) instead of re-guessing structure from plain
+ * text with {@link classifyBlock}. That heuristic is tuned for OCR output
+ * with no real markup to fall back on; applied to plain text extracted from
+ * a DOCX table it misclassifies every short cell ("Above", "Top left", ...)
+ * as a heading. Real tags are unambiguous, so this path is used whenever the
+ * parser already produced HTML.
+ */
+export function analyzeHtmlLayout(
+  html: string,
+  options: AnalyzeTextOptions,
+): LayoutBlock[] {
+  const container = document.createElement('div')
+  container.innerHTML = html
+  const pageWidth = options.pageWidth ?? 816
+  const pageHeight = options.pageHeight ?? 1056
+  const blocks: LayoutBlock[] = []
+
+  for (const element of Array.from(container.children)) {
+    const tag = element.tagName
+    const text = (element.textContent ?? '').replace(/\s+/g, ' ').trim()
+    if (!text && tag !== 'TABLE' && tag !== 'HR') continue
+
+    if (tag === 'TABLE') {
+      blocks.push({
+        id: crypto.randomUUID(),
+        pageNumber: options.pageNumber,
+        type: 'table',
+        text,
+        confidence: options.confidence ?? 100,
+        html: element.outerHTML,
+      })
+      continue
+    }
+
+    if (tag in HEADING_TAGS) {
+      blocks.push({
+        id: crypto.randomUUID(),
+        pageNumber: options.pageNumber,
+        type: 'heading',
+        text,
+        confidence: options.confidence ?? 100,
+        headingLevel: HEADING_TAGS[tag],
+      })
+      continue
+    }
+
+    if (tag === 'UL' || tag === 'OL') {
+      const items = Array.from(element.querySelectorAll('li'))
+        .map((item) => (item.textContent ?? '').trim())
+        .filter(Boolean)
+      blocks.push({
+        id: crypto.randomUUID(),
+        pageNumber: options.pageNumber,
+        type: 'list',
+        text: items.join('\n'),
+        confidence: options.confidence ?? 100,
+      })
+      continue
+    }
+
+    if (tag === 'BLOCKQUOTE') {
+      blocks.push({
+        id: crypto.randomUUID(),
+        pageNumber: options.pageNumber,
+        type: 'caption',
+        text,
+        confidence: options.confidence ?? 100,
+      })
+      continue
+    }
+
+    blocks.push({
+      id: crypto.randomUUID(),
+      pageNumber: options.pageNumber,
+      type: 'paragraph',
+      text,
+      confidence: options.confidence ?? 100,
+    })
+  }
+
+  if (blocks.length === 0) {
+    const text = (container.textContent ?? '').replace(/\s+/g, ' ').trim()
+    if (!text) return []
+    return [{
+      id: crypto.randomUUID(),
+      pageNumber: options.pageNumber,
+      type: 'paragraph',
+      text,
+      confidence: options.confidence ?? 100,
+      boundingBox: approximateBox(0, 1, pageWidth, pageHeight),
+    }]
+  }
+
+  return blocks.map((block, index) => ({
+    ...block,
+    boundingBox: block.boundingBox ?? approximateBox(index, blocks.length, pageWidth, pageHeight),
+  }))
+}
+
 export function analyzeOCRLayout(page: OCRPageResult): LayoutBlock[] {
   if (page.regions.length === 0) {
     return analyzeTextLayout(page.text, {
