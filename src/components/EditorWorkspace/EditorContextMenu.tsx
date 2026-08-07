@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import {
   Bold,
+  Copy,
   Italic,
   Underline,
   Strikethrough,
@@ -12,6 +13,7 @@ import {
   RemoveFormatting,
   Rows3,
   Columns3,
+  Scissors,
   Trash2,
   Undo2,
 } from 'lucide-react'
@@ -72,6 +74,15 @@ export function EditorContextMenu({ api, enabled, onComment, children }: EditorC
           <ContextMenuPrimitive.Item className={ITEM_CLASS} onSelect={() => api.redo()} disabled={!api.canRedo()}>
             <Redo2 size={15} strokeWidth={1.9} className="shrink-0 text-neutral-500" aria-hidden />
             Redo
+          </ContextMenuPrimitive.Item>
+          <ContextMenuPrimitive.Separator className={SEPARATOR_CLASS} />
+          <ContextMenuPrimitive.Item className={ITEM_CLASS} onSelect={() => document.execCommand('copy')} disabled={!hasSelection}>
+            <Copy size={15} strokeWidth={1.9} className="shrink-0 text-neutral-500" aria-hidden />
+            Copy
+          </ContextMenuPrimitive.Item>
+          <ContextMenuPrimitive.Item className={ITEM_CLASS} onSelect={() => document.execCommand('cut')} disabled={!hasSelection}>
+            <Scissors size={15} strokeWidth={1.9} className="shrink-0 text-neutral-500" aria-hidden />
+            Cut
           </ContextMenuPrimitive.Item>
           {onComment && (
             <>
