@@ -43,8 +43,8 @@ const CONTENT_CLASS =
   'z-50 w-fit overflow-hidden rounded-xl border border-neutral-200/80 bg-white p-3 ' +
   'shadow-[var(--document-editor-shadow-raised)] [animation:toolbar-tooltip-in_120ms_ease-out]'
 
-const GRID_MAX_ROWS = 8
-const GRID_MAX_COLS = 8
+const GRID_MAX_ROWS = 10
+const GRID_MAX_COLS = 10
 
 /** Jodit-style hover grid: hovering highlights up to that many rows/columns, click inserts them. */
 function TableGridPicker({ onInsert }: { onInsert: (rows: number, columns: number) => void }) {

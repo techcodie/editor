@@ -16,6 +16,7 @@ import {
   sendJsonError,
 } from './http.js'
 import { createAiRateLimiter } from './rate-limit.js'
+import { isAiProviderConfigured } from './providers/index.js'
 
 const MIME_TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
@@ -135,7 +136,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
     return
   }
   if (request.method === 'GET' && url.pathname === '/api/ready') {
-    const ready = Boolean(process.env.GROQ_API_KEY?.trim())
+    const ready = isAiProviderConfigured()
     sendJson(response, ready ? 200 : 503, {
       status: ready ? 'ready' : 'not_ready',
       provider: ready ? 'configured' : 'missing',

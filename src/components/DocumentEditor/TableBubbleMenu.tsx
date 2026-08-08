@@ -85,7 +85,12 @@ export function TableBubbleMenu({ editor, api }: TableBubbleMenuProps) {
       editor={editor}
       options={BUBBLE_MENU_OPTIONS}
       shouldShow={shouldShowTableBubbleMenu}
-      className="flex items-center gap-0.5 rounded-lg border border-neutral-200/80 bg-white p-1 shadow-[var(--document-editor-shadow-raised)]"
+      // z-20: BubbleMenu portals as an absolutely-positioned sibling with no
+      // z-index of its own, which left it stacked BELOW .tiptap's own
+      // content (z-index: 6 in editor.css) — the table itself painted over
+      // most of the floating toolbar instead of the toolbar appearing above
+      // it.
+      className="z-20 flex items-center gap-0.5 rounded-lg border border-neutral-200/80 bg-white p-1 shadow-[var(--document-editor-shadow-raised)]"
     >
       <BubbleButton icon={ArrowUpToLine} label="Insert row above" onClick={() => api?.addRowBefore()} />
       <BubbleButton icon={ArrowDownToLine} label="Insert row below" onClick={() => api?.addRowAfter()} />

@@ -5,6 +5,7 @@ import type {
   EditorApi,
   EditorAssetInsertion,
   EditorCommentInteraction,
+  EditorDictationUpdate,
   EditorDocumentChange,
   EditorDocumentNode,
   EditorStructuredInsertion,
@@ -16,6 +17,12 @@ import { updateFormField as applyFormFieldPatch } from '../forms/services/formEn
 import type { FormField, FormFieldDocumentEntry } from '../forms/types/field'
 import { resolvePageMetrics } from '../layout/services/pageMetrics'
 import { paginateBlocks } from '../layout/services/paginationEngine'
+import {
+  createPaginationOffsetPlugin,
+  paginationOffsetMapsEqual,
+  paginationOffsetPluginKey,
+  type PaginationOffsetMap,
+} from '../layout/editor/PaginationOffsetPlugin'
 import type { PageLayout } from '../layout/types/layout'
 import type { PaginationSnapshot } from '../layout/types/page'
 import {
@@ -32,20 +39,32 @@ import {
  */
 export function createEditorApi(editor: Editor): EditorApi {
   const REMOTE_DOCUMENT_META = 'techcodieCollaborationRemote'
+  // Marks a transaction as pagination's own internal decoration update so the
+  // transaction listener below doesn't treat it as new content to re-paginate
+  // — otherwise every pagination recompute would immediately reschedule
+  // another one, forever.
+  const PAGINATION_INTERNAL_META = 'techcodiePaginationInternal'
+  // Marks a transaction as dictation's own live-preview update so the
+  // conflict guard below doesn't mistake it for the user editing elsewhere
+  // and abandon the in-progress dictation range.
+  const DICTATION_INTERNAL_META = 'techcodieDictationInternal'
+  let dictationRange: { from: number; to: number } | null = null
   const trackChangesStorage = (
     editor.storage as unknown as { trackChange: TrackChangesStorage }
   ).trackChange
+  // Guarded so re-invoking createEditorApi() for the same live editor
+  // instance (e.g. React StrictMode's double-invoke of the useMemo this is
+  // built in) doesn't try to register a second plugin under the same key,
+  // which ProseMirror rejects outright.
+  if (!paginationOffsetPluginKey.getState(editor.state)) {
+    editor.registerPlugin(createPaginationOffsetPlugin())
+  }
   let pageLayout: PageLayout | null = null
   let paginationFrame: number | null = null
   let paginationTimeout: ReturnType<typeof setTimeout> | null = null
   let paginationScheduledAt: number | null = null
   let editableBeforePreview = editor.isEditable
   let resizeObserver: ResizeObserver | null = null
-  let trailingPaginationTimeout: ReturnType<typeof setTimeout> | null = null
-  // Backoff schedule for the self-healing re-checks described where they're
-  // scheduled below — covers a few seconds of possible settling time without
-  // being unbounded.
-  const TRAILING_CHECK_DELAYS = [300, 600, 1000, 1600, 2500]
   const paginationListeners = new Set<(snapshot: PaginationSnapshot) => void>()
   const documentChangeListeners = new Set<(change: EditorDocumentChange) => void>()
   let paginationSnapshot: PaginationSnapshot = {
@@ -82,32 +101,39 @@ export function createEditorApi(editor: Editor): EditorApi {
     return breaks
   }
 
+  const clearPaginationOffsets = () => {
+    if (paginationOffsetPluginKey.getState(editor.state)?.offsets.size) {
+      editor.view.dispatch(
+        editor.state.tr
+          .setMeta(paginationOffsetPluginKey, new Map())
+          .setMeta('addToHistory', false)
+          .setMeta(PAGINATION_INTERNAL_META, true),
+      )
+    }
+  }
+
   const resetPaginationStyles = () => {
     const surface = getPageSurface()
-    if (!surface) return
-    delete surface.dataset.pageLayout
-    surface.style.removeProperty('--page-width')
-    surface.style.removeProperty('--page-height')
-    surface.style.removeProperty('--page-gap')
-    surface.style.removeProperty('--page-margin-top')
-    surface.style.removeProperty('--page-margin-right')
-    surface.style.removeProperty('--page-margin-bottom')
-    surface.style.removeProperty('--page-margin-left')
-    surface.style.removeProperty('--content-height')
-    surface.style.removeProperty('min-height')
-    for (const child of editor.view.dom.children) {
-      if (!(child instanceof HTMLElement)) continue
-      if (child.style.marginTop) child.style.removeProperty('margin-top')
-      if (child.dataset.pageBreakBefore) delete child.dataset.pageBreakBefore
-      if (child.dataset.paginationOffset) delete child.dataset.paginationOffset
+    if (surface) {
+      delete surface.dataset.pageLayout
+      surface.style.removeProperty('--page-width')
+      surface.style.removeProperty('--page-height')
+      surface.style.removeProperty('--page-gap')
+      surface.style.removeProperty('--page-margin-top')
+      surface.style.removeProperty('--page-margin-right')
+      surface.style.removeProperty('--page-margin-bottom')
+      surface.style.removeProperty('--page-margin-left')
+      surface.style.removeProperty('--content-height')
+      surface.style.removeProperty('min-height')
     }
+    clearPaginationOffsets()
   }
 
   const notifyPagination = () => {
     for (const listener of paginationListeners) listener(paginationSnapshot)
   }
 
-  const applyPagination = (trailingCheckIndex = 0) => {
+  const applyPagination = () => {
     paginationFrame = null
     const surface = getPageSurface()
     if (!surface || !pageLayout) {
@@ -148,28 +174,39 @@ export function createEditorApi(editor: Editor): EditorApi {
     // below catch up. Not used as the primary pagination mechanism.
     surface.style.setProperty('--content-height', `${contentHeight}px`)
 
-    // Measuring `top`/`marginTop` never writes to the live DOM here — the
-    // previously-applied pagination offset (tracked separately in a data
-    // attribute) is subtracted back out in memory instead. Earlier this
-    // cleared every block's inline margin before every remeasure, which
-    // means EVERY block in the document was mutated on every keystroke even
-    // when nothing about it changed. Mutating the ProseMirror-owned DOM
-    // while the browser's contentEditable caret is mid-composition can
-    // desync the browser's own caret bookkeeping from ProseMirror's, which
-    // was silently corrupting and truncating text while typing near a page
-    // boundary. Only writing when a value actually changes (below) avoids
-    // touching nodes that don't need it.
+    // `top` is rebuilt as a pure running sum of each block's own natural
+    // margin and height — deliberately NOT read from `child.offsetTop`.
+    // offsetTop reflects live cascaded document flow: a margin-top pushed
+    // onto an earlier block also shifts every later sibling's offsetTop
+    // down by that same amount (normal CSS box flow), and that shift is
+    // indistinguishable from "natural" position once baked into offsetTop.
+    // paginateBlocks() already re-adds its own accumulated offset on top of
+    // whatever `top` values it's given, so feeding it offsetTop-derived
+    // values that already contain earlier pages' pushes double-counts every
+    // earlier push on the second and subsequent recompute — each pass
+    // compounding the error further. A single paste can trigger more than
+    // one recompute in quick succession (observed: 2+ for one large paste),
+    // so this wasn't just a rapid-typing edge case. Only each block's own
+    // currently-applied push still needs recovering (from the offset
+    // plugin's in-memory state, not the DOM — see PaginationOffsetPlugin.ts)
+    // to back out its natural CSS margin; its position never does.
+    const currentOffsets = paginationOffsetPluginKey.getState(editor.state)?.offsets ?? new Map()
+    let naturalTop = 0
     const blocks = [...editor.view.dom.children].flatMap((child) => {
       if (!(child instanceof HTMLElement)) return []
-      const appliedOffset = Number.parseFloat(child.dataset.paginationOffset ?? '0') || 0
-      const baseMarginTop = (Number.parseFloat(getComputedStyle(child).marginTop) || 0) - appliedOffset
-      return [{
-        element: child,
-        position: editor.view.posAtDOM(child, 0),
-        top: child.offsetTop - appliedOffset,
-        height: child.getBoundingClientRect().height,
-        baseMarginTop,
-      }]
+      // posAtDOM(child, 0) resolves to the position just INSIDE the block
+      // (its content start), one past the block node's own start position —
+      // the same convention doc.descendants() uses for manual page breaks,
+      // and the one PaginationOffsetPlugin's doc.nodeAt(position) needs to
+      // resolve back to the block node itself rather than whatever sits at
+      // its first content offset.
+      const position = editor.view.posAtDOM(child, 0) - 1
+      const appliedPush = currentOffsets.get(position)?.pushPx ?? 0
+      const baseMarginTop = (Number.parseFloat(getComputedStyle(child).marginTop) || 0) - appliedPush
+      const height = child.getBoundingClientRect().height
+      const top = naturalTop + baseMarginTop
+      naturalTop = top + height
+      return [{ element: child, position, top, height, baseMarginTop }]
     })
     const result = paginateBlocks({
       blocks,
@@ -180,28 +217,26 @@ export function createEditorApi(editor: Editor): EditorApi {
       pageGap,
     })
 
-    const offsetBlocks = new Set<HTMLElement>()
+    // Applied as ProseMirror decorations (see PaginationOffsetPlugin.ts)
+    // rather than direct DOM writes, so the push is never silently dropped by
+    // a ProseMirror-initiated redraw that happens outside this function.
+    const nextOffsets: PaginationOffsetMap = new Map()
     for (const offset of result.offsets) {
       const block = blocks.find((item) => item.position === offset.position)
       if (!block) continue
-      offsetBlocks.add(block.element)
-      const nextMarginTop = `${block.baseMarginTop + offset.offset}px`
-      if (block.element.style.marginTop !== nextMarginTop) {
-        block.element.style.marginTop = nextMarginTop
-      }
-      const nextPageBreakBefore = offset.manualBreakId ? 'manual' : 'automatic'
-      if (block.element.dataset.pageBreakBefore !== nextPageBreakBefore) {
-        block.element.dataset.pageBreakBefore = nextPageBreakBefore
-      }
-      if (block.element.dataset.paginationOffset !== String(offset.offset)) {
-        block.element.dataset.paginationOffset = String(offset.offset)
-      }
+      nextOffsets.set(offset.position, {
+        pushPx: offset.offset,
+        marginTopPx: block.baseMarginTop + offset.offset,
+        pageBreakBefore: offset.manualBreakId ? 'manual' : 'automatic',
+      })
     }
-    for (const block of blocks) {
-      if (offsetBlocks.has(block.element)) continue
-      if (block.element.style.marginTop) block.element.style.removeProperty('margin-top')
-      if (block.element.dataset.pageBreakBefore) delete block.element.dataset.pageBreakBefore
-      if (block.element.dataset.paginationOffset) delete block.element.dataset.paginationOffset
+    if (!paginationOffsetMapsEqual(currentOffsets, nextOffsets)) {
+      editor.view.dispatch(
+        editor.state.tr
+          .setMeta(paginationOffsetPluginKey, nextOffsets)
+          .setMeta('addToHistory', false)
+          .setMeta(PAGINATION_INTERNAL_META, true),
+      )
     }
     const surfaceHeight =
       result.pages.length * pageHeight + Math.max(0, result.pages.length - 1) * pageGap
@@ -221,27 +256,6 @@ export function createEditorApi(editor: Editor): EditorApi {
       pageGap,
     }
     notifyPagination()
-
-    // Block-level DOM nodes are occasionally replaced by something outside
-    // the transaction system shortly after an edit (observed even for plain
-    // typing, not specific to large pastes) — pagination's freshly-applied
-    // margin-top/offset is lost along with the old node, since it's only
-    // re-scheduled from ProseMirror transactions. A fixed, bounded series of
-    // trailing re-checks (below) catches whatever state exists once that
-    // settles, without needing to detect or explain the churn itself.
-    // `trailingCheckIndex` only ever counts up through TRAILING_CHECK_DELAYS
-    // and each step schedules at most one more — never re-armed by anything
-    // else — so this cannot chain into an unbounded, self-sustaining loop on
-    // an otherwise idle document.
-    if (trailingCheckIndex < TRAILING_CHECK_DELAYS.length) {
-      const delay = TRAILING_CHECK_DELAYS[trailingCheckIndex]
-      if (trailingPaginationTimeout !== null) clearTimeout(trailingPaginationTimeout)
-      trailingPaginationTimeout = setTimeout(() => {
-        trailingPaginationTimeout = null
-        if (paginationFrame !== null) cancelAnimationFrame(paginationFrame)
-        paginationFrame = requestAnimationFrame(() => applyPagination(trailingCheckIndex + 1))
-      }, delay)
-    }
   }
 
   const schedulePagination = () => {
@@ -257,15 +271,12 @@ export function createEditorApi(editor: Editor): EditorApi {
     // per keystroke — pagination still updates well within human-perceptible
     // time, it just no longer fights every keystroke for the same frame.
     //
-    // Bounded by a max wait: block-level DOM nodes are occasionally replaced
-    // by something outside the transaction system in a sustained burst (seen
-    // after large pastes) — schedulePagination is also called on every such
-    // mutation (see the MutationObserver in setPageLayout) so pagination
-    // self-heals, but a burst denser than 120ms apart would otherwise defer
-    // the debounce forever and pagination would never actually run. Forcing
-    // a run once 500ms have passed since the first request in the current
-    // burst guarantees it still gets applied periodically during churn, not
-    // just once churn fully stops.
+    // Bounded by a max wait: a sustained burst of transactions denser than
+    // 120ms apart (rapid typing, a large paste settling) would otherwise
+    // defer the debounce forever. Forcing a run once 500ms have passed since
+    // the first request in the current burst guarantees pagination still
+    // gets applied periodically during a long burst, not just once it fully
+    // stops.
     const now = Date.now()
     if (paginationScheduledAt === null) paginationScheduledAt = now
     const overdue = now - paginationScheduledAt >= 500
@@ -279,6 +290,16 @@ export function createEditorApi(editor: Editor): EditorApi {
   }
 
   editor.on('transaction', ({ transaction }) => {
+    if (transaction.getMeta(PAGINATION_INTERNAL_META)) return
+    if (
+      dictationRange !== null &&
+      !transaction.getMeta(DICTATION_INTERNAL_META) &&
+      (transaction.docChanged || transaction.selectionSet)
+    ) {
+      const { from, to } = transaction.selection
+      const staysInRange = from >= dictationRange.from && to <= dictationRange.to
+      if (!staysInRange) dictationRange = null
+    }
     if (pageLayout) schedulePagination()
     if (transaction.docChanged || transaction.selectionSet) {
       const change: EditorDocumentChange = {
@@ -293,7 +314,7 @@ export function createEditorApi(editor: Editor): EditorApi {
     resizeObserver?.disconnect()
     if (paginationFrame !== null) cancelAnimationFrame(paginationFrame)
     if (paginationTimeout !== null) clearTimeout(paginationTimeout)
-    if (trailingPaginationTimeout !== null) clearTimeout(trailingPaginationTimeout)
+    editor.unregisterPlugin(paginationOffsetPluginKey)
   })
   const insertStructuredContent = ({
     target,
@@ -331,6 +352,57 @@ export function createEditorApi(editor: Editor): EditorApi {
       .insertContentAt(position, content, { updateSelection: true })
       .scrollIntoView()
       .run()
+  }
+
+  const updateDictation = ({ text, isFinal, target, selection }: EditorDictationUpdate): boolean => {
+    if (dictationRange === null) {
+      if (target === 'selection') {
+        if (!selection) return false
+        const currentText = editor.state.doc.textBetween(selection.from, selection.to, '\n')
+        if (currentText !== selection.text) return false
+        dictationRange = { from: selection.from, to: selection.to }
+      } else if (target === 'end') {
+        const isEmptyParagraph =
+          editor.state.doc.childCount === 1 &&
+          editor.state.doc.firstChild?.type.name === 'paragraph' &&
+          editor.state.doc.firstChild.content.size === 0
+        const end = editor.state.doc.content.size
+        dictationRange = isEmptyParagraph ? { from: 0, to: end } : { from: end, to: end }
+      } else {
+        const head = editor.state.selection.head
+        dictationRange = { from: head, to: head }
+      }
+    }
+
+    const { from, to } = dictationRange
+    const tagInternal = ({ tr }: { tr: typeof editor.state.tr }) => {
+      tr.setMeta(DICTATION_INTERNAL_META, true)
+      return true
+    }
+    // A plain, normal (fully undoable) transaction either way — no
+    // addToHistory suppression. ProseMirror's own history plugin groups
+    // transactions dispatched within its default newGroupDelay into one
+    // undo step, the same mechanism that makes fast typing a single undo —
+    // that's what keeps a whole rapid utterance to one undo, not a custom
+    // scheme layered on top of it. An earlier attempt at live dictation used
+    // addToHistory:false for interim ticks and corrupted undo history: the
+    // very first tick's replacement of the pre-dictation content was itself
+    // marked non-undoable, so undo could never restore it.
+    const didRun = text
+      ? editor.chain().focus().command(tagInternal)
+          .insertContentAt({ from, to }, { type: 'text', text })
+          .run()
+      : editor.chain().focus().command(tagInternal)
+          .deleteRange({ from, to })
+          .run()
+
+    if (!didRun) {
+      if (isFinal) dictationRange = null
+      return false
+    }
+
+    dictationRange = isFinal ? null : { from, to: editor.state.selection.to }
+    return true
   }
 
   const insertAsset = (
@@ -847,13 +919,14 @@ export function createEditorApi(editor: Editor): EditorApi {
       .setContent(snapshot, { emitUpdate: true, errorOnInvalidContent: true })
       .run(),
     insertStructuredContent,
+    updateDictation,
     insertAsset,
     insertTable: (rows = 3, columns = 3) => editor
       .chain()
       .focus()
       .insertTable({
-        rows: Math.min(8, Math.max(1, Math.round(rows))),
-        cols: Math.min(8, Math.max(1, Math.round(columns))),
+        rows: Math.min(10, Math.max(1, Math.round(rows))),
+        cols: Math.min(10, Math.max(1, Math.round(columns))),
         withHeaderRow: true,
       })
       .run(),

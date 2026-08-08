@@ -14,7 +14,7 @@ Reference Node API on Render
         |
         | server-side API key
         v
-GroqCloud
+OpenAI (default) or GroqCloud (AI_PROVIDER=groq)
 ```
 
 The editor, pagination, OCR, semantic index, knowledge-source parsing, review,
@@ -25,7 +25,7 @@ business rules remain responsibilities of the host application.
 
 ## Trust Boundaries
 
-- The browser never receives `GROQ_API_KEY`.
+- The browser never receives `OPENAI_API_KEY` or `GROQ_API_KEY`.
 - AI requests accept JSON only, enforce body and field limits, and are cancelled
   when the client disconnects.
 - The API uses exact-origin CORS when `CORS_ORIGINS` is configured, bounded

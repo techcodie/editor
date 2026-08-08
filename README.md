@@ -37,7 +37,8 @@ export function Editor() {
 The SDK sends AI requests to `/api/ask-document` and `/api/selection-ai` by
 default. The host application owns those endpoints, authentication, storage,
 uploads, business logic, and provider credentials. The included Node server is
-a reference Groq integration for local development.
+a reference integration for local development, backed by OpenAI by default
+(set `AI_PROVIDER=groq` to use GroqCloud instead).
 
 ## Controller API
 

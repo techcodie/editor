@@ -10,7 +10,12 @@ Host applications may instead provide their own AI endpoints through
 | Variable | Scope | Required | Purpose | Development | Production |
 | --- | --- | --- | --- | --- | --- |
 | `VITE_API_BASE_URL` | Frontend build | Only for a separate API origin | Absolute origin used by the repository app for all five AI endpoints | Empty for the Vite proxy | Render API origin, such as `https://techcodie-editor-api.onrender.com` |
-| `GROQ_API_KEY` | Server secret | Required for AI | Authenticates server-side Groq requests | A development project key | A separate production project key |
+| `AI_PROVIDER` | Server | Optional | Selects the active AI provider: `openai` (default) or `groq` | `openai` | `openai` unless the deployment specifically wants Groq |
+| `OPENAI_API_KEY` | Server secret | Required when `AI_PROVIDER=openai` (default) | Authenticates server-side OpenAI requests | A development project key | A separate production project key |
+| `OPENAI_MODEL` | Server | Optional | OpenAI production model ID — `gpt-4.1`, `gpt-4o`, or `gpt-4o-mini` | `gpt-4o-mini` | `gpt-4o-mini` unless quality requirements justify `gpt-4o` or `gpt-4.1` |
+| `OPENAI_API_URL` | Server | Optional | OpenAI-compatible HTTPS chat-completions endpoint | Official OpenAI endpoint | Official OpenAI endpoint; custom values must use HTTPS |
+| `OPENAI_TIMEOUT_MS` | Server | Optional | Cancels stalled provider streams | `30000` | `30000`, allowed range 1,000-120,000 ms |
+| `GROQ_API_KEY` | Server secret | Required only when `AI_PROVIDER=groq` | Authenticates server-side Groq requests | A development project key | A separate production project key |
 | `GROQ_MODEL` | Server | Optional | Groq production model ID | `llama-3.1-8b-instant` | `llama-3.1-8b-instant` unless quality requirements justify another production model |
 | `GROQ_API_URL` | Server | Optional | Groq-compatible HTTPS chat-completions endpoint | Official Groq endpoint | Official Groq endpoint; custom values must use HTTPS |
 | `GROQ_TIMEOUT_MS` | Server | Optional | Cancels stalled provider streams | `30000` | `30000`, allowed range 1,000-120,000 ms |
@@ -25,11 +30,11 @@ Host applications may instead provide their own AI endpoints through
 
 ## Secret Rules
 
-- Never prefix `GROQ_API_KEY` with `VITE_`; Vite variables are embedded in the
-  browser bundle.
+- Never prefix `OPENAI_API_KEY` or `GROQ_API_KEY` with `VITE_`; Vite variables
+  are embedded in the browser bundle.
 - Store production secrets in Render's Environment settings, not in `.env`,
   source control, screenshots, or frontend code.
-- Use separate Groq projects and keys for development and production.
+- Use separate provider projects and keys for development and production.
 - Rotate the production key periodically and immediately after suspected
   exposure.
 - `identity.token` is supplied at runtime by the host application and is not an
@@ -39,7 +44,7 @@ Host applications may instead provide their own AI endpoints through
 
 ```sh
 cp .env.example .env
-# Add GROQ_API_KEY to .env
+# Add OPENAI_API_KEY to .env (or set AI_PROVIDER=groq and add GROQ_API_KEY)
 npm ci
 npm run dev
 ```

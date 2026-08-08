@@ -34,7 +34,11 @@ export function AssetGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-2.5 min-[390px]:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+    // Two columns fit this popup's fixed ~400px width regardless of the
+    // browser's own viewport size — no viewport-width breakpoint applies
+    // here, since the popup's rendered width never changes with it (see
+    // AssetLibrary.tsx's note on the sidebar for the same reasoning).
+    <div className="grid grid-cols-2 gap-2.5">
       {assets.map((asset) => (
         <AssetCard
           key={asset.id}

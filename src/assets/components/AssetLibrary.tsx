@@ -72,9 +72,12 @@ export function AssetLibrary({
       <div className="shrink-0 px-3 pt-3">
         <AssetSearch value={query} onChange={setQuery} />
       </div>
-      {/* Below the `lg` breakpoint AssetSidebar already renders as a
-          horizontal scrollable row — this popup never reaches `lg` width,
-          so it always uses that mode, no extra wrapper needed. */}
+      {/* AssetSidebar always renders as a horizontal scrollable row of
+          category pills — Tailwind's `lg:` variants are keyed to the
+          browser viewport, not this popup's own ~400px width, so a
+          viewport-responsive vertical/horizontal switch would still show
+          the cramped vertical sidebar on any desktop-width screen even
+          though the popup itself is always small. */}
       <AssetSidebar
         activeSection={activeSection}
         favoriteCount={favoriteIds.size}

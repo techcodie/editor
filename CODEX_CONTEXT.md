@@ -175,7 +175,7 @@ Ask Document UI / Selection AI UI / Compliance Engine / Contract Intelligence
         Node API Endpoint
                 |
                 v
-          Groq Provider
+        AI Provider (OpenAI default, Groq alternate)
 ```
 
 The four current AI workflows are:
@@ -189,7 +189,12 @@ The four current AI workflows are:
   playbook gaps, and current document content for optional summary refinement.
 
 All four workflows use the shared streaming transport and return server-sent events.
-The Groq API key remains server-only.
+The reference server picks its AI provider through `server/providers/index.ts`:
+OpenAI by default, or Groq when `AI_PROVIDER=groq` is set. Both are
+OpenAI-compatible chat-completions APIs, so `server/providers/shared.ts` holds
+one streaming/SSE-parsing implementation and `openai.ts`/`groq.ts` are thin
+per-provider config (API key/URL/model/timeout env vars, default model). The
+active provider's API key remains server-only in both cases.
 
 ### Productivity Provider Flow
 
@@ -266,8 +271,9 @@ stopped.
 Ask Document builds a structured request through the Knowledge Context Builder.
 The frontend sends document text, ordered active sources, conversation, and the
 question as separate fields. Only the backend prompt builder formats those
-fields for Groq. The backend emits response metadata before content, including
-the configured model, stable source descriptors, and context size.
+fields for the active AI provider. The backend emits response metadata before
+content, including the configured model, stable source descriptors, and
+context size.
 
 Past a character threshold, the Knowledge Context Builder no longer sends the
 full current document text — it splits the document into heading/paragraph
@@ -282,7 +288,7 @@ Below the threshold, the full document is still sent, unchanged.
 Ask Document voice input is a browser-only input method. The native Web Speech
 API converts microphone speech into editable text before the existing Ask
 Document request flow begins. Voice input never submits a question
-automatically and does not change the backend or Groq integration.
+automatically and does not change the backend or its AI provider integration.
 
 ### Knowledge Source Preview Flow
 
@@ -317,7 +323,7 @@ Current Document + Active Parsed Sources
         Backend Prompt Builder
                     |
                     v
-                  Groq
+              AI Provider
 ```
 
 The Current Document is always active. Uploaded sources are included only when
@@ -508,8 +514,25 @@ editor. Paper size, orientation, margins, headers, footers, and page numbers
 remain instance-local layout state. The pure pagination engine consumes
 measured top-level editor blocks and returns page geometry, visual offsets,
 and navigation metadata. Automatic pagination is purely visual — it never
-adds nodes to or otherwise rewrites document content, only writes CSS offset
-styling onto existing block elements.
+adds nodes to or otherwise rewrites document content, only applies a
+per-block margin-top push.
+
+That push is applied as a ProseMirror decoration
+(`src/layout/editor/PaginationOffsetPlugin.ts`) rather than a direct DOM
+write. It was originally `create-editor-api.ts` writing
+`element.style.marginTop` straight onto the live block element; that write
+was silently lost whenever ProseMirror redrew the block for any reason
+outside its own transaction system — including its own recovery from DOM
+mutations it didn't originate, such as the browser's native spellcheck
+touching contenteditable content after a typing pause. Decorations are
+recomputed by ProseMirror from this plugin's state on every redraw
+regardless of what triggered it, so the push can't be silently dropped.
+Independently, the wrapper reconstructs each block's natural (unpushed) flow
+position as a running sum of prior blocks' own height and margin rather than
+reading the live, already-pushed `offsetTop` — CSS margin cascades forward
+through normal block flow, so reading a later block's position back off the
+DOM after an earlier block was pushed would double-count that push on the
+next recompute.
 
 Manual page breaks are a real (visually minimal, near-zero-height) document
 node — `pageBreak`, `src/layout/editor/PageBreakNode.ts` — rather than
@@ -733,7 +756,7 @@ low, medium, high, or critical document risk.
 
 Results are cached by document fingerprint and analysis reruns incrementally
 while the panel is active. The existing streaming transport and server-only
-Groq provider may enrich the highest-priority findings with grounded proposed
+AI provider may enrich the highest-priority findings with grounded proposed
 text through `/api/compliance-analysis`; local analysis remains complete when
 AI is unavailable. The panel never modifies content automatically. Explicit
 actions locate content through the Editor API, create existing review comments,
@@ -973,6 +996,10 @@ The Editor API also owns structured insertion at the current cursor, a validated
 selection, or the document end. Each insertion uses one native history
 transaction so one Undo restores the previous document.
 
+The Editor API also owns live dictation streaming (`updateDictation`) — see
+the Enterprise AI Productivity Platform capability below for the undo-safety
+reasoning behind its design.
+
 The Editor API also owns generic asset insertion. Asset Library components send
 framework-neutral asset payloads and never access Tiptap directly. Productivity
 tools reuse this boundary for generated-image insertion and replacement, real
@@ -1033,7 +1060,8 @@ SDKs.
   editor content.
 - Supports native browser speech-to-text with live transcription, manual stop,
   editable results, permission and error feedback, and no automatic submission.
-- Streams responses from the backend through Groq.
+- Streams responses from the backend through the active AI provider (OpenAI
+  by default, Groq as an alternate).
 
 ### Selection AI
 
@@ -1056,8 +1084,26 @@ SDKs.
   writing-quality analysis behind a public `GrammarProvider` contract.
 - Sends grammar findings to existing Review comments or pending Track Changes;
   no suggestion is applied automatically.
-- Supports browser dictation at the cursor, over a captured selection, or at
-  the document end, with pause, resume, cancel, and native undo.
+- Streams browser dictation live into the document at the cursor, over a
+  captured selection, or at the document end — interim (not-yet-final)
+  recognition results appear immediately and are replaced in place as
+  recognition revises its guess, then replaced again by the final transcript,
+  the same live-captioning feel as Google Docs voice typing. `EditorApi.
+  updateDictation({ text, isFinal, target, selection })` tracks one
+  in-progress range and replaces its content on every call; every call is a
+  normal, undoable transaction, and ProseMirror's own history grouping (not a
+  custom `addToHistory` suppression scheme) is what keeps a whole rapid
+  utterance to one undo step, the same mechanism that makes fast typing a
+  single undo. An earlier implementation suppressed history on interim
+  ticks specifically to avoid one-undo-per-tick granularity, which instead
+  corrupted undo: the very first tick's replacement of the pre-dictation
+  content was itself marked non-undoable, so undo could never restore it.
+  If the user's own selection moves outside the tracked range (typing
+  elsewhere mid-utterance), the range is abandoned rather than corrupted —
+  the next dictation tick starts a fresh range at the then-current cursor.
+  Recognized voice commands discard their own live preview text before
+  running, so a phrase like "new paragraph" never leaves literal words
+  behind. Supports pause, resume, and cancel.
 - Recognizes explicit bold, italic, undo, redo, heading, list, table, and new
   paragraph voice commands through the Editor API.
 - Parses speaker-labeled transcripts and supports rename, merge, split, global
@@ -1628,7 +1674,7 @@ terms, scores advisory risks, and prepares a local summary. Hosts may provide a
 configuration-only `contractPlaybook` for required, forbidden, custom, and
 recommended-language checks. No legal requirements are built into the SDK.
 
-Optional Groq refinement uses `DocumentEditorAiConfig.contractEndpoint` and the
+Optional AI refinement uses `DocumentEditorAiConfig.contractEndpoint` and the
 shared streaming transport. Invalid or unavailable AI output falls back to the
 deterministic local summary. Analysis is cancellable, fingerprint-cached,
 incrementally refreshed while its panel is active, and retained in bounded
@@ -1663,7 +1709,7 @@ e-signatures, billing, and matter management remain intentionally deferred.
 - Radix UI
 - Lucide Icons
 - Node.js backend
-- Groq API
+- OpenAI API (default provider), GroqCloud API (alternate)
 - Native Web Speech API
 - PDF.js
 - Mammoth
@@ -1687,7 +1733,7 @@ digital documents do not load the OCR runtime.
 
 ```text
 server/
-  providers/             Groq provider integration
+  providers/             AI provider integrations (OpenAI default, Groq alternate)
   ai-response.ts         Shared AI streaming response handling
   ask-document.ts        Ask Document endpoint
   selection-ai.ts        Selection AI endpoint
@@ -1877,7 +1923,7 @@ Completed:
 - Active and disabled toolbar states
 - Markdown shortcuts
 - Ask Document UI
-- Groq-backed Ask Document streaming
+- AI-provider-backed Ask Document streaming (OpenAI default, Groq alternate)
 - Shared frontend and backend AI streaming transport
 - Selection AI toolbar and all eight selection actions
 - Selection AI preview, copy, retry, cancellation, and explicit replacement
@@ -2045,7 +2091,7 @@ Completed:
   duplicates, placeholders, dates, terms, references, signatures, and readability
 - Confidence-weighted 0-100 document quality score and low-to-critical risk level
 - Fingerprint-cached local reports with incremental reanalysis while active
-- Optional Groq-backed recommendation enrichment through the shared AI transport
+- Optional AI-provider-backed recommendation enrichment through the shared AI transport
 - Explicit compliance handoffs to comments, pending tracked suggestions, and
   grounded Ask Document questions
 - Standalone advisory compliance report export
@@ -2136,7 +2182,7 @@ Completed:
 - Configuration-only contract playbooks for required, forbidden, custom, and
   recommended-language checks without bundled legal requirements
 - Confidence-scored advisory risk findings and overall contract risk score with
-  deterministic local summaries and optional Groq summary refinement
+  deterministic local summaries and optional AI-provider summary refinement
 - Fingerprint-cached analysis, debounced active-panel updates, bounded local
   analysis history, previous-result comparison, and explicit cancellation
 - Semantic Search and Knowledge Graph indexing for contract clauses,

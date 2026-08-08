@@ -18,7 +18,7 @@ import {
   requireJson,
 } from './http.js'
 import { buildDocumentQuestionPrompt, ASK_DOCUMENT_SYSTEM_PROMPT } from './prompts.js'
-import { getGroqModel } from './providers/groq.js'
+import { getAiModel } from './providers/index.js'
 
 const MAX_DOCUMENT_CHARS = 80_000
 const MAX_KNOWLEDGE_SOURCE_CHARS = 120_000
@@ -196,7 +196,7 @@ export async function handleAskDocument(
       },
       abortController.signal,
       {
-        model: getGroqModel(),
+        model: getAiModel(),
         sources: getResponseSources(body.activeKnowledgeSources),
         contextSize:
           body.currentDocument.length +

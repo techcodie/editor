@@ -39,16 +39,46 @@ export function useVoiceCommands(api: EditorApi | null, provider: VoiceProvider)
     return didRun
   }, [addActivity, api])
 
+  const dictationTarget = () =>
+    modeRef.current === 'end' ? 'end' : modeRef.current === 'selection' ? 'selection' : 'cursor'
+
+  const clearDictationPreview = useCallback(() => {
+    const target = dictationTarget()
+    api?.updateDictation({
+      text: '',
+      isFinal: true,
+      target,
+      selection: target === 'selection' ? selectionRef.current ?? undefined : undefined,
+    })
+  }, [api])
+
+  const previewTranscript = useCallback((interimTranscript: string) => {
+    if (!api) return
+    const target = dictationTarget()
+    api.updateDictation({
+      text: interimTranscript,
+      isFinal: false,
+      target,
+      selection: target === 'selection' ? selectionRef.current ?? undefined : undefined,
+    })
+  }, [api])
+
   const insertTranscript = useCallback((transcript: string) => {
     if (!api || !transcript.trim()) return false
     const command = matchVoiceCommand(transcript)
-    if (command) return runCommand(command.id)
-    const target = modeRef.current === 'end' ? 'end' : modeRef.current === 'selection' ? 'selection' : 'cursor'
-    const didInsert = api.insertStructuredContent({
+    const target = dictationTarget()
+    if (command) {
+      // The live preview already streamed the raw words into the document
+      // as they were recognized — this turned out to be a command instead
+      // of literal text, so discard that preview before running it.
+      clearDictationPreview()
+      return runCommand(command.id)
+    }
+    const didInsert = api.updateDictation({
+      text: transcript.trim(),
+      isFinal: true,
       target,
-      content: transcript.trim(),
       selection: target === 'selection' ? selectionRef.current ?? undefined : undefined,
-      provenance: { responseId: `voice-${crypto.randomUUID()}`, sourceIds: [], timestamp: Date.now() },
     })
     if (didInsert) {
       addActivity(history('dictation', 'Dictation inserted', transcript.trim().slice(0, 100)))
@@ -56,7 +86,7 @@ export function useVoiceCommands(api: EditorApi | null, provider: VoiceProvider)
       if (target === 'selection') setMode('cursor')
     }
     return didInsert
-  }, [addActivity, api, runCommand])
+  }, [addActivity, api, clearDictationPreview, runCommand])
 
   const stop = useCallback(() => {
     sessionRef.current?.stop()
@@ -68,7 +98,12 @@ export function useVoiceCommands(api: EditorApi | null, provider: VoiceProvider)
     sessionRef.current = null
     setStatus('idle')
     setInterimTranscript('')
-  }, [])
+    // Cancelling mid-utterance means no final result will ever arrive to
+    // close out whatever the live preview already streamed into the
+    // document — discard it explicitly rather than leaving unconfirmed
+    // words behind. A no-op if no preview was open.
+    clearDictationPreview()
+  }, [clearDictationPreview])
 
   useEffect(() => cancel, [cancel])
 
@@ -79,7 +114,10 @@ export function useVoiceCommands(api: EditorApi | null, provider: VoiceProvider)
     const session = provider.createSession({
       onUpdate: (update) => {
         setInterimTranscript(update.interimTranscript)
-        if (!update.isFinal || !update.transcript) return
+        if (!update.isFinal || !update.transcript) {
+          previewTranscript(update.interimTranscript)
+          return
+        }
         setLastTranscript(update.transcript)
         setInterimTranscript('')
         insertTranscript(update.transcript)
@@ -91,12 +129,19 @@ export function useVoiceCommands(api: EditorApi | null, provider: VoiceProvider)
       },
       onStatusChange: (next) => {
         setStatus(next)
-        if (next === 'idle') sessionRef.current = null
+        if (next === 'idle') {
+          sessionRef.current = null
+          // Catch-all: if the session ended for any reason without a final
+          // result closing out the last preview (e.g. the browser stopped
+          // recognition mid-word), don't leave unconfirmed words behind.
+          // A no-op once a final result already closed it normally.
+          clearDictationPreview()
+        }
       },
     })
     sessionRef.current = session
     session.start()
-  }, [api, insertTranscript, provider])
+  }, [api, clearDictationPreview, insertTranscript, previewTranscript, provider])
 
   const pause = useCallback(() => {
     sessionRef.current?.pause()

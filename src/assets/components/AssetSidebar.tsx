@@ -64,7 +64,7 @@ function SidebarButton({
       aria-label={label}
       aria-pressed={isActive}
       className={cn(
-        'flex h-9 w-full shrink-0 items-center gap-2 rounded-md px-2.5 text-left text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]',
+        'flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-2.5 text-left text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]',
         isActive
           ? 'bg-neutral-900 text-white'
           : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950',
@@ -88,11 +88,10 @@ export function AssetSidebar({
   onSelect,
 }: AssetSidebarProps) {
   return (
-    <nav aria-label="Asset categories" className="flex gap-1 overflow-x-auto border-b border-neutral-200 px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:w-40 lg:flex-col lg:overflow-visible lg:border-b-0 lg:border-r lg:px-2.5 lg:py-3">
+    <nav aria-label="Asset categories" className="flex shrink-0 gap-1 overflow-x-auto border-b border-neutral-200 px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <SidebarButton id="all" label="All assets" icon={ClipboardCheck} activeSection={activeSection} onSelect={onSelect} />
       <SidebarButton id="favorites" label="Favorites" icon={Heart} count={favoriteCount} activeSection={activeSection} onSelect={onSelect} />
       <SidebarButton id="recent" label="Recent" icon={Clock3} count={recentCount} activeSection={activeSection} onSelect={onSelect} />
-      <div className="mx-1 my-1 hidden h-px bg-neutral-200 lg:block" />
       {ASSET_CATEGORIES.map((category) => (
         <SidebarButton
           key={category.id}

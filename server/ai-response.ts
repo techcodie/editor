@@ -2,10 +2,10 @@ import type { ServerResponse } from 'node:http'
 import type { AiStreamEvent } from '../shared/ai.js'
 import type { AskDocumentResponseMetadata } from '../shared/ask-document.js'
 import {
-  GroqProviderError,
-  streamGroqCompletion,
-  type GroqChatMessage,
-} from './providers/groq.js'
+  ProviderError,
+  streamAiCompletion,
+  type ChatMessage,
+} from './providers/index.js'
 import { sendJsonError } from './http.js'
 
 interface AiResponseMessages {
@@ -21,7 +21,7 @@ function sendEvent(response: ServerResponse, event: AiStreamEvent): void {
 }
 
 function getProviderError(
-  error: GroqProviderError,
+  error: ProviderError,
   messages: AiResponseMessages,
 ): { status: number; message: string } {
   switch (error.kind) {
@@ -38,16 +38,16 @@ function getProviderError(
 
 export async function sendAiResponse(
   response: ServerResponse,
-  messages: GroqChatMessage[],
+  messages: ChatMessage[],
   errorMessages: AiResponseMessages,
   signal: AbortSignal,
   metadata?: AskDocumentResponseMetadata,
 ): Promise<void> {
   try {
-    const stream = streamGroqCompletion(messages, signal)
+    const stream = streamAiCompletion(messages, signal)
     const first = await stream.next()
     if (first.done || !first.value) {
-      throw new GroqProviderError('invalid_response', 'Groq returned an empty response.')
+      throw new ProviderError('invalid_response', 'The AI provider returned an empty response.')
     }
 
     response.writeHead(200, {
@@ -70,11 +70,11 @@ export async function sendAiResponse(
     if (signal.aborted) return
 
     const providerError =
-      error instanceof GroqProviderError
+      error instanceof ProviderError
         ? getProviderError(error, errorMessages)
         : { status: 500, message: errorMessages.unexpected }
 
-    if (!(error instanceof GroqProviderError)) {
+    if (!(error instanceof ProviderError)) {
       console.error('AI response stream failed', error)
     }
 

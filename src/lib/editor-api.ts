@@ -38,6 +38,13 @@ export interface EditorStructuredInsertion {
   selection?: EditorTextSelection
 }
 
+export interface EditorDictationUpdate {
+  text: string
+  isFinal: boolean
+  target: EditorInsertionTarget
+  selection?: EditorTextSelection
+}
+
 export interface EditorAssetInsertion {
   assetId: string
   type: string
@@ -185,6 +192,21 @@ export interface EditorApi {
     options?: ReplaceDocumentSnapshotOptions,
   ): boolean
   insertStructuredContent(insertion: EditorStructuredInsertion): boolean
+  /**
+   * Live speech-to-text streaming: replaces a tracked in-progress dictation
+   * range with `text` on every call. The first call after the previous
+   * utterance closed (or on first use) establishes the range at `target`;
+   * later calls for the same utterance keep replacing that same range as
+   * recognition revises its guess. `isFinal: true` commits the text and
+   * closes the range so the next call starts a fresh utterance. Pass
+   * `text: ''` with `isFinal: true` to discard an in-progress preview
+   * without inserting anything (e.g. when the utterance turned out to be a
+   * voice command instead of literal text). Every call is a normal,
+   * undoable transaction — ProseMirror's own history grouping (not a
+   * custom addToHistory suppression scheme) is what keeps a whole rapid
+   * utterance to one undo step, the same way fast typing does.
+   */
+  updateDictation(update: EditorDictationUpdate): boolean
   insertAsset(asset: EditorAssetInsertion, target?: EditorInsertionTarget): boolean
   insertTable(rows?: number, columns?: number): boolean
   insertParagraph(): boolean
