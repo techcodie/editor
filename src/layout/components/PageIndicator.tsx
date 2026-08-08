@@ -90,39 +90,49 @@ export function PageIndicator({ layout, pagination, onRemoveBreak }: PageIndicat
   const currentPage = scrollVisiblePage ?? pagination.currentPage
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-10" aria-label="Page layout indicators">
-      {pagination.pages.map((page) => {
-        const showNumber = layout.pageNumber.enabled && !(layout.pageNumber.hideFirstPage && page.index === 0)
-        return (
-          <div key={page.id}>
-            <PageScrollSentinel pageId={page.id} top={page.top} height={page.height} onRegister={registerSentinel} />
-            <div
-              className={`absolute left-[var(--page-margin-left)] right-[var(--page-margin-right)] truncate text-[10px] text-neutral-400 ${alignedClass(layout.header.alignment)}`}
-              style={{ top: page.top + 12 }}
-            >
-              {layout.header.enabled ? layout.header.text : ''}
-              {showNumber && layout.pageNumber.position === 'top' && (
-                <span className={`block ${alignedClass(layout.pageNumber.alignment)}`}>{page.number}</span>
-              )}
+    <>
+      {/* Independent paper sheets, rendered behind the editable content
+          (z-index 1 vs. .tiptap's z-index 6) — a purely decorative layout
+          layer, never part of the document DOM. */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        {pagination.pages.map((page) => (
+          <div key={page.id} className="document-page-card" style={{ top: page.top, height: page.height }} />
+        ))}
+      </div>
+      <div className="pointer-events-none absolute inset-0 z-10" aria-label="Page layout indicators">
+        {pagination.pages.map((page) => {
+          const showNumber = layout.pageNumber.enabled && !(layout.pageNumber.hideFirstPage && page.index === 0)
+          return (
+            <div key={page.id}>
+              <PageScrollSentinel pageId={page.id} top={page.top} height={page.height} onRegister={registerSentinel} />
+              <div
+                className={`absolute left-[var(--page-margin-left)] right-[var(--page-margin-right)] truncate text-[10px] text-neutral-400 ${alignedClass(layout.header.alignment)}`}
+                style={{ top: page.top + 12 }}
+              >
+                {layout.header.enabled ? layout.header.text : ''}
+                {showNumber && layout.pageNumber.position === 'top' && (
+                  <span className={`block ${alignedClass(layout.pageNumber.alignment)}`}>{page.number}</span>
+                )}
+              </div>
+              <div
+                className={`absolute left-[var(--page-margin-left)] right-[var(--page-margin-right)] truncate text-[10px] text-neutral-400 ${alignedClass(layout.footer.alignment)}`}
+                style={{ top: page.top + page.height - 24 }}
+              >
+                {layout.footer.enabled ? layout.footer.text.replace('{page}', String(page.number)) : ''}
+                {showNumber && layout.pageNumber.position === 'bottom' && (
+                  <span className={`block ${alignedClass(layout.pageNumber.alignment)}`}>{page.number}</span>
+                )}
+              </div>
             </div>
-            <div
-              className={`absolute left-[var(--page-margin-left)] right-[var(--page-margin-right)] truncate text-[10px] text-neutral-400 ${alignedClass(layout.footer.alignment)}`}
-              style={{ top: page.top + page.height - 24 }}
-            >
-              {layout.footer.enabled ? layout.footer.text.replace('{page}', String(page.number)) : ''}
-              {showNumber && layout.pageNumber.position === 'bottom' && (
-                <span className={`block ${alignedClass(layout.pageNumber.alignment)}`}>{page.number}</span>
-              )}
-            </div>
-          </div>
-        )
-      })}
-      {pagination.breaks.filter((pageBreak) => pageBreak.manual).map((pageBreak) => (
-        <PageBreakIndicator key={pageBreak.id} pageBreak={pageBreak} onRemove={onRemoveBreak} />
-      ))}
-      <span className="sticky top-[4.5rem] z-20 ml-auto mr-3 block w-fit rounded-md bg-white/85 px-2 py-1 text-[10px] font-semibold tabular-nums text-neutral-400 shadow-[0_1px_2px_rgba(20,20,20,0.06)] backdrop-blur">
-        Page {currentPage} of {pagination.pages.length}
-      </span>
-    </div>
+          )
+        })}
+        {pagination.breaks.filter((pageBreak) => pageBreak.manual).map((pageBreak) => (
+          <PageBreakIndicator key={pageBreak.id} pageBreak={pageBreak} onRemove={onRemoveBreak} />
+        ))}
+        <span className="sticky top-[4.5rem] z-20 ml-auto mr-3 block w-fit rounded-md bg-white/85 px-2 py-1 text-[10px] font-semibold tabular-nums text-neutral-400 shadow-[0_1px_2px_rgba(20,20,20,0.06)] backdrop-blur">
+          Page {currentPage} of {pagination.pages.length}
+        </span>
+      </div>
+    </>
   )
 }

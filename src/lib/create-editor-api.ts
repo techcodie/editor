@@ -38,8 +38,14 @@ export function createEditorApi(editor: Editor): EditorApi {
   let pageLayout: PageLayout | null = null
   let paginationFrame: number | null = null
   let paginationTimeout: ReturnType<typeof setTimeout> | null = null
+  let paginationScheduledAt: number | null = null
   let editableBeforePreview = editor.isEditable
   let resizeObserver: ResizeObserver | null = null
+  let trailingPaginationTimeout: ReturnType<typeof setTimeout> | null = null
+  // Backoff schedule for the self-healing re-checks described where they're
+  // scheduled below — covers a few seconds of possible settling time without
+  // being unbounded.
+  const TRAILING_CHECK_DELAYS = [300, 600, 1000, 1600, 2500]
   const paginationListeners = new Set<(snapshot: PaginationSnapshot) => void>()
   const documentChangeListeners = new Set<(change: EditorDocumentChange) => void>()
   let paginationSnapshot: PaginationSnapshot = {
@@ -101,7 +107,7 @@ export function createEditorApi(editor: Editor): EditorApi {
     for (const listener of paginationListeners) listener(paginationSnapshot)
   }
 
-  const applyPagination = () => {
+  const applyPagination = (trailingCheckIndex = 0) => {
     paginationFrame = null
     const surface = getPageSurface()
     if (!surface || !pageLayout) {
@@ -123,7 +129,10 @@ export function createEditorApi(editor: Editor): EditorApi {
     const marginBottom = metrics.marginBottom * scale
     const marginLeft = metrics.marginLeft * scale
     const contentHeight = metrics.contentHeight * scale
-    const pageGap = scale < 0.7 ? 12 : scale < 0.9 ? 18 : 24
+    // Real visible spacing between independent page cards (see PageIndicator.tsx's
+    // page-card layer) — 40-60px at full scale, tapering down at smaller zoom
+    // levels so the gap doesn't dominate a shrunk page.
+    const pageGap = scale < 0.7 ? 32 : scale < 0.9 ? 44 : 56
 
     surface.style.setProperty('--page-height', `${pageHeight}px`)
     surface.style.setProperty('--page-gap', `${pageGap}px`)
@@ -131,8 +140,12 @@ export function createEditorApi(editor: Editor): EditorApi {
     surface.style.setProperty('--page-margin-right', `${marginRight}px`)
     surface.style.setProperty('--page-margin-bottom', `${marginBottom}px`)
     surface.style.setProperty('--page-margin-left', `${marginLeft}px`)
-    // Used by editor.css to mask .tiptap content to each page's content band,
-    // so a block that doesn't fit no longer visually bleeds into the gap.
+    // Defense in depth for editor.css's fallback mask on .tiptap: the
+    // per-block margin-top push below is the real, primary mechanism (see
+    // paginateBlocks()) — this only guards the case where a block's DOM node
+    // gets replaced by something outside pagination's own writes shortly
+    // after an edit, discarding its push before the self-healing re-checks
+    // below catch up. Not used as the primary pagination mechanism.
     surface.style.setProperty('--content-height', `${contentHeight}px`)
 
     // Measuring `top`/`marginTop` never writes to the live DOM here — the
@@ -190,7 +203,6 @@ export function createEditorApi(editor: Editor): EditorApi {
       if (block.element.dataset.pageBreakBefore) delete block.element.dataset.pageBreakBefore
       if (block.element.dataset.paginationOffset) delete block.element.dataset.paginationOffset
     }
-
     const surfaceHeight =
       result.pages.length * pageHeight + Math.max(0, result.pages.length - 1) * pageGap
     surface.style.minHeight = `${surfaceHeight}px`
@@ -209,6 +221,27 @@ export function createEditorApi(editor: Editor): EditorApi {
       pageGap,
     }
     notifyPagination()
+
+    // Block-level DOM nodes are occasionally replaced by something outside
+    // the transaction system shortly after an edit (observed even for plain
+    // typing, not specific to large pastes) — pagination's freshly-applied
+    // margin-top/offset is lost along with the old node, since it's only
+    // re-scheduled from ProseMirror transactions. A fixed, bounded series of
+    // trailing re-checks (below) catches whatever state exists once that
+    // settles, without needing to detect or explain the churn itself.
+    // `trailingCheckIndex` only ever counts up through TRAILING_CHECK_DELAYS
+    // and each step schedules at most one more — never re-armed by anything
+    // else — so this cannot chain into an unbounded, self-sustaining loop on
+    // an otherwise idle document.
+    if (trailingCheckIndex < TRAILING_CHECK_DELAYS.length) {
+      const delay = TRAILING_CHECK_DELAYS[trailingCheckIndex]
+      if (trailingPaginationTimeout !== null) clearTimeout(trailingPaginationTimeout)
+      trailingPaginationTimeout = setTimeout(() => {
+        trailingPaginationTimeout = null
+        if (paginationFrame !== null) cancelAnimationFrame(paginationFrame)
+        paginationFrame = requestAnimationFrame(() => applyPagination(trailingCheckIndex + 1))
+      }, delay)
+    }
   }
 
   const schedulePagination = () => {
@@ -223,12 +256,26 @@ export function createEditorApi(editor: Editor): EditorApi {
     // typing burst schedules exactly one recompute after it pauses, not one
     // per keystroke — pagination still updates well within human-perceptible
     // time, it just no longer fights every keystroke for the same frame.
+    //
+    // Bounded by a max wait: block-level DOM nodes are occasionally replaced
+    // by something outside the transaction system in a sustained burst (seen
+    // after large pastes) — schedulePagination is also called on every such
+    // mutation (see the MutationObserver in setPageLayout) so pagination
+    // self-heals, but a burst denser than 120ms apart would otherwise defer
+    // the debounce forever and pagination would never actually run. Forcing
+    // a run once 500ms have passed since the first request in the current
+    // burst guarantees it still gets applied periodically during churn, not
+    // just once churn fully stops.
+    const now = Date.now()
+    if (paginationScheduledAt === null) paginationScheduledAt = now
+    const overdue = now - paginationScheduledAt >= 500
     if (paginationTimeout !== null) clearTimeout(paginationTimeout)
     paginationTimeout = setTimeout(() => {
       paginationTimeout = null
+      paginationScheduledAt = null
       if (paginationFrame !== null) cancelAnimationFrame(paginationFrame)
-      paginationFrame = requestAnimationFrame(applyPagination)
-    }, 120)
+      paginationFrame = requestAnimationFrame(() => applyPagination())
+    }, overdue ? 0 : 120)
   }
 
   editor.on('transaction', ({ transaction }) => {
@@ -246,6 +293,7 @@ export function createEditorApi(editor: Editor): EditorApi {
     resizeObserver?.disconnect()
     if (paginationFrame !== null) cancelAnimationFrame(paginationFrame)
     if (paginationTimeout !== null) clearTimeout(paginationTimeout)
+    if (trailingPaginationTimeout !== null) clearTimeout(trailingPaginationTimeout)
   })
   const insertStructuredContent = ({
     target,

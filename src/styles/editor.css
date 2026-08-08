@@ -350,17 +350,9 @@
   overflow: visible;
   border: 0;
   border-radius: 0;
-  background-color: transparent;
-  background-image: linear-gradient(
-    to bottom,
-    #fff 0,
-    #fff var(--page-height),
-    transparent var(--page-height),
-    transparent calc(var(--page-height) + var(--page-gap))
-  );
-  background-size: 100% calc(var(--page-height) + var(--page-gap));
-  filter: drop-shadow(0 2px 8px rgba(20, 20, 20, 0.12));
+  background: none;
   box-shadow: none;
+  filter: none;
 }
 
 .document-page-surface[data-page-layout='enabled']:focus-within {
@@ -375,14 +367,15 @@
   min-height: calc(
     var(--page-height) - var(--page-margin-top) - var(--page-margin-bottom)
   );
-  /* Content still flows through one continuous editable region (see
-     applyPagination() in create-editor-api.ts) — this mask hides whatever
-     portion of a block falls in the gap between pages, so a paragraph,
-     image, or table row that doesn't fit reads as cut off at the page edge
-     instead of visually bleeding into the next page's gap. Uses the same
-     --page-gap/--page-margin-* values the background gradient above is
-     aligned to, offset by --content-height since .tiptap's own coordinate
-     origin already sits inside the surface's padding box. */
+  /* Fallback only — the real, primary mechanism for "content never crosses
+     a page" is the per-block margin-top push in applyPagination()
+     (create-editor-api.ts), which is what makes a block actually start on
+     the next page's card. This mask is defense in depth for the case where
+     that push is momentarily lost (a block's DOM node gets replaced by
+     something outside pagination's own transaction-triggered writes) before
+     the self-healing re-check catches up — so the failure mode is content
+     invisibly clipped at the page edge for a moment, not visibly bled across
+     the gap into the next page's card. */
   -webkit-mask-image: repeating-linear-gradient(
     to bottom,
     black 0,
@@ -397,6 +390,28 @@
     transparent var(--content-height),
     transparent calc(var(--content-height) + var(--page-margin-top) + var(--page-margin-bottom) + var(--page-gap))
   );
+}
+
+/* Independent paper sheet rendered behind the (single, continuous)
+   editable content for each page — see PageIndicator.tsx, which positions
+   one of these per pagination.pages entry using the same page.top/height
+   geometry the header/footer overlays already use. Deliberately not inside
+   .tiptap: automatic page boundaries are a layout-layer concern, never
+   editor-content DOM. Content that overflows one page's card simply
+   continues onto the next page's card sitting right below it — real flow,
+   not a clipped/masked illusion. */
+.document-page-card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  background-color: #fff;
+  border: 1px solid rgba(20, 20, 20, 0.08);
+  border-radius: var(--document-editor-radius-lg, 0.5rem);
+  box-shadow:
+    0 1px 1px rgba(20, 20, 20, 0.03),
+    0 1px 3px rgba(20, 20, 20, 0.05),
+    0 28px 56px -28px rgba(20, 20, 20, 0.22);
 }
 
 .reader-document-surface {
