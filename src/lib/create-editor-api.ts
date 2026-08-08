@@ -39,7 +39,6 @@ export function createEditorApi(editor: Editor): EditorApi {
   let paginationFrame: number | null = null
   let paginationTimeout: ReturnType<typeof setTimeout> | null = null
   let editableBeforePreview = editor.isEditable
-  let manualPageBreaks: { id: string; position: number }[] = []
   let resizeObserver: ResizeObserver | null = null
   const paginationListeners = new Set<(snapshot: PaginationSnapshot) => void>()
   const documentChangeListeners = new Set<(change: EditorDocumentChange) => void>()
@@ -62,6 +61,20 @@ export function createEditorApi(editor: Editor): EditorApi {
 
   const getPageSurface = () =>
     editor.view.dom.closest<HTMLElement>('[data-document-page-surface]')
+
+  // Manual breaks live as real `pageBreak` nodes in the document rather than
+  // separately-tracked state, so their positions are always read fresh from
+  // the current doc — no remapping through transactions needed, and
+  // insert/remove naturally participate in undo/redo.
+  const getManualPageBreaks = (): { id: string; position: number }[] => {
+    const breaks: { id: string; position: number }[] = []
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === 'pageBreak') {
+        breaks.push({ id: (node.attrs.id as string | null) ?? '', position: pos })
+      }
+    })
+    return breaks
+  }
 
   const resetPaginationStyles = () => {
     const surface = getPageSurface()
@@ -143,7 +156,7 @@ export function createEditorApi(editor: Editor): EditorApi {
     })
     const result = paginateBlocks({
       blocks,
-      manualBreaks: [...manualPageBreaks].sort((left, right) => left.position - right.position),
+      manualBreaks: getManualPageBreaks().sort((left, right) => left.position - right.position),
       pageHeight,
       contentHeight,
       marginTop,
@@ -215,12 +228,6 @@ export function createEditorApi(editor: Editor): EditorApi {
   }
 
   editor.on('transaction', ({ transaction }) => {
-    if (transaction.docChanged && manualPageBreaks.length > 0) {
-      manualPageBreaks = manualPageBreaks.map((pageBreak) => ({
-        ...pageBreak,
-        position: transaction.mapping.map(pageBreak.position, 1),
-      }))
-    }
     if (pageLayout) schedulePagination()
     if (transaction.docChanged || transaction.selectionSet) {
       const change: EditorDocumentChange = {
@@ -1010,19 +1017,29 @@ export function createEditorApi(editor: Editor): EditorApi {
       const position = nextBlock instanceof HTMLElement
         ? editor.view.posAtDOM(nextBlock, 0)
         : selectionPosition
-      if (manualPageBreaks.some((pageBreak) => Math.abs(pageBreak.position - position) <= 1)) {
+      if (getManualPageBreaks().some((pageBreak) => Math.abs(pageBreak.position - position) <= 1)) {
         return false
       }
-      manualPageBreaks.push({ id: crypto.randomUUID(), position })
-      schedulePagination()
-      return true
+      const inserted = editor
+        .chain()
+        .focus()
+        .insertContentAt(position, { type: 'pageBreak', attrs: { id: crypto.randomUUID() } })
+        .run()
+      if (inserted) schedulePagination()
+      return inserted
     },
     removePageBreak: (pageBreakId) => {
-      const next = manualPageBreaks.filter((pageBreak) => pageBreak.id !== pageBreakId)
-      if (next.length === manualPageBreaks.length) return false
-      manualPageBreaks = next
-      schedulePagination()
-      return true
+      const target = getManualPageBreaks().find((pageBreak) => pageBreak.id === pageBreakId)
+      if (!target) return false
+      const node = editor.state.doc.nodeAt(target.position)
+      if (!node) return false
+      const removed = editor
+        .chain()
+        .focus()
+        .deleteRange({ from: target.position, to: target.position + node.nodeSize })
+        .run()
+      if (removed) schedulePagination()
+      return removed
     },
     setPrintPreviewMode: (enabled) => {
       if (enabled) {

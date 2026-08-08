@@ -12,7 +12,6 @@ import { FontFamilyDropdown } from './FontFamilyDropdown'
 import { FontSizeDropdown } from './FontSizeDropdown'
 import { TextColorDropdown } from './TextColorDropdown'
 import { HighlightColorDropdown } from './HighlightColorDropdown'
-import { LinkToolbarControl } from './LinkToolbarControl'
 import { TOOLBAR_SECTIONS } from './toolbar.config'
 
 const NOOP_SUBSCRIBE = () => () => {}
@@ -33,7 +32,9 @@ export interface ToolbarProps {
   /** Size applied to every button. */
   size?: ToolbarButtonSize
   className?: string
-  /** Labelled groups of feature/workspace controls appended after formatting (Insert, Document, Review, AI, ...). */
+  /** Labelled groups rendered before the formatting sections (File). */
+  leadingSections?: ToolbarTrailingSection[]
+  /** Labelled groups of feature/workspace controls appended after formatting (Insert, Review, AI, Tools, ...). */
   trailingSections?: ToolbarTrailingSection[]
 }
 
@@ -63,6 +64,7 @@ function ToolbarComponent({
   sticky = false,
   size = 'md',
   className,
+  leadingSections,
   trailingSections,
 }: ToolbarProps) {
   // Re-render on every editor change so active/disabled states stay in sync —
@@ -71,17 +73,24 @@ function ToolbarComponent({
 
   return (
     // Kept for the feature-specific *ToolbarControl components composed into
-    // trailingSections that still use raw @radix-ui/react-tooltip directly.
+    // leading/trailing sections that still use raw @radix-ui/react-tooltip directly.
     <TooltipPrimitive.Provider delayDuration={300} skipDelayDuration={200}>
       <ToolbarPrimitive.Root
         aria-label="Document editor ribbon"
         className={cn(TOOLBAR_CLASS, sticky && 'sticky top-3 z-30 sm:top-4', className)}
       >
+        {leadingSections?.map((section, index) => (
+          <Fragment key={section.id}>
+            {index > 0 && <ToolbarDivider />}
+            <ToolbarGroup label={section.label}>{section.content}</ToolbarGroup>
+          </Fragment>
+        ))}
+        {leadingSections && leadingSections.length > 0 && <ToolbarDivider />}
         {TOOLBAR_SECTIONS.map((section, index) => (
           <Fragment key={section.id}>
             {index > 0 && <ToolbarDivider />}
             <ToolbarGroup label={section.label}>
-              {section.id === 'paragraph' && (
+              {section.id === 'format' && (
                 <>
                   <ParagraphStyleDropdown api={api} size={size} />
                   <FontFamilyDropdown api={api} size={size} />
@@ -96,6 +105,7 @@ function ToolbarComponent({
                     key={item.id}
                     icon={item.icon}
                     label={item.label}
+                    tooltip={item.tooltip}
                     size={size}
                     isActive={isActive}
                     disabled={disabled}
@@ -105,11 +115,10 @@ function ToolbarComponent({
                   />
                 )
               })}
-              {section.id === 'formatting' && (
+              {section.id === 'format' && (
                 <>
                   <TextColorDropdown api={api} size={size} />
                   <HighlightColorDropdown api={api} size={size} />
-                  <LinkToolbarControl api={api} size={size} />
                 </>
               )}
             </ToolbarGroup>

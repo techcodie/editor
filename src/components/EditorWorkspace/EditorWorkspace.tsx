@@ -18,17 +18,22 @@ import {
   LoaderCircle,
   MessageSquareText,
   MessagesSquare,
+  Minus,
   MousePointer2,
   PenLine,
   Printer,
   Ruler,
   Save,
   ScanEye,
+  ScanText,
   Search,
   SeparatorHorizontal,
   ShieldCheck,
   SpellCheck2,
+  SquareCode,
+  Upload,
   WandSparkles,
+  Wrench,
   Workflow as WorkflowIcon,
   X,
 } from 'lucide-react'
@@ -115,6 +120,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog'
 import {
   EnterpriseToolbarControl,
   type EnterpriseEntry,
+  LinkToolbarControl,
   TableToolbarControl,
   Toolbar,
   ToolbarButton,
@@ -1497,16 +1503,45 @@ export function EditorWorkspace({
     isWritingAssistantOpen || isProductivityOpen || isIdentityOpen || isShareOpen ||
     isCommandPaletteOpen || isPrintPreviewOpen
 
-  // Every enterprise-tier tool in one place instead of five toolbar groups —
-  // same handlers as before, just no longer competing with editing commands
-  // for ribbon space. Each entry still respects the exact permission gate
-  // its old standalone toolbar button used.
-  const enterpriseEntries: EnterpriseEntry[] = [
+  // Three focused menus instead of one "Enterprise" catch-all — Review (core
+  // reviewing actions), AI (assistive/generative features), and Tools (every
+  // other advanced/enterprise capability, per the brief's "everything
+  // advanced lives inside ONE dropdown" for that last group). Same handlers
+  // as before in every case; only which trigger they sit behind changed.
+  const reviewEntries: EnterpriseEntry[] = [
+    ...(canComment ? [{
+      id: 'review-comments',
+      section: 'Review',
+      icon: MessagesSquare,
+      label: 'Comments',
+      isActive: isReviewMode,
+      onSelect: () => (isReviewMode ? closeReviewMode() : openReviewMode()),
+    }] : []),
+    ...(canTrackChanges ? [{
+      id: 'review-track-changes',
+      section: 'Review',
+      icon: FilePenLine,
+      label: 'Track changes',
+      isActive: isSuggestionMode,
+      onSelect: () => (isSuggestionMode ? closeSuggestionMode() : openSuggestionMode()),
+    }] : []),
+    ...(canRead ? [{
+      id: 'review-history',
+      section: 'Review',
+      icon: History,
+      label: 'Version history',
+      isActive: isHistoryOpen,
+      badge: historyVersionCount > 0 ? String(historyVersionCount) : undefined,
+      onSelect: () => (isHistoryOpen ? closeHistory() : openHistory()),
+    }] : []),
+  ]
+
+  const aiEntries: EnterpriseEntry[] = [
     ...(config.ai && canUseAi ? [{
-      id: 'enterprise-ask-ai',
-      section: 'AI & writing',
+      id: 'ai-ask',
+      section: 'AI',
       // A fixed icon (not the host-overridable AskDocumentIcon used by the
-      // Command Palette) — this is one row among many fixed-icon entries
+      // Command Palette) — this is one row among several fixed-icon entries
       // here, not a standalone branded button anymore.
       icon: MessageSquareText,
       label: 'Ask AI',
@@ -1514,8 +1549,8 @@ export function EditorWorkspace({
       onSelect: () => (isAskDocumentOpen ? closeAskDocument() : openAskDocument()),
     }] : []),
     ...(canUseAi ? [{
-      id: 'enterprise-writing-assistant',
-      section: 'AI & writing',
+      id: 'ai-writing-assistant',
+      section: 'AI',
       icon: SpellCheck2,
       label: 'Writing assistant',
       isActive: isWritingAssistantOpen,
@@ -1523,32 +1558,51 @@ export function EditorWorkspace({
       onSelect: () => (isWritingAssistantOpen ? closeWritingAssistant() : openWritingAssistant()),
     }] : []),
     ...(productivityRegistry && canUseAi ? [{
-      id: 'enterprise-productivity',
-      section: 'AI & writing',
+      id: 'ai-productivity',
+      section: 'AI',
       icon: WandSparkles,
       label: 'AI productivity',
       isActive: isProductivityOpen,
       onSelect: () => (isProductivityOpen ? closeProductivity() : openProductivity()),
     }] : []),
+  ]
+
+  const toolsEntries: EnterpriseEntry[] = [
     ...(canSearch ? [{
-      id: 'enterprise-search',
-      section: 'AI & writing',
+      id: 'tools-search',
+      section: 'Search & analysis',
       icon: Search,
       label: 'Semantic search',
       isActive: isSearchOpen,
       onSelect: () => (isSearchOpen ? closeSearch() : openSearch()),
     }] : []),
     ...(canRead ? [{
-      id: 'enterprise-compliance',
-      section: 'AI & writing',
+      id: 'tools-intelligence',
+      section: 'Search & analysis',
+      icon: ScanText,
+      label: 'Document intelligence',
+      isActive: isIntelligenceOpen,
+      onSelect: () => (isIntelligenceOpen ? closeIntelligence() : openIntelligence()),
+    }] : []),
+    ...(canRead ? [{
+      id: 'tools-comparison',
+      section: 'Search & analysis',
+      icon: FileDiff,
+      label: 'Comparison',
+      isActive: isComparisonOpen,
+      onSelect: () => (isComparisonOpen ? closeComparison() : openComparison()),
+    }] : []),
+    ...(canRead ? [{
+      id: 'tools-compliance',
+      section: 'Compliance & contracts',
       icon: ShieldCheck,
       label: 'Compliance',
       isActive: isComplianceOpen,
       onSelect: () => (isComplianceOpen ? closeCompliance() : openCompliance()),
     }] : []),
     ...(canUseContractIntelligence ? [{
-      id: 'enterprise-contract',
-      section: 'AI & writing',
+      id: 'tools-contract',
+      section: 'Compliance & contracts',
       icon: FileSearch2,
       label: 'Contract intelligence',
       isActive: isContractOpen,
@@ -1556,8 +1610,8 @@ export function EditorWorkspace({
       onSelect: () => (isContractOpen ? closeContract() : openContract()),
     }] : []),
     ...(canRedact ? [{
-      id: 'enterprise-redaction',
-      section: 'AI & writing',
+      id: 'tools-redaction',
+      section: 'Compliance & contracts',
       icon: ScanEye,
       label: 'Sensitive data',
       isActive: isRedactionOpen,
@@ -1567,42 +1621,9 @@ export function EditorWorkspace({
       })(),
       onSelect: () => (isRedactionOpen ? closeRedaction() : openRedaction()),
     }] : []),
-    ...(canComment ? [{
-      id: 'enterprise-review',
-      section: 'Review & compare',
-      icon: MessagesSquare,
-      label: 'Comments',
-      isActive: isReviewMode,
-      onSelect: () => (isReviewMode ? closeReviewMode() : openReviewMode()),
-    }] : []),
-    ...(canTrackChanges ? [{
-      id: 'enterprise-track-changes',
-      section: 'Review & compare',
-      icon: FilePenLine,
-      label: 'Track changes',
-      isActive: isSuggestionMode,
-      onSelect: () => (isSuggestionMode ? closeSuggestionMode() : openSuggestionMode()),
-    }] : []),
-    ...(canRead ? [{
-      id: 'enterprise-comparison',
-      section: 'Review & compare',
-      icon: FileDiff,
-      label: 'Comparison',
-      isActive: isComparisonOpen,
-      onSelect: () => (isComparisonOpen ? closeComparison() : openComparison()),
-    }] : []),
-    ...(canRead ? [{
-      id: 'enterprise-history',
-      section: 'Review & compare',
-      icon: History,
-      label: 'Version history',
-      isActive: isHistoryOpen,
-      badge: historyVersionCount > 0 ? String(historyVersionCount) : undefined,
-      onSelect: () => (isHistoryOpen ? closeHistory() : openHistory()),
-    }] : []),
     ...(canUseWorkflow ? [{
-      id: 'enterprise-workflow',
-      section: 'Review & compare',
+      id: 'tools-workflow',
+      section: 'Documents & access',
       icon: WorkflowIcon,
       label: 'Approvals',
       isActive: isWorkflowOpen,
@@ -1610,7 +1631,7 @@ export function EditorWorkspace({
       onSelect: () => (isWorkflowOpen ? closeWorkflow() : openWorkflow()),
     }] : []),
     ...(canBuildForms ? [{
-      id: 'enterprise-forms',
+      id: 'tools-forms',
       section: 'Documents & access',
       icon: ListChecks,
       label: 'Forms',
@@ -1618,7 +1639,7 @@ export function EditorWorkspace({
       onSelect: () => (isFormBuilderOpen ? closeFormBuilder() : openFormBuilder()),
     }] : []),
     {
-      id: 'enterprise-watermark',
+      id: 'tools-watermark',
       section: 'Documents & access',
       icon: Droplets,
       label: 'Watermark',
@@ -1626,7 +1647,7 @@ export function EditorWorkspace({
       onSelect: () => (isWatermarkOpen ? closeWatermark() : openWatermark()),
     },
     ...(identityManager ? [{
-      id: 'enterprise-identity',
+      id: 'tools-identity',
       section: 'Documents & access',
       icon: KeyRound,
       label: 'Identity & access',
@@ -1646,106 +1667,121 @@ export function EditorWorkspace({
             <Toolbar
               api={api}
               className="min-w-0 flex-1"
-              trailingSections={[
+              leadingSections={[
                 {
                   id: 'file',
                   label: 'File',
                   content: (
-                    <ToolbarDropdown
-                      icon={FileText}
-                      label="File"
-                      triggerLabel="File"
-                      disabled={!api}
-                      onCloseAutoFocus={() => api?.focus()}
-                      items={[
-                        {
-                          id: 'file-new',
-                          icon: FilePlus2,
-                          label: 'New document',
-                          onSelect: newDocument,
-                        },
-                        ...(canRead ? [{
-                          id: 'file-open',
-                          icon: FolderOpen,
-                          label: 'Open / Import…',
-                          description: 'PDF, DOCX, TXT, Markdown, HTML, images',
-                          separatorBefore: true,
-                          isActive: isIntelligenceOpen,
-                          onSelect: () => (isIntelligenceOpen ? closeIntelligence() : openIntelligence()),
-                        }] : []),
-                        ...(canRead ? [{
-                          id: 'file-save',
-                          icon: Save,
-                          label: 'Save',
-                          description: 'Opens Version History',
-                          isActive: isHistoryOpen,
-                          onSelect: () => (isHistoryOpen ? closeHistory() : openHistory()),
-                        }] : []),
-                        {
-                          id: 'file-save-as',
-                          icon: CopyPlus,
-                          label: 'Save As',
-                          description: 'Requires host storage integration',
-                          disabled: true,
-                          onSelect: () => {},
-                        },
-                        {
-                          id: 'file-rename',
-                          icon: PenLine,
-                          label: 'Rename',
-                          description: 'Requires host storage integration',
-                          disabled: true,
-                          onSelect: () => {},
-                        },
-                        ...(canExport ? [{
-                          id: 'file-export-pdf',
-                          icon: FileDown,
-                          label: 'Export as PDF…',
-                          separatorBefore: true,
-                          onSelect: () => {
-                            setExportFormat('pdf')
-                            if (!isExportOpen) openExport()
+                    <>
+                      {canRead && (
+                        <ToolbarButton
+                          icon={Upload}
+                          label={isIntelligenceOpen ? 'Close import' : 'Import'}
+                          isActive={isIntelligenceOpen}
+                          disabled={!api}
+                          onClick={() => (isIntelligenceOpen ? closeIntelligence() : openIntelligence())}
+                        />
+                      )}
+                      <ToolbarDropdown
+                        icon={FileText}
+                        label="File"
+                        triggerLabel="File"
+                        disabled={!api}
+                        onCloseAutoFocus={() => api?.focus()}
+                        items={[
+                          {
+                            id: 'file-new',
+                            icon: FilePlus2,
+                            label: 'New document',
+                            onSelect: newDocument,
                           },
-                        }] : []),
-                        ...(canExport ? [{
-                          id: 'file-export-docx',
-                          icon: FileDown,
-                          label: 'Export as DOCX…',
-                          onSelect: () => {
-                            setExportFormat('docx')
-                            if (!isExportOpen) openExport()
+                          ...(canRead ? [{
+                            id: 'file-open',
+                            icon: FolderOpen,
+                            label: 'Open / Import…',
+                            description: 'PDF, DOCX, TXT, Markdown, HTML, images',
+                            separatorBefore: true,
+                            isActive: isIntelligenceOpen,
+                            onSelect: () => (isIntelligenceOpen ? closeIntelligence() : openIntelligence()),
+                          }] : []),
+                          ...(canRead ? [{
+                            id: 'file-save',
+                            icon: Save,
+                            label: 'Save',
+                            description: 'Opens Version History',
+                            isActive: isHistoryOpen,
+                            onSelect: () => (isHistoryOpen ? closeHistory() : openHistory()),
+                          }] : []),
+                          {
+                            id: 'file-save-as',
+                            icon: CopyPlus,
+                            label: 'Save As',
+                            description: 'Requires host storage integration',
+                            disabled: true,
+                            onSelect: () => {},
                           },
-                        }] : []),
-                        {
-                          id: 'file-print',
-                          icon: Printer,
-                          label: 'Print…',
-                          isActive: isPrintPreviewOpen,
-                          onSelect: () => handleViewModeChange(isPrintPreviewOpen ? 'editor' : 'pdf-preview'),
-                        },
-                        {
-                          id: 'file-page-setup',
-                          icon: Ruler,
-                          label: 'Page setup',
-                          separatorBefore: true,
-                          isActive: isPageLayoutOpen,
-                          onSelect: () => (isPageLayoutOpen ? closePageLayout() : openPageLayout()),
-                        },
-                        {
-                          id: 'file-properties',
-                          icon: Info,
-                          label: 'Document properties',
-                          onSelect: () => setIsDocPropertiesOpen(true),
-                        },
-                      ]}
-                    />
+                          {
+                            id: 'file-rename',
+                            icon: PenLine,
+                            label: 'Rename',
+                            description: 'Requires host storage integration',
+                            disabled: true,
+                            onSelect: () => {},
+                          },
+                          ...(canExport ? [{
+                            id: 'file-export-pdf',
+                            icon: FileDown,
+                            label: 'Export as PDF…',
+                            separatorBefore: true,
+                            onSelect: () => {
+                              setExportFormat('pdf')
+                              if (!isExportOpen) openExport()
+                            },
+                          }] : []),
+                          ...(canExport ? [{
+                            id: 'file-export-docx',
+                            icon: FileDown,
+                            label: 'Export as DOCX…',
+                            onSelect: () => {
+                              setExportFormat('docx')
+                              if (!isExportOpen) openExport()
+                            },
+                          }] : []),
+                          {
+                            id: 'file-print',
+                            icon: Printer,
+                            label: 'Print…',
+                            isActive: isPrintPreviewOpen,
+                            onSelect: () => handleViewModeChange(isPrintPreviewOpen ? 'editor' : 'pdf-preview'),
+                          },
+                          {
+                            id: 'file-page-setup',
+                            icon: Ruler,
+                            label: 'Page setup',
+                            separatorBefore: true,
+                            isActive: isPageLayoutOpen,
+                            onSelect: () => (isPageLayoutOpen ? closePageLayout() : openPageLayout()),
+                          },
+                          {
+                            id: 'file-properties',
+                            icon: Info,
+                            label: 'Document properties',
+                            onSelect: () => setIsDocPropertiesOpen(true),
+                          },
+                        ]}
+                      />
+                    </>
                   ),
                 },
+              ]}
+              trailingSections={[
                 {
                   id: 'insert',
                   label: 'Insert',
                   content: (
                     <>
+                      <TableToolbarControl api={api} />
+                      <LinkToolbarControl api={api} />
                       <ToolbarButton
                         icon={Image}
                         label={isAssetLibraryOpen ? 'Close stamps & assets' : 'Stamps & assets'}
@@ -1756,25 +1792,68 @@ export function EditorWorkspace({
                           else openAssetLibrary()
                         }}
                       />
-                      <TableToolbarControl api={api} />
                       <ToolbarButton
                         icon={SeparatorHorizontal}
                         label="Page break"
                         disabled={!api}
                         onClick={() => api?.insertPageBreak()}
                       />
+                      <ToolbarButton
+                        icon={Minus}
+                        label="Horizontal rule"
+                        disabled={!api}
+                        onClick={() => api?.insertHorizontalRule()}
+                      />
+                      <ToolbarButton
+                        icon={SquareCode}
+                        label="Code block"
+                        isActive={api?.isCodeBlock()}
+                        disabled={!api}
+                        onClick={() => api?.toggleCodeBlock()}
+                      />
                     </>
                   ),
                 },
-                ...(productivityRegistry && canUseAi ? [{
-                  id: 'dictation',
-                  label: 'Dictation',
-                  content: <DictationToolbarControl api={api} voice={voice} />,
+                ...(reviewEntries.length > 0 ? [{
+                  id: 'review',
+                  label: 'Review',
+                  content: (
+                    <EnterpriseToolbarControl
+                      entries={reviewEntries}
+                      icon={MessagesSquare}
+                      label="Review"
+                      onCloseAutoFocus={() => api?.focus()}
+                    />
+                  ),
                 }] : []),
-                ...(enterpriseEntries.length > 0 ? [{
-                  id: 'enterprise',
-                  label: 'Enterprise',
-                  content: <EnterpriseToolbarControl entries={enterpriseEntries} onCloseAutoFocus={() => api?.focus()} />,
+                ...(aiEntries.length > 0 || (productivityRegistry && canUseAi) ? [{
+                  id: 'ai',
+                  label: 'AI',
+                  content: (
+                    <>
+                      {aiEntries.length > 0 && (
+                        <EnterpriseToolbarControl
+                          entries={aiEntries}
+                          icon={WandSparkles}
+                          label="AI"
+                          onCloseAutoFocus={() => api?.focus()}
+                        />
+                      )}
+                      {productivityRegistry && canUseAi && <DictationToolbarControl api={api} voice={voice} />}
+                    </>
+                  ),
+                }] : []),
+                ...(toolsEntries.length > 0 ? [{
+                  id: 'tools',
+                  label: 'Tools',
+                  content: (
+                    <EnterpriseToolbarControl
+                      entries={toolsEntries}
+                      icon={Wrench}
+                      label="Tools"
+                      onCloseAutoFocus={() => api?.focus()}
+                    />
+                  ),
                 }] : []),
               ]}
             />
@@ -1875,7 +1954,7 @@ export function EditorWorkspace({
       </div>
       <div className="shrink-0 lg:sticky lg:top-6 lg:self-start">
         {isIdentityLoaded && identityManager && (
-          <ErrorBoundary compact title="Identity settings need a retry">
+          <ErrorBoundary compact title="Identity settings need a retry" resetKey={isIdentityOpen}>
             <Suspense fallback={<PanelLoadingFallback label="Loading identity settings" widthClassName="sm:max-w-[32rem] lg:w-[31rem]" />}>
               <IdentitySettings
                 isOpen={isIdentityOpen}
@@ -1886,7 +1965,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
         {isProductivityLoaded && productivityRegistry && (
-          <ErrorBoundary compact title="AI productivity needs a retry">
+          <ErrorBoundary compact title="AI productivity needs a retry" resetKey={isProductivityOpen}>
             <Suspense fallback={<PanelLoadingFallback label="Loading AI productivity" widthClassName="sm:max-w-[31rem] lg:w-[30rem]" />}>
               <ProductivitySidebar
                 isOpen={isProductivityOpen}
@@ -1902,7 +1981,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
         {isWritingAssistantLoaded && (
-          <ErrorBoundary compact title="Writing assistant needs a retry">
+          <ErrorBoundary compact title="Writing assistant needs a retry" resetKey={isWritingAssistantOpen}>
             <Suspense fallback={<PanelLoadingFallback label="Loading writing assistant" widthClassName="sm:max-w-[30rem] lg:w-[29rem]" />}>
               <WritingAssistantPanel
                 isOpen={isWritingAssistantOpen}
@@ -1920,7 +1999,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
         {isContractLoaded && (
-          <ErrorBoundary compact title="Contract intelligence needs a retry">
+          <ErrorBoundary compact title="Contract intelligence needs a retry" resetKey={isContractOpen}>
             <Suspense fallback={<PanelLoadingFallback label="Loading contract intelligence" widthClassName="sm:max-w-[32rem] lg:w-[31rem]" />}>
               <ContractPanel
                 isOpen={isContractOpen}
@@ -1938,7 +2017,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
         {isRedactionLoaded && (
-          <ErrorBoundary compact title="Redaction review needs a retry">
+          <ErrorBoundary compact title="Redaction review needs a retry" resetKey={isRedactionOpen}>
             <Suspense fallback={<PanelLoadingFallback label="Loading redaction review" widthClassName="sm:max-w-[30rem] lg:w-[29rem]" />}>
               <RedactionPanel
                 isOpen={isRedactionOpen}
@@ -1954,7 +2033,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
         {isSearchLoaded && (
-          <ErrorBoundary compact title="Semantic search needs a retry">
+          <ErrorBoundary compact title="Semantic search needs a retry" resetKey={isSearchOpen}>
             <Suspense fallback={<PanelLoadingFallback label="Loading semantic search" widthClassName="sm:max-w-[31rem] lg:w-[30rem]" />}>
               <SearchPanel
                 isOpen={isSearchOpen}
@@ -1977,7 +2056,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
         {isWorkflowLoaded && (
-          <ErrorBoundary compact title="Approval workflow needs a retry">
+          <ErrorBoundary compact title="Approval workflow needs a retry" resetKey={isWorkflowOpen}>
             <Suspense fallback={<PanelLoadingFallback label="Loading approval workflow" widthClassName="sm:max-w-[30rem] lg:w-[29rem]" />}>
               <WorkflowPanel
                 isOpen={isWorkflowOpen}
@@ -1996,7 +2075,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
         {isHistoryLoaded && (
-          <ErrorBoundary compact title="Version history needs a retry">
+          <ErrorBoundary compact title="Version history needs a retry" resetKey={isHistoryOpen}>
             <Suspense fallback={<PanelLoadingFallback label="Loading version history" widthClassName="sm:max-w-[29rem] lg:w-[28rem]" />}>
               <HistoryPanel
                 isOpen={isHistoryOpen}
@@ -2013,7 +2092,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
         {isFormBuilderLoaded && (
-          <ErrorBoundary compact title="Form builder needs a retry">
+          <ErrorBoundary compact title="Form builder needs a retry" resetKey={isFormBuilderOpen}>
             <Suspense fallback={<PanelLoadingFallback label="Loading form builder" widthClassName="sm:max-w-[28rem] lg:w-[27rem]" />}>
               <FormBuilderPanel
                 isOpen={isFormBuilderOpen}
@@ -2025,7 +2104,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
         {isComplianceLoaded && (
-          <ErrorBoundary compact title="Compliance analysis needs a retry">
+          <ErrorBoundary compact title="Compliance analysis needs a retry" resetKey={isComplianceOpen}>
             <Suspense
               fallback={<PanelLoadingFallback label="Loading compliance analysis" widthClassName="sm:max-w-[27rem] lg:w-[26rem]" />}
             >
@@ -2064,7 +2143,7 @@ export function EditorWorkspace({
           onClose={closeWatermark}
         />
         {isSuggestionLoaded && (
-          <ErrorBoundary compact title="Suggestions need a retry">
+          <ErrorBoundary compact title="Suggestions need a retry" resetKey={isSuggestionSidebarOpen}>
             <Suspense
               fallback={
                 <div
@@ -2093,7 +2172,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
         {isReviewLoaded && (
-          <ErrorBoundary compact title="Review needs a retry">
+          <ErrorBoundary compact title="Review needs a retry" resetKey={isReviewMode}>
             <Suspense
               fallback={
                 <div
@@ -2122,7 +2201,7 @@ export function EditorWorkspace({
           </ErrorBoundary>
         )}
         {isAssetLibraryLoaded && (
-          <ErrorBoundary compact title="Asset library needs a retry">
+          <ErrorBoundary compact title="Asset library needs a retry" resetKey={isAssetLibraryOpen}>
             <Suspense
               fallback={
                 <div
@@ -2148,6 +2227,7 @@ export function EditorWorkspace({
             compact
             title="Ask Document needs a retry"
             description="The editor is still available while this panel recovers."
+            resetKey={isAskDocumentOpen}
           >
             <Suspense
               fallback={
@@ -2279,7 +2359,7 @@ export function EditorWorkspace({
         </ErrorBoundary>
       )}
       {isExportLoaded && (
-        <ErrorBoundary compact title="Export needs a retry">
+        <ErrorBoundary compact title="Export needs a retry" resetKey={isExportOpen}>
           <Suspense
             fallback={
               isExportOpen ? (
@@ -2311,7 +2391,7 @@ export function EditorWorkspace({
         </ErrorBoundary>
       )}
       {isIntelligenceLoaded && (
-        <ErrorBoundary compact title="Document Intelligence needs a retry">
+        <ErrorBoundary compact title="Document Intelligence needs a retry" resetKey={isIntelligenceOpen}>
           <Suspense
             fallback={
               isIntelligenceOpen ? (
@@ -2362,7 +2442,7 @@ export function EditorWorkspace({
         </ErrorBoundary>
       )}
       {isShareLoaded && (
-        <ErrorBoundary compact title="Form sharing needs a retry">
+        <ErrorBoundary compact title="Form sharing needs a retry" resetKey={isShareOpen}>
           <Suspense fallback={isShareOpen ? <div className="fixed inset-0 z-[100] flex items-center justify-center bg-neutral-950/35" role="status" aria-label="Loading form sharing"><LoaderCircle size={22} strokeWidth={1.8} className="animate-spin text-white" aria-hidden /></div> : null}>
             <ShareDialog
               isOpen={isShareOpen}

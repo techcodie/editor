@@ -20,6 +20,10 @@ export interface EnterpriseEntry {
 
 export interface EnterpriseToolbarControlProps {
   entries: EnterpriseEntry[]
+  /** Trigger icon. Defaults to the general-purpose grid icon. */
+  icon?: LucideIcon
+  /** Trigger label, also its accessible name. Defaults to "Enterprise". */
+  label?: string
   size?: ToolbarButtonSize
   onCloseAutoFocus?: () => void
 }
@@ -61,7 +65,13 @@ const BADGE_CLASS =
  * feature already used as a standalone toolbar button; this only changes
  * where that trigger lives.
  */
-export function EnterpriseToolbarControl({ entries, size = 'md', onCloseAutoFocus }: EnterpriseToolbarControlProps) {
+export function EnterpriseToolbarControl({
+  entries,
+  icon: Icon = LayoutGrid,
+  label = 'Enterprise',
+  size = 'md',
+  onCloseAutoFocus,
+}: EnterpriseToolbarControlProps) {
   const dimensions = SIZE[size]
   const activeCount = entries.filter((entry) => entry.isActive).length
 
@@ -84,12 +94,12 @@ export function EnterpriseToolbarControl({ entries, size = 'md', onCloseAutoFocu
     <DropdownMenuPrimitive.Root>
       <ToolbarPrimitive.Button asChild>
         <DropdownMenuPrimitive.Trigger
-          aria-label="Enterprise tools"
-          title="Enterprise tools"
+          aria-label={label}
+          title={label}
           className={cn(TRIGGER_CLASS, dimensions.button)}
         >
-          <LayoutGrid size={dimensions.icon} strokeWidth={1.9} aria-hidden />
-          <span className="text-[13px] font-medium">Enterprise</span>
+          <Icon size={dimensions.icon} strokeWidth={1.9} aria-hidden />
+          <span className="text-[13px] font-medium">{label}</span>
           {activeCount > 0 && (
             <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-neutral-900 px-1 text-[9px] font-semibold leading-none text-white">
               {activeCount}

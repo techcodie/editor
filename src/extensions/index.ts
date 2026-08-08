@@ -13,6 +13,7 @@ import { AssetNode } from '../assets/editor/AssetNode'
 import { CommentMark } from '../review/editor/CommentMark'
 import { TrackChangeMark } from '../review/trackChanges/editor/TrackChangeMark'
 import { FormFieldNode } from '../forms/editor/FormFieldNode'
+import { PageBreakNode } from '../layout/editor/PageBreakNode'
 
 /** Node types that support text alignment. */
 const ALIGNABLE_NODES = ['heading', 'paragraph'] as const
@@ -58,6 +59,7 @@ export function createEditorExtensions({ placeholder }: DocumentEditorOptions): 
     TableKit.configure({ table: { resizable: true } }),
     AssetNode,
     FormFieldNode,
+    PageBreakNode,
     CommentMark,
     TrackChangeMark,
   ]

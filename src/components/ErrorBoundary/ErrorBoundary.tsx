@@ -6,6 +6,15 @@ interface ErrorBoundaryProps {
   title?: string
   description?: string
   compact?: boolean
+  /**
+   * Several lazy panels stay mounted after their first open (an intentional
+   * instant-reopen tradeoff), so this boundary would otherwise never unmount
+   * and a caught error's retry card would keep rendering even after the
+   * panel is closed. Pass something that changes when the panel closes (its
+   * `isOpen` boolean, or the parent's active-panel id) to clear the error
+   * state then, the same way `react-error-boundary`'s `resetKeys` works.
+   */
+  resetKey?: unknown
 }
 
 interface ErrorBoundaryState {
@@ -21,6 +30,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('Editor workspace boundary caught an error', error, info)
+  }
+
+  componentDidUpdate(prevProps: ErrorBoundaryProps) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.reset()
+    }
   }
 
   private reset = () => {

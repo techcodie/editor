@@ -2,28 +2,32 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Undo2,
   Redo2,
+  Scissors,
+  Copy,
+  ClipboardPaste,
+  Replace,
   Bold,
   Italic,
   Underline,
   Strikethrough,
-  Code,
   Superscript,
   Subscript,
-  List,
-  ListOrdered,
-  ListTodo,
+  RemoveFormatting,
   AlignLeft,
   AlignCenter,
   AlignRight,
   AlignJustify,
+  List,
+  ListOrdered,
+  ListTodo,
   TextQuote,
-  SquareCode,
-  Minus,
-  RemoveFormatting,
+  IndentIncrease,
+  IndentDecrease,
+  MoveVertical,
 } from 'lucide-react'
 import type { EditorApi } from '../../lib/editor-api'
 
-export type ToolbarGroupId = 'clipboard' | 'formatting' | 'paragraph' | 'lists'
+export type ToolbarGroupId = 'edit' | 'format' | 'paragraph'
 
 export interface ToolbarItemConfig {
   id: string
@@ -32,6 +36,9 @@ export interface ToolbarItemConfig {
   group: ToolbarGroupId
   /** Keyboard hint for future tooltips. StarterKit owns the real bindings; not wired here. */
   shortcut?: string
+  /** Tooltip text override — used for permanently-disabled items to explain why, since the
+   * label alone ("Paste") wouldn't. Falls back to `label` when omitted. */
+  tooltip?: string
   execute: (api: EditorApi) => void
   /** Toggle items only. Omitted for pure actions (undo/redo/hr/clear). */
   isActive?: (api: EditorApi) => boolean
@@ -46,10 +53,9 @@ export interface ToolbarSection {
 }
 
 const GROUPS: { id: ToolbarGroupId; label: string }[] = [
-  { id: 'clipboard', label: 'Clipboard' },
-  { id: 'formatting', label: 'Formatting' },
+  { id: 'edit', label: 'Edit' },
+  { id: 'format', label: 'Format' },
   { id: 'paragraph', label: 'Paragraph' },
-  { id: 'lists', label: 'Lists' },
 ]
 
 const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
@@ -57,7 +63,7 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
     id: 'undo',
     icon: Undo2,
     label: 'Undo',
-    group: 'clipboard',
+    group: 'edit',
     shortcut: 'Mod+Z',
     execute: (api) => api.undo(),
     canExecute: (api) => api.canUndo(),
@@ -66,24 +72,60 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
     id: 'redo',
     icon: Redo2,
     label: 'Redo',
-    group: 'clipboard',
+    group: 'edit',
     shortcut: 'Shift+Mod+Z',
     execute: (api) => api.redo(),
     canExecute: (api) => api.canRedo(),
   },
   {
-    id: 'clearFormatting',
-    icon: RemoveFormatting,
-    label: 'Clear formatting',
-    group: 'clipboard',
-    execute: (api) => api.clearFormatting(),
+    id: 'cut',
+    icon: Scissors,
+    label: 'Cut',
+    group: 'edit',
+    shortcut: 'Mod+X',
+    // Same document.execCommand approach as the right-click menu — EditorApi's
+    // replaceTextSelection() rejects empty replacements, so it can't delete a
+    // selection; the browser's native cut command is the one that actually works.
+    execute: () => {
+      document.execCommand('cut')
+    },
+    canExecute: (api) => Boolean(api.getTextSelection()),
+  },
+  {
+    id: 'copy',
+    icon: Copy,
+    label: 'Copy',
+    group: 'edit',
+    shortcut: 'Mod+C',
+    execute: () => {
+      document.execCommand('copy')
+    },
+    canExecute: (api) => Boolean(api.getTextSelection()),
+  },
+  {
+    id: 'paste',
+    icon: ClipboardPaste,
+    label: 'Paste',
+    tooltip: 'Paste — browsers block programmatic paste. Use Cmd/Ctrl+V.',
+    group: 'edit',
+    execute: () => {},
+    canExecute: () => false,
+  },
+  {
+    id: 'findReplace',
+    icon: Replace,
+    label: 'Find & replace',
+    tooltip: 'Find & replace — not available in this release.',
+    group: 'edit',
+    execute: () => {},
+    canExecute: () => false,
   },
 
   {
     id: 'bold',
     icon: Bold,
     label: 'Bold',
-    group: 'formatting',
+    group: 'format',
     shortcut: 'Mod+B',
     execute: (api) => api.toggleBold(),
     isActive: (api) => api.isBold(),
@@ -92,7 +134,7 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
     id: 'italic',
     icon: Italic,
     label: 'Italic',
-    group: 'formatting',
+    group: 'format',
     shortcut: 'Mod+I',
     execute: (api) => api.toggleItalic(),
     isActive: (api) => api.isItalic(),
@@ -101,7 +143,7 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
     id: 'underline',
     icon: Underline,
     label: 'Underline',
-    group: 'formatting',
+    group: 'format',
     shortcut: 'Mod+U',
     execute: (api) => api.toggleUnderline(),
     isActive: (api) => api.isUnderline(),
@@ -110,25 +152,16 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
     id: 'strike',
     icon: Strikethrough,
     label: 'Strikethrough',
-    group: 'formatting',
+    group: 'format',
     shortcut: 'Mod+Shift+S',
     execute: (api) => api.toggleStrike(),
     isActive: (api) => api.isStrike(),
   },
   {
-    id: 'inlineCode',
-    icon: Code,
-    label: 'Inline code',
-    group: 'formatting',
-    shortcut: 'Mod+E',
-    execute: (api) => api.toggleInlineCode(),
-    isActive: (api) => api.isInlineCode(),
-  },
-  {
     id: 'superscript',
     icon: Superscript,
     label: 'Superscript',
-    group: 'formatting',
+    group: 'format',
     shortcut: 'Mod+.',
     execute: (api) => api.toggleSuperscript(),
     isActive: (api) => api.isSuperscript(),
@@ -137,10 +170,17 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
     id: 'subscript',
     icon: Subscript,
     label: 'Subscript',
-    group: 'formatting',
+    group: 'format',
     shortcut: 'Mod+,',
     execute: (api) => api.toggleSubscript(),
     isActive: (api) => api.isSubscript(),
+  },
+  {
+    id: 'clearFormatting',
+    icon: RemoveFormatting,
+    label: 'Clear formatting',
+    group: 'format',
+    execute: (api) => api.clearFormatting(),
   },
 
   {
@@ -179,12 +219,11 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
     execute: (api) => api.setTextAlign('justify'),
     isActive: (api) => api.isTextAlign('justify'),
   },
-
   {
     id: 'bulletList',
     icon: List,
     label: 'Bullet list',
-    group: 'lists',
+    group: 'paragraph',
     shortcut: 'Mod+Shift+8',
     execute: (api) => api.toggleBulletList(),
     isActive: (api) => api.isBulletList(),
@@ -192,8 +231,8 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
   {
     id: 'orderedList',
     icon: ListOrdered,
-    label: 'Ordered list',
-    group: 'lists',
+    label: 'Numbered list',
+    group: 'paragraph',
     shortcut: 'Mod+Shift+7',
     execute: (api) => api.toggleOrderedList(),
     isActive: (api) => api.isOrderedList(),
@@ -201,8 +240,8 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
   {
     id: 'taskList',
     icon: ListTodo,
-    label: 'Task list',
-    group: 'lists',
+    label: 'Checklist',
+    group: 'paragraph',
     shortcut: 'Mod+Shift+9',
     execute: (api) => api.toggleTaskList(),
     isActive: (api) => api.isTaskList(),
@@ -211,26 +250,37 @@ const TOOLBAR_ITEMS: ToolbarItemConfig[] = [
     id: 'blockquote',
     icon: TextQuote,
     label: 'Quote',
-    group: 'lists',
+    group: 'paragraph',
     shortcut: 'Mod+Shift+B',
     execute: (api) => api.toggleBlockquote(),
     isActive: (api) => api.isBlockquote(),
   },
   {
-    id: 'codeBlock',
-    icon: SquareCode,
-    label: 'Code block',
-    group: 'lists',
-    shortcut: 'Mod+Alt+C',
-    execute: (api) => api.toggleCodeBlock(),
-    isActive: (api) => api.isCodeBlock(),
+    id: 'indent',
+    icon: IndentIncrease,
+    label: 'Indent',
+    tooltip: 'Indent — not available in this release.',
+    group: 'paragraph',
+    execute: () => {},
+    canExecute: () => false,
   },
   {
-    id: 'horizontalRule',
-    icon: Minus,
-    label: 'Horizontal rule',
-    group: 'lists',
-    execute: (api) => api.insertHorizontalRule(),
+    id: 'outdent',
+    icon: IndentDecrease,
+    label: 'Outdent',
+    tooltip: 'Outdent — not available in this release.',
+    group: 'paragraph',
+    execute: () => {},
+    canExecute: () => false,
+  },
+  {
+    id: 'lineHeight',
+    icon: MoveVertical,
+    label: 'Line height',
+    tooltip: 'Line height — not available in this release.',
+    group: 'paragraph',
+    execute: () => {},
+    canExecute: () => false,
   },
 ]
 

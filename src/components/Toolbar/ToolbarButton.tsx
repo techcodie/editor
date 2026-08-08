@@ -10,8 +10,10 @@ export type ToolbarButtonSize = 'sm' | 'md'
 export interface ToolbarButtonProps {
   /** Icon rendered inside the button. */
   icon: LucideIcon
-  /** Accessible label, also shown as the tooltip. */
+  /** Accessible label, also shown as the tooltip unless `tooltip` is set. */
   label: string
+  /** Tooltip text override — e.g. explaining why a permanently-disabled button is disabled. */
+  tooltip?: string
   /** Toggle on-state. When provided, the button exposes `aria-pressed`. */
   isActive?: boolean
   /** Disables interaction. */
@@ -51,6 +53,7 @@ const BUTTON_CLASS =
 export function ToolbarButton({
   icon: Icon,
   label,
+  tooltip,
   isActive,
   disabled,
   isLoading,
@@ -62,37 +65,44 @@ export function ToolbarButton({
   badge,
 }: ToolbarButtonProps) {
   const dimensions = SIZE[size]
+  const isDisabled = disabled || isLoading
 
   return (
-    <Tooltip content={label}>
-      <ToolbarPrimitive.Button
-        id={id}
-        type="button"
-        aria-label={label}
-        aria-pressed={isActive}
-        aria-expanded={ariaExpanded}
-        aria-controls={ariaControls}
-        disabled={disabled || isLoading}
-        onClick={onClick}
-        className={cn(BUTTON_CLASS, 'relative', dimensions.button)}
-      >
-        {isLoading ? (
-          <Loader2 size={dimensions.icon} strokeWidth={2} className="animate-spin" aria-hidden />
-        ) : (
-          <Icon size={dimensions.icon} strokeWidth={1.9} aria-hidden />
-        )}
-        {badge != null && (
-          <span className="pointer-events-none absolute -right-1 -top-1 flex items-center justify-center">
-            {typeof badge === 'string' || typeof badge === 'number' ? (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-neutral-900 px-1 text-[9px] font-semibold leading-none text-white shadow-sm">
-                {badge}
-              </span>
-            ) : (
-              badge
-            )}
-          </span>
-        )}
-      </ToolbarPrimitive.Button>
+    <Tooltip content={tooltip ?? label}>
+      {/* Native `disabled` buttons don't fire pointer/focus events, so a Radix
+          tooltip on the button itself would never open — wrapping in a span
+          lets a disabled button (e.g. a not-yet-available action with an
+          explanatory tooltip) still be hovered/focused for the tooltip. */}
+      <span className={cn('inline-flex', isDisabled && 'cursor-not-allowed')}>
+        <ToolbarPrimitive.Button
+          id={id}
+          type="button"
+          aria-label={label}
+          aria-pressed={isActive}
+          aria-expanded={ariaExpanded}
+          aria-controls={ariaControls}
+          disabled={isDisabled}
+          onClick={onClick}
+          className={cn(BUTTON_CLASS, 'relative', dimensions.button)}
+        >
+          {isLoading ? (
+            <Loader2 size={dimensions.icon} strokeWidth={2} className="animate-spin" aria-hidden />
+          ) : (
+            <Icon size={dimensions.icon} strokeWidth={1.9} aria-hidden />
+          )}
+          {badge != null && (
+            <span className="pointer-events-none absolute -right-1 -top-1 flex items-center justify-center">
+              {typeof badge === 'string' || typeof badge === 'number' ? (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-neutral-900 px-1 text-[9px] font-semibold leading-none text-white shadow-sm">
+                  {badge}
+                </span>
+              ) : (
+                badge
+              )}
+            </span>
+          )}
+        </ToolbarPrimitive.Button>
+      </span>
     </Tooltip>
   )
 }

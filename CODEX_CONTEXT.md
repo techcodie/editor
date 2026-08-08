@@ -487,11 +487,27 @@ Visual Page Surface / Print Preview
 ```
 
 Page Layout Phase 1 composes a visual pagination layer above the existing
-editor. Paper size, orientation, margins, headers, footers, page numbers, and
-manual page breaks remain instance-local layout state. The pure pagination
-engine consumes measured top-level editor blocks and returns page geometry,
-visual offsets, and navigation metadata. Automatic and manual pagination do
-not add nodes to or otherwise rewrite document content.
+editor. Paper size, orientation, margins, headers, footers, and page numbers
+remain instance-local layout state. The pure pagination engine consumes
+measured top-level editor blocks and returns page geometry, visual offsets,
+and navigation metadata. Automatic pagination is purely visual — it never
+adds nodes to or otherwise rewrites document content, only writes CSS offset
+styling onto existing block elements.
+
+Manual page breaks are a real (visually minimal, near-zero-height) document
+node — `pageBreak`, `src/layout/editor/PageBreakNode.ts` — rather than
+separately-tracked instance state. They were originally a closure-scoped
+array in `create-editor-api.ts`, remapped through each transaction's own
+position mapping; that meant inserting or removing a break created no
+ProseMirror history entry, so undoing past a break's creation didn't remove
+it and the insert/remove actions weren't themselves undoable. As a real
+node, both actions are now ordinary transactions and participate in Tiptap's
+built-in undo/redo like any other edit. `EditorApi.insertPageBreak()` and
+`removePageBreak()` keep the exact same signatures — this was an internal
+representation change only, not a public API change. The break's own
+visible "Manual page break" chip and remove button are still the existing
+floating overlay (`PageBreakIndicator`), sourced from the pagination
+snapshot, unchanged.
 
 Layout controls and preview components communicate with the editor only through
 the Editor API. The API owns page-surface measurement, visual block offsets,
@@ -816,47 +832,63 @@ horizontal scrolling without causing page-level overflow. Paragraph styles
 and insertions use native accessible selectors, and only commands already
 exposed by the Editor API or existing workspace features are shown.
 
-The ribbon's groups are deliberately two-tier. Clipboard, formatting,
-paragraph, lists, insert (image/table/page break), and the File menu are
-core editing commands and stay directly on the ribbon, always visible, so
-the first thing a new user sees is a document editor — not a wall of
-enterprise tool icons. Every enterprise-tier capability (Ask AI, Writing
-Assistant, AI Productivity, Semantic Search, Compliance, Contract
-Intelligence, Sensitive Data Redaction, Comments, Track Changes, Comparison,
-Version History, Approval Workflow, Forms, Watermark, Identity & Access) is
-consolidated into one "Enterprise" menu at the end of the ribbon instead of
-its own toolbar group or standalone header button. This removes no
-functionality and changes no permission gate — each entry still calls the
-exact same open/close handler and respects the exact same identity
-permission check its former standalone toolbar button used; only the
-trigger's location changed, from competing with editing commands for ribbon
-space to one labelled, categorized, one-click-away menu.
+The ribbon is organized into eight named groups, in order: **File** (a
+leading section, rendered before the editing groups so it's always the
+first thing on the ribbon), **Edit**, **Format**, **Paragraph**, **Insert**,
+**Review**, **AI**, and **Tools**. File, Edit, Format, Paragraph, and Insert
+are core editing commands and stay directly on the ribbon, always visible,
+so the first thing a new user sees is a document editor — not a wall of
+enterprise tool icons. Review (Comments, Track Changes, Version History) and
+AI (Ask AI, Writing Assistant, AI Productivity, Voice Dictation) are their
+own always-visible dropdown triggers. Every remaining enterprise-tier
+capability (Semantic Search, Document Intelligence, Comparison, Compliance,
+Contract Intelligence, Sensitive Data Redaction, Approval Workflow, Forms,
+Watermark, Identity & Access) is consolidated into one "Tools" menu at the
+end of the ribbon instead of its own toolbar group or standalone header
+button. This removes no functionality and changes no permission gate — each
+entry still calls the exact same open/close handler and respects the exact
+same identity permission check its standalone toolbar button used before
+being grouped; only the trigger's location changed. The Import action is
+additionally promoted to its own always-visible icon button next to the File
+menu (not just an item inside it), since a first-time user must be able to
+discover it without opening a dropdown.
 
-The File menu (`ToolbarDropdown`-based, replacing the previous separate
-Import/Save/Page Layout/Export/Print icon buttons) is the single discoverable
-entry point for document lifecycle actions: New Document, Open / Import,
-Save, Save As, Rename, Export as PDF, Export as DOCX, Print, Page setup, and
-Document properties. New Document clears the current ProseMirror document
-through `EditorApi.replaceDocumentSnapshot` (purely in-memory, confirmed
-before clearing, undoable) — not persistence or multi-document support,
-both of which remain intentionally deferred. Open / Import reuses the
-existing Document Intelligence import pipeline; its panel offers both
-"Insert into editor" (existing, inserts at cursor) and "Open as new
-document" (clears the document first, then inserts — a real Open distinct
-from Import, built entirely from the two existing primitives, no new Editor
-API surface). Save opens the existing Version History panel. Save As and
-Rename are visible but disabled with an explanatory line, per this
-milestone's host-storage boundary — no document name or durable identity
-exists to rename without a host storage integration. Export as PDF/DOCX
-open the existing Export dialog preselected to that format. Document
-properties is a new read-only dialog (word/character/paragraph/page count,
-estimated reading time, and an inferred title) computed from the same
-`getDocumentText()`/pagination data the status bar already uses — no new
-Editor API surface. Direct local-file image upload, attachment insertion,
-QR codes, full-fidelity document import, and durable host-backed Save
-As/Rename remain absent because those commands are not currently supported
-without changing the Editor API, adding a new dependency, or adding a host
-storage/upload provider.
+Edit includes Cut and Copy (`document.execCommand('cut'/'copy')`, mirroring
+the right-click menu — `EditorApi.replaceTextSelection()`/
+`insertStructuredContent()` both reject empty replacements by design, so
+they can't implement deletion). Paste and Find & Replace are shown
+disabled with an explanatory tooltip rather than omitted or built as new
+capability: Paste because browsers block programmatic `execCommand('paste')`
+by default, Find & Replace because no in-document text-search capability
+exists in the Editor API. Paragraph's Indent, Outdent, and Line height are
+disabled the same way — no backing Editor API method exists for any of them.
+A disabled `ToolbarButton` is wrapped in a span so its tooltip still opens
+on hover/focus even though the native `disabled` attribute blocks pointer
+events on the button itself.
+
+The File menu (`ToolbarDropdown`-based) is the discoverable entry point for
+document lifecycle actions: New Document, Open / Import, Save, Save As,
+Rename, Export as PDF, Export as DOCX, Print, Page setup, and Document
+properties. New Document clears the current ProseMirror document through
+`EditorApi.replaceDocumentSnapshot` (purely in-memory, confirmed before
+clearing, undoable) — not persistence or multi-document support, both of
+which remain intentionally deferred. Open / Import reuses the existing
+Document Intelligence import pipeline; its panel offers both "Insert into
+editor" (existing, inserts at cursor) and "Open as new document" (clears the
+document first, then inserts — a real Open distinct from Import, built
+entirely from the two existing primitives, no new Editor API surface). Save
+opens the existing Version History panel. Save As and Rename are visible but
+disabled with an explanatory line, per this milestone's host-storage
+boundary — no document name or durable identity exists to rename without a
+host storage integration. Export as PDF/DOCX open the existing Export dialog
+preselected to that format. Document properties is a read-only dialog
+(word/character/paragraph/page count, estimated reading time, and an
+inferred title) computed from the same `getDocumentText()`/pagination data
+the status bar already uses — no new Editor API surface. Direct local-file
+image upload, attachment insertion, QR codes, full-fidelity document import,
+and durable host-backed Save As/Rename remain absent because those commands
+are not currently supported without changing the Editor API, adding a new
+dependency, or adding a host storage/upload provider.
 
 Font family, font size, text color, and a multicolor highlight picker are
 exposed through `@tiptap/extension-text-style`'s `Color`/`FontFamily`/

@@ -167,6 +167,23 @@
   margin: 1.75em 0;
 }
 
+/* A manual page break's real visible chip + remove button is a floating
+   overlay (PageBreakIndicator), positioned from the pagination snapshot —
+   this node itself stays a near-zero-height marker so it never shows up as
+   a stray empty block in the document flow. */
+.tiptap [data-page-break] {
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+}
+
+.tiptap [data-page-break].ProseMirror-selectednode {
+  outline: 2px solid color-mix(in srgb, var(--document-editor-focus-ring) 60%, transparent);
+  outline-offset: 2px;
+}
+
 .tiptap .tableWrapper {
   max-width: 100%;
   overflow-x: auto;

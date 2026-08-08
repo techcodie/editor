@@ -168,6 +168,15 @@ function parseNode(
     return
   }
 
+  if (node.type === 'pageBreak') {
+    // Not a renderable block — where the page actually breaks is driven
+    // entirely by `request.source.pagination.breaks` in paginate() below,
+    // same as before this node existed. Pushing a block for it here would
+    // just hand format renderers (docxExporter, etc.) an empty block type
+    // they don't know how to draw.
+    return
+  }
+
   if (node.type === 'doc') {
     for (const child of node.content ?? []) parseNode(child, request, state, level)
     return
