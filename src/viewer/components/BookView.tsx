@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BookOpen, ChevronLeft, ChevronRight, Minus, Plus, X } from 'lucide-react'
+import { useOverlayStack } from '../../hooks/useOverlayStack'
 import { resolvePageMetrics } from '../../layout/services/pageMetrics'
 import type { PageLayout } from '../../layout/types/layout'
 import type { DocumentViewMode, ViewerPage, ViewerZoom } from '../types/viewer'
@@ -29,6 +30,7 @@ export function BookView({ pages, layout, zoom, onZoomIn, onZoomOut, onModeChang
   const fitScale = Math.min(1, availableWidth / (metrics.width * (isSinglePage ? 1 : 2)), (viewport.height - 112) / metrics.height)
   const scale = fitScale * (zoom / 100)
   const visiblePages = isSinglePage ? [pages[page - 1]] : [pages[page - 1], pages[page]].filter(Boolean)
+  const isTopmost = useOverlayStack(true)
 
   const move = useCallback((offset: number) => {
     setDirection(offset > 0 ? 'next' : 'previous')
@@ -54,6 +56,7 @@ export function BookView({ pages, layout, zoom, onZoomIn, onZoomOut, onModeChang
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (!isTopmost()) return
         event.preventDefault()
         onClose()
       } else if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
@@ -66,7 +69,7 @@ export function BookView({ pages, layout, zoom, onZoomIn, onZoomOut, onModeChang
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [move, onClose, step])
+  }, [isTopmost, move, onClose, step])
 
   return (
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="book-view-title" className="fixed inset-0 z-[90] flex flex-col overflow-hidden bg-[#e8e8e5] text-neutral-950">

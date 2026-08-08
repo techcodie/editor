@@ -134,6 +134,15 @@ export async function streamAiRequest<TRequest>(
 
     for (const frame of frames) {
       if (!frame.trim()) continue
+      // A frame with no `data:` line at all is a bare SSE comment/keep-alive
+      // (e.g. `: keep-alive`) — a standard technique proxies and load
+      // balancers use to hold a long-running connection open past their own
+      // idle timeout. It carries no event and must be silently skipped, not
+      // treated as a malformed response: only a frame that *does* carry a
+      // `data:` payload but fails to parse as one of the known event types
+      // is an actual protocol error.
+      const hasData = frame.split('\n').some((line) => line.startsWith('data:'))
+      if (!hasData) continue
       const event = parseEvent(frame)
       if (!event) throw new AiStreamError(messages.invalid)
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useOverlayStack } from '../../hooks/useOverlayStack'
 
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
@@ -15,6 +16,10 @@ export function useFocusTrap<T extends HTMLElement>(
 ) {
   const containerRef = useRef<T>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  // Shared across every dialog/panel built on this hook: when more than one
+  // is mounted at once (e.g. a confirmation dialog opened from within
+  // another panel), only the front-most should close on Escape.
+  const isTopmost = useOverlayStack(isActive)
 
   useEffect(() => {
     if (!isActive) return
@@ -34,6 +39,7 @@ export function useFocusTrap<T extends HTMLElement>(
     if (!isActive) return
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && onEscape) {
+        if (!isTopmost()) return
         event.preventDefault()
         onEscape()
         return
@@ -53,7 +59,7 @@ export function useFocusTrap<T extends HTMLElement>(
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isActive, onEscape])
+  }, [isActive, isTopmost, onEscape])
 
   return containerRef
 }

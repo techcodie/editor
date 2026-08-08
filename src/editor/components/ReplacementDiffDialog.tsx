@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { MouseEvent } from 'react'
 import { ArrowDown, Sparkles, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
+import { useOverlayStack } from '../../hooks/useOverlayStack'
 
 interface ReplacementDiffDialogProps {
   original: string
@@ -19,6 +20,7 @@ export function ReplacementDiffDialog({
   const dialogRef = useRef<HTMLDivElement>(null)
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
   const restoreFocusRef = useRef(true)
+  const isTopmost = useOverlayStack(true)
 
   useEffect(() => {
     const previousFocus =
@@ -27,6 +29,7 @@ export function ReplacementDiffDialog({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (!isTopmost()) return
         event.preventDefault()
         onCancel()
         return
@@ -63,7 +66,7 @@ export function ReplacementDiffDialog({
         }
       }
     }
-  }, [onCancel])
+  }, [isTopmost, onCancel])
 
   const handleBackdropMouseDown = (event: MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) onCancel()

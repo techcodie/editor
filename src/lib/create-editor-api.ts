@@ -31,6 +31,26 @@ import {
   type TrackChangesStorage,
 } from '../review/trackChanges/editor/TrackChangeMark'
 
+const HAS_URL_SCHEME = /^[a-zA-Z][a-zA-Z0-9+.-]*:/
+const RELATIVE_HREF_PREFIXES = ['#', '/', '?']
+
+/**
+ * A bare domain typed into the Link control (`example.com`, no `https://`)
+ * would otherwise be stored as-is and resolve as a browser-relative URL
+ * (`https://current-site.com/example.com`) instead of navigating anywhere
+ * useful. Anything that already looks like an absolute URL with a scheme, or
+ * an intentionally relative reference (`#anchor`, `/path`, `?query`), is left
+ * untouched — this only prepends a scheme to what's otherwise a bare
+ * host/path. The Tiptap Link extension's own `isAllowedUri` (see
+ * `createEditorExtensions` in `src/extensions/index.ts`) still validates the
+ * final value against its scheme allowlist regardless of this normalization.
+ */
+function normalizeLinkHref(href: string): string {
+  if (HAS_URL_SCHEME.test(href)) return href
+  if (RELATIVE_HREF_PREFIXES.some((prefix) => href.startsWith(prefix))) return href
+  return `https://${href}`
+}
+
 /**
  * Binds a Tiptap editor to the {@link EditorApi} contract.
  *
@@ -65,6 +85,8 @@ export function createEditorApi(editor: Editor): EditorApi {
   let paginationScheduledAt: number | null = null
   let editableBeforePreview = editor.isEditable
   let resizeObserver: ResizeObserver | null = null
+  let scrollListenerAttached = false
+  let scrollFrame: number | null = null
   const paginationListeners = new Set<(snapshot: PaginationSnapshot) => void>()
   const documentChangeListeners = new Set<(change: EditorDocumentChange) => void>()
   let paginationSnapshot: PaginationSnapshot = {
@@ -131,6 +153,51 @@ export function createEditorApi(editor: Editor): EditorApi {
 
   const notifyPagination = () => {
     for (const listener of paginationListeners) listener(paginationSnapshot)
+  }
+
+  // Which page counts as "current" is read by the status bar and page
+  // navigator, and must track what's actually visible on screen while
+  // scrolling — a caret that hasn't moved (or was never placed, e.g. after
+  // opening a document read-only) shouldn't pin the indicator to a stale
+  // page. `surfaceBounds.top` is viewport-relative and shifts with scroll,
+  // so anchoring off it (rather than off `coordsAtPos`, which moves with the
+  // caret, not the viewport) makes this genuinely scroll-driven. The
+  // reference point is 30% down the viewport rather than the very top edge,
+  // matching where a reader's attention actually sits when a page boundary
+  // is scrolled just above the fold.
+  const computeCurrentPage = (
+    surfaceBounds: { top: number },
+    pageHeight: number,
+    pageGap: number,
+    pageCount: number,
+  ): number => {
+    if (pageHeight <= 0 || pageCount <= 0) return 1
+    const viewportReferenceY = window.innerHeight * 0.3
+    const yWithinSurface = viewportReferenceY - surfaceBounds.top
+    return Math.min(
+      pageCount,
+      Math.max(1, Math.floor(yWithinSurface / (pageHeight + pageGap)) + 1),
+    )
+  }
+
+  const updateCurrentPageFromScroll = () => {
+    scrollFrame = null
+    const surface = getPageSurface()
+    if (!surface || !pageLayout || paginationSnapshot.pageHeight <= 0) return
+    const currentPage = computeCurrentPage(
+      surface.getBoundingClientRect(),
+      paginationSnapshot.pageHeight,
+      paginationSnapshot.pageGap,
+      paginationSnapshot.pages.length,
+    )
+    if (currentPage === paginationSnapshot.currentPage) return
+    paginationSnapshot = { ...paginationSnapshot, currentPage }
+    notifyPagination()
+  }
+
+  const handleScroll = () => {
+    if (scrollFrame !== null) return
+    scrollFrame = requestAnimationFrame(updateCurrentPageFromScroll)
   }
 
   const applyPagination = () => {
@@ -241,11 +308,11 @@ export function createEditorApi(editor: Editor): EditorApi {
     const surfaceHeight =
       result.pages.length * pageHeight + Math.max(0, result.pages.length - 1) * pageGap
     surface.style.minHeight = `${surfaceHeight}px`
-    const surfaceBounds = surface.getBoundingClientRect()
-    const caret = editor.view.coordsAtPos(editor.state.selection.head)
-    const currentPage = Math.min(
+    const currentPage = computeCurrentPage(
+      surface.getBoundingClientRect(),
+      pageHeight,
+      pageGap,
       result.pages.length,
-      Math.max(1, Math.floor((caret.top - surfaceBounds.top) / (pageHeight + pageGap)) + 1),
     )
     paginationSnapshot = {
       pages: result.pages,
@@ -312,6 +379,8 @@ export function createEditorApi(editor: Editor): EditorApi {
   })
   editor.on('destroy', () => {
     resizeObserver?.disconnect()
+    if (scrollListenerAttached) window.removeEventListener('scroll', handleScroll)
+    if (scrollFrame !== null) cancelAnimationFrame(scrollFrame)
     if (paginationFrame !== null) cancelAnimationFrame(paginationFrame)
     if (paginationTimeout !== null) clearTimeout(paginationTimeout)
     editor.unregisterPlugin(paginationOffsetPluginKey)
@@ -802,8 +871,9 @@ export function createEditorApi(editor: Editor): EditorApi {
     isLink: () => editor.isActive('link'),
     getLinkHref: () => (editor.getAttributes('link').href as string | undefined) ?? null,
     setLink: (href) => {
-      if (!href.trim()) return false
-      return editor.chain().focus().extendMarkRange('link').setLink({ href: href.trim() }).run()
+      const trimmed = href.trim()
+      if (!trimmed) return false
+      return editor.chain().focus().extendMarkRange('link').setLink({ href: normalizeLinkHref(trimmed) }).run()
     },
     unsetLink: () => editor.chain().focus().extendMarkRange('link').unsetLink().run(),
 
@@ -904,6 +974,12 @@ export function createEditorApi(editor: Editor): EditorApi {
               const field = normalizeSerializedField(node.attrs.field)
               return field ? `[Form field: ${field.label || field.type}]` : '[Form field]'
             },
+            // A form-feed marker Print Preview's plain-text pagination
+            // (`paginateText`) reads back as a forced page boundary — see
+            // MANUAL_PAGE_BREAK_MARKER in paginationEngine.ts. Print Preview
+            // otherwise has no way to know a manual break exists at all,
+            // since it works from plain text, not the document tree.
+            pageBreak: () => '\f',
           },
         })
         .replace(/[ \t]+\n/g, '\n')
@@ -913,7 +989,18 @@ export function createEditorApi(editor: Editor): EditorApi {
     replaceDocumentSnapshot: (snapshot, options) => editor
       .chain()
       .command(({ tr }) => {
-        if (options?.origin === 'remote') tr.setMeta(REMOTE_DOCUMENT_META, true)
+        if (options?.origin === 'remote') {
+          tr.setMeta(REMOTE_DOCUMENT_META, true)
+          // A remote peer's whole-document sync must never land on the
+          // local undo stack — otherwise a local Ctrl+Z after a remote edit
+          // arrives undoes the peer's document instead of the local user's
+          // own last change. Local uses of replaceDocumentSnapshot (version
+          // restore, "New Document", "Open") are unaffected — they don't
+          // pass `origin: 'remote'` and remain undoable, matching the
+          // existing local-content-replacement behavior in each of those
+          // call sites.
+          tr.setMeta('addToHistory', false)
+        }
         return true
       })
       .setContent(snapshot, { emitUpdate: true, errorOnInvalidContent: true })
@@ -1125,6 +1212,10 @@ export function createEditorApi(editor: Editor): EditorApi {
           resizeObserver = new ResizeObserver(schedulePagination)
           resizeObserver.observe(surface)
         }
+      }
+      if (!scrollListenerAttached) {
+        window.addEventListener('scroll', handleScroll, { passive: true })
+        scrollListenerAttached = true
       }
       schedulePagination()
     },

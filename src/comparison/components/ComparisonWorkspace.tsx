@@ -5,6 +5,7 @@ import {
   useState,
 } from 'react'
 import { ArrowLeftRight, FileDiff, ListFilter } from 'lucide-react'
+import { useOverlayStack } from '../../hooks/useOverlayStack'
 import { cn } from '../../lib/cn'
 import { useComparison } from '../hooks/useComparison'
 import type {
@@ -130,9 +131,12 @@ export function ComparisonWorkspace({
     return () => previousFocusRef.current?.focus()
   }, [])
 
+  const isTopmost = useOverlayStack(true)
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (!isTopmost()) return
         event.preventDefault()
         onClose()
         return
@@ -164,7 +168,7 @@ export function ComparisonWorkspace({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [comparison, navigate, onClose])
+  }, [comparison, isTopmost, navigate, onClose])
 
   const canCompare =
     (leftDocument.content.length > 0 || rightDocument.content.length > 0) &&

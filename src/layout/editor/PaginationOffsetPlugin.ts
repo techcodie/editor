@@ -68,7 +68,24 @@ export function createPaginationOffsetPlugin() {
           return { offsets: nextOffsets, decorations: buildDecorations(tr.doc, nextOffsets) }
         }
         if (!tr.docChanged) return previous
-        return { offsets: previous.offsets, decorations: previous.decorations.map(tr.mapping, tr.doc) }
+        // The decorations above are correctly repositioned through
+        // `tr.mapping`, but until this fix `offsets` itself was returned
+        // unchanged — still keyed by the pre-edit positions. The next
+        // `applyPagination()` call (create-editor-api.ts) looks up each
+        // block's freshly-measured position in this map; a stale key meant
+        // that lookup missed for every block whose position shifted, so its
+        // previously-applied push silently read back as zero and got
+        // re-added on top of the (still-displayed) old push instead of
+        // replacing it — compounding a growing margin on every edit that
+        // shifted a paginated block's position. Remapping the keys the same
+        // way the decorations already are keeps both in sync.
+        const mappedOffsets: PaginationOffsetMap = new Map()
+        for (const [position, entry] of previous.offsets) {
+          const mapped = tr.mapping.mapResult(position)
+          if (mapped.deleted) continue
+          mappedOffsets.set(mapped.pos, entry)
+        }
+        return { offsets: mappedOffsets, decorations: previous.decorations.map(tr.mapping, tr.doc) }
       },
     },
     props: {

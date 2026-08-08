@@ -1,7 +1,17 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { AiErrorResponse } from '../shared/ai.js'
 
-const MAX_BODY_BYTES = 256 * 1024
+// Must comfortably clear the largest request the app's own validation
+// intends to allow, or legitimate requests get killed here with a generic
+// "request is too large" error before ever reaching that validation (which
+// would otherwise return a specific, actionable message). The binding case
+// is Ask Document (server/ask-document.ts): MAX_TOTAL_CONTEXT_CHARS (220,000
+// characters of document + knowledge-source content) plus up to
+// ASK_DOCUMENT_HISTORY_LIMIT (8) conversation messages at
+// MAX_HISTORY_MESSAGE_CHARS (4,000) each, plus the question itself — already
+// ~254,000 characters before JSON field names/escaping overhead, which the
+// previous 256 KiB cap left effectively no room for.
+const MAX_BODY_BYTES = 512 * 1024
 
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",

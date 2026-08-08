@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react'
 import { Eye, Minus, Plus, X } from 'lucide-react'
+import { useOverlayStack } from '../../hooks/useOverlayStack'
 import type { EditorApi } from '../../lib/editor-api'
 import { paginateText } from '../services/paginationEngine'
 import { paperLabel, resolvePageMetrics } from '../services/pageMetrics'
@@ -44,6 +45,7 @@ export function PrintPreview({
   onZoomChange,
   onClose,
 }: PrintPreviewProps) {
+  const isTopmost = useOverlayStack(true)
   const dialogRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
@@ -94,6 +96,7 @@ export function PrintPreview({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (!isTopmost()) return
         event.preventDefault()
         onClose()
         return
@@ -123,7 +126,7 @@ export function PrintPreview({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [currentPage, jumpToPage, onClose, pages.length])
+  }, [currentPage, isTopmost, jumpToPage, onClose, pages.length])
 
   useEffect(() => () => {
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current)
@@ -143,7 +146,14 @@ export function PrintPreview({
         </span>
         <div className="min-w-0">
           <h1 id="print-preview-title" className="truncate text-sm font-semibold">Print preview</h1>
-          <p className="text-[10px] text-neutral-500">{paperLabel(layout.paper)} · {layout.orientation} · {pages.length} pages</p>
+          <p className="text-[10px] text-neutral-500">
+            {paperLabel(layout.paper)} · {layout.orientation} · {pages.length} pages
+            {/* Honest, not faked: this preview re-flows plain text and can't
+                represent tables, images, or rich formatting, so page count
+                and breaks are an approximation of the live document, not a
+                guarantee — see paginateText in paginationEngine.ts. */}
+            <span className="text-neutral-400"> · Approximate — tables and images aren't shown here</span>
+          </p>
         </div>
         <div className="ml-auto flex items-center gap-1 rounded-md border border-neutral-200 bg-neutral-50 p-0.5">
           <button

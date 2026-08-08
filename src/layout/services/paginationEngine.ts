@@ -75,6 +75,16 @@ export function paginateBlocks({
 
     while (top + block.height > pageEnd + pageHeight + pageGap) {
       pageIndex += 1
+      // A block taller than one page can't be split, so it isn't pushed
+      // further here — it overflows through the page(s) it spans. But the
+      // *next* block's `top = block.top + accumulatedOffset` must still land
+      // on the page `pageIndex` now points to. Without advancing
+      // `accumulatedOffset` in step with `pageIndex`, that next block's `top`
+      // stays far behind the page boundary bookkeeping, so its own
+      // `contentStart - top` push clamps to 0 (`top` already reads past
+      // `contentStart`) and it never gets pushed onto its correct page —
+      // silently breaking pagination for every block after the oversized one.
+      accumulatedOffset += pageHeight + pageGap
       pageEnd = pageIndex * (pageHeight + pageGap) + marginTop + contentHeight
     }
   }
@@ -106,6 +116,36 @@ export function paginateBlocks({
   return { pages, breaks, offsets }
 }
 
+/** Matches the `pageBreak` text serializer in `create-editor-api.ts`'s `getDocumentText()`. */
+const MANUAL_PAGE_BREAK_MARKER = '\f'
+
+function wrapSegment(text: string, targetCapacity: number): string[] {
+  const words = text.split(/(\s+)/)
+  const pages: string[] = []
+  let current = ''
+  for (const word of words) {
+    if (current.length + word.length > targetCapacity && current.trim()) {
+      pages.push(current.trimEnd())
+      current = word.trimStart()
+    } else {
+      current += word
+    }
+  }
+  if (current || pages.length === 0) pages.push(current.trimEnd())
+  return pages
+}
+
+/**
+ * A text-only, word-count approximation of pagination for Print Preview and
+ * other plain-text page previews — deliberately NOT the same measured-DOM
+ * engine `paginateBlocks` uses for the live editor (that operates on real
+ * block heights, fonts, and formatting, which plain text doesn't have), so
+ * exact page boundaries here are an approximation of the live document, not
+ * a guarantee. Respecting each manual page break as a forced page boundary
+ * (rather than only approximating overall page *count*) at least keeps the
+ * one deliberate, content-independent signal a user actually controls
+ * accurate between preview and editor.
+ */
 export function paginateText(
   text: string,
   contentWidth: number,
@@ -120,18 +160,8 @@ export function paginateText(
     capacity,
     Math.max(1, Math.ceil(text.length / Math.max(1, minimumPages))),
   )
-  const words = text.split(/(\s+)/)
-  const pages: string[] = []
-  let current = ''
-  for (const word of words) {
-    if (current.length + word.length > targetCapacity && current.trim()) {
-      pages.push(current.trimEnd())
-      current = word.trimStart()
-    } else {
-      current += word
-    }
-  }
-  if (current || pages.length === 0) pages.push(current.trimEnd())
+  const segments = text.split(MANUAL_PAGE_BREAK_MARKER)
+  const pages = segments.flatMap((segment) => wrapSegment(segment.trim(), targetCapacity))
   while (pages.length < minimumPages) pages.push('')
   return pages
 }

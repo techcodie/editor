@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Users } from 'lucide-react'
+import { useOverlayStack } from '../../hooks/useOverlayStack'
 import type {
   CollaborationConnectionStatus,
   CollaborationSyncStatus,
@@ -31,6 +32,7 @@ export function PresenceBar({
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const visible = collaborators.slice(0, 3)
+  const isTopmost = useOverlayStack(open)
 
   useEffect(() => {
     if (!open) return
@@ -38,7 +40,7 @@ export function PresenceBar({
       if (!containerRef.current?.contains(event.target as Node)) setOpen(false)
     }
     const closeWithEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape' && isTopmost()) setOpen(false)
     }
     document.addEventListener('pointerdown', close)
     window.addEventListener('keydown', closeWithEscape)
@@ -46,7 +48,7 @@ export function PresenceBar({
       document.removeEventListener('pointerdown', close)
       window.removeEventListener('keydown', closeWithEscape)
     }
-  }, [open])
+  }, [isTopmost, open])
 
   return (
     <div ref={containerRef} className="relative shrink-0">

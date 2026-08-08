@@ -20,6 +20,24 @@ function sendEvent(response: ServerResponse, event: AiStreamEvent): void {
   response.write(`data: ${JSON.stringify(event)}\n\n`)
 }
 
+const KEEP_ALIVE_INTERVAL_MS = 15_000
+
+/**
+ * A bare SSE comment line, sent periodically while the upstream provider
+ * stream is open. A response that pauses between tokens for longer than an
+ * intermediary proxy/load balancer's idle-connection timeout (a real risk
+ * for a slower model on a long answer) would otherwise have the connection
+ * silently dropped mid-stream with no event ever telling the client why.
+ * The client (`src/services/ai-stream.ts`) already tolerates any frame with
+ * no `data:` line as a no-op, so this never surfaces as content.
+ */
+function startKeepAlive(response: ServerResponse): () => void {
+  const timer = setInterval(() => {
+    if (!response.writableEnded) response.write(': keep-alive\n\n')
+  }, KEEP_ALIVE_INTERVAL_MS)
+  return () => clearInterval(timer)
+}
+
 function getProviderError(
   error: ProviderError,
   messages: AiResponseMessages,
@@ -57,14 +75,19 @@ export async function sendAiResponse(
       'X-Accel-Buffering': 'no',
       'X-Content-Type-Options': 'nosniff',
     })
-    if (metadata) sendEvent(response, { type: 'metadata', metadata })
-    sendEvent(response, { type: 'delta', content: first.value })
+    const stopKeepAlive = startKeepAlive(response)
+    try {
+      if (metadata) sendEvent(response, { type: 'metadata', metadata })
+      sendEvent(response, { type: 'delta', content: first.value })
 
-    for await (const content of stream) {
-      sendEvent(response, { type: 'delta', content })
+      for await (const content of stream) {
+        sendEvent(response, { type: 'delta', content })
+      }
+
+      sendEvent(response, { type: 'done' })
+    } finally {
+      stopKeepAlive()
     }
-
-    sendEvent(response, { type: 'done' })
     response.end()
   } catch (error) {
     if (signal.aborted) return

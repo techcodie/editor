@@ -1,4 +1,5 @@
 import { useEffect, useReducer, useSyncExternalStore } from 'react'
+import { useOverlayStack } from '../../hooks/useOverlayStack'
 import type { EditorApi } from '../../lib/editor-api'
 import type { InternalDocumentEditorEvents } from '../../sdk/events'
 import { SelectionPreview } from './SelectionPreview'
@@ -36,6 +37,7 @@ export function SelectionAi({
       : operation?.selection.bounds
   const activeBounds = operationBounds ?? selection?.bounds
   const isVisible = Boolean(activeBounds)
+  const isTopmost = useOverlayStack(Boolean(operation))
 
   useEffect(() => {
     if (!isVisible) return
@@ -53,11 +55,11 @@ export function SelectionAi({
     if (!operation) return
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') cancel()
+      if (event.key === 'Escape' && isTopmost()) cancel()
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [cancel, operation])
+  }, [cancel, isTopmost, operation])
 
   if (operation && activeBounds) {
     return (

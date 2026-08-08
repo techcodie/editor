@@ -163,7 +163,12 @@ export function useSpeechRecognition({
       setError(null)
       setStatus('processing')
 
-      recognition.continuous = false
+      // continuous: true so a natural pause between sentences doesn't end
+      // the session — matches the document-dictation voice provider
+      // (browserVoiceProvider.ts), which already sets this. `stopListening`/
+      // `cancelListening` remain the only way this session ends before the
+      // browser itself ends it.
+      recognition.continuous = true
       recognition.interimResults = true
       recognition.lang = document.documentElement.lang || navigator.language || 'en-US'
 

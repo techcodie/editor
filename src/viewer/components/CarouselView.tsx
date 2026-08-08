@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Minus, Plus, Rows3, X } from 'lucide-react'
+import { useOverlayStack } from '../../hooks/useOverlayStack'
 import { resolvePageMetrics } from '../../layout/services/pageMetrics'
 import type { PageLayout } from '../../layout/types/layout'
 import type { DocumentViewMode, ViewerPage, ViewerZoom } from '../types/viewer'
@@ -34,6 +35,7 @@ export function CarouselView({
   const metrics = useMemo(() => resolvePageMetrics(layout), [layout])
   const fitScale = Math.min(1, (viewport.width - 40) / metrics.width, (viewport.height - 112) / metrics.height)
   const scale = fitScale * (zoom / 100)
+  const isTopmost = useOverlayStack(true)
 
   const goToPage = useCallback((page: number) => {
     const next = clampViewerPage(page, pages.length)
@@ -58,6 +60,7 @@ export function CarouselView({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (!isTopmost()) return
         event.preventDefault()
         onClose()
       } else if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
@@ -70,7 +73,7 @@ export function CarouselView({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [currentPage, goToPage, onClose])
+  }, [currentPage, goToPage, isTopmost, onClose])
 
   useEffect(() => () => {
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current)

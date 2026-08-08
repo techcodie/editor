@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { FileInput, FileText, MessageSquareText, Sparkles, X } from 'lucide-react'
+import { useOverlayStack } from '../../hooks/useOverlayStack'
 import {
   formatKnowledgeSourceSize,
   getKnowledgeSourceLabel,
@@ -31,6 +32,7 @@ export function DocumentPreview({
   const contentRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const sourceId = source?.id
+  const isTopmost = useOverlayStack(Boolean(sourceId))
 
   useEffect(() => {
     if (!sourceId) return
@@ -39,7 +41,7 @@ export function DocumentPreview({
     closeButtonRef.current?.focus()
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && isTopmost()) {
         onClose()
       }
     }
@@ -49,7 +51,7 @@ export function DocumentPreview({
       window.removeEventListener('keydown', handleKeyDown)
       previousFocus?.focus()
     }
-  }, [onClose, sourceId])
+  }, [isTopmost, onClose, sourceId])
 
   useEffect(() => {
     if (sourceId) contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })

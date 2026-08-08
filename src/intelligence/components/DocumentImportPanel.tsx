@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useOverlayStack } from '../../hooks/useOverlayStack'
 import {
   ArrowLeft,
   BookOpen,
@@ -95,6 +96,7 @@ export function DocumentImportPanel({
   const [previewMode, setPreviewMode] = useState<PreviewMode>('original')
   const [notice, setNotice] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const isTopmost = useOverlayStack(isOpen)
 
   useEffect(() => {
     if (!isOpen) return
@@ -116,6 +118,7 @@ export function DocumentImportPanel({
     if (!isOpen) return
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (!isTopmost()) return
         event.preventDefault()
         if (isProcessing) cancel()
         else closePanel()
@@ -136,7 +139,7 @@ export function DocumentImportPanel({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [cancel, closePanel, isOpen, isProcessing])
+  }, [cancel, closePanel, isOpen, isProcessing, isTopmost])
 
   const chooseFile = (nextFile?: File) => {
     if (!nextFile) return
@@ -201,8 +204,12 @@ export function DocumentImportPanel({
         timestamp: Date.now(),
       },
     })
-    if (didOpen) closePanel()
-    else setNotice('Could not open the document. Try again.')
+    if (didOpen) {
+      closePanel()
+      api.focus()
+    } else {
+      setNotice('Could not open the document. Try again.')
+    }
   }
 
   if (!isOpen) return null
