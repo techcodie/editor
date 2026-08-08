@@ -11,7 +11,6 @@ import {
   FileText,
   FolderOpen,
   History,
-  Image,
   Info,
   KeyRound,
   ListChecks,
@@ -118,6 +117,7 @@ import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary'
 import { PanelLoadingFallback } from '../ui/PanelLoadingFallback'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import {
+  AssetLibraryToolbarControl,
   EnterpriseToolbarControl,
   type EnterpriseEntry,
   LinkToolbarControl,
@@ -127,6 +127,7 @@ import {
   ToolbarDropdown,
 } from '../Toolbar'
 import { DocumentEditor } from '../DocumentEditor'
+import { TableBubbleMenu } from '../DocumentEditor/TableBubbleMenu'
 import { StatusBar } from './StatusBar'
 import { EditorContextMenu } from './EditorContextMenu'
 import { DocumentPropertiesDialog } from './DocumentPropertiesDialog'
@@ -136,11 +137,6 @@ import type { AskDocumentCommandRequest } from '../AskDocument/AskDocumentPanel'
 const AskDocumentPanel = lazy(async () => {
   const module = await import('../AskDocument/AskDocumentPanel')
   return { default: module.AskDocumentPanel }
-})
-
-const AssetLibrary = lazy(async () => {
-  const module = await import('../../assets/components/AssetLibrary')
-  return { default: module.AssetLibrary }
 })
 
 const ReviewSidebar = lazy(async () => {
@@ -345,7 +341,6 @@ export function EditorWorkspace({
   const isAskDocumentOpen = activePanel === 'askDocument'
   const [isAskDocumentLoaded, setIsAskDocumentLoaded] = useState(false)
   const isAssetLibraryOpen = activePanel === 'assetLibrary'
-  const [isAssetLibraryLoaded, setIsAssetLibraryLoaded] = useState(false)
   const [recentAssetIds, setRecentAssetIds] = useState<string[]>([])
   const isReviewMode = activePanel === 'review'
   const [isReviewLoaded, setIsReviewLoaded] = useState(false)
@@ -751,7 +746,6 @@ export function EditorWorkspace({
     setActivePanel('assetLibrary')
     setCommentHighlightPreview(null)
     setSuggestionPreview(null)
-    setIsAssetLibraryLoaded(true)
   }, [])
 
   const openReviewMode = useCallback(() => {
@@ -1782,15 +1776,12 @@ export function EditorWorkspace({
                     <>
                       <TableToolbarControl api={api} />
                       <LinkToolbarControl api={api} />
-                      <ToolbarButton
-                        icon={Image}
-                        label={isAssetLibraryOpen ? 'Close stamps & assets' : 'Stamps & assets'}
-                        isActive={isAssetLibraryOpen}
-                        disabled={!api}
-                        onClick={() => {
-                          if (isAssetLibraryOpen) closeAssetLibrary()
-                          else openAssetLibrary()
-                        }}
+                      <AssetLibraryToolbarControl
+                        isOpen={isAssetLibraryOpen}
+                        onOpenChange={(open) => (open ? openAssetLibrary() : closeAssetLibrary())}
+                        recentAssetIds={recentAssetIds}
+                        onSelectAsset={selectAsset}
+                        onCloseAutoFocus={() => api?.focus()}
                       />
                       <ToolbarButton
                         icon={SeparatorHorizontal}
@@ -1949,6 +1940,9 @@ export function EditorWorkspace({
               />
             )}
           </EditorContextMenu>
+          {canRead && !config.readonly && canEdit && viewMode !== 'reading' && (
+            <TableBubbleMenu editor={editor} api={api} />
+          )}
           {canRead && viewMode !== 'reading' && <StatusBar api={api} pagination={pagination} />}
         </div>
       </div>
@@ -2196,28 +2190,6 @@ export function EditorWorkspace({
                 onEdit={editComment}
                 onDelete={deleteComment}
                 onJump={jumpToComment}
-              />
-            </Suspense>
-          </ErrorBoundary>
-        )}
-        {isAssetLibraryLoaded && (
-          <ErrorBoundary compact title="Asset library needs a retry" resetKey={isAssetLibraryOpen}>
-            <Suspense
-              fallback={
-                <div
-                  className="fixed inset-y-0 right-0 z-40 flex w-full items-center justify-center border-l border-neutral-200 bg-white sm:max-w-[38rem] lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[27rem] lg:rounded-lg lg:border xl:w-[30rem]"
-                  role="status"
-                  aria-label="Loading asset library"
-                >
-                  <LoaderCircle size={20} strokeWidth={1.8} className="animate-spin text-neutral-400" aria-hidden />
-                </div>
-              }
-            >
-              <AssetLibrary
-                isOpen={isAssetLibraryOpen}
-                recentAssetIds={recentAssetIds}
-                onClose={closeAssetLibrary}
-                onSelectAsset={selectAsset}
               />
             </Suspense>
           </ErrorBoundary>

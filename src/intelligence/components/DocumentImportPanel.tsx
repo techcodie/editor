@@ -150,8 +150,16 @@ export function DocumentImportPanel({
     void importDocument(nextFile)
   }
 
+  const [isInserting, setIsInserting] = useState(false)
+
   const insert = () => {
-    if (!api || !model) return
+    if (!api || !model || isInserting) return
+    setIsInserting(true)
+    // insertStructuredContent's own chain already focuses and scrolls the
+    // new content into view (see create-editor-api.ts), so on success the
+    // panel just needs to get out of the way — closing it, restoring focus
+    // once more (defensive: the panel's own focus trap moved focus onto its
+    // own DOM while it was open), so the user can start typing immediately.
     const didInsert = api.insertStructuredContent({
       target: 'cursor',
       content: documentModelToEditorHtml(model),
@@ -161,7 +169,13 @@ export function DocumentImportPanel({
         timestamp: Date.now(),
       },
     })
-    setNotice(didInsert ? 'Recognized content inserted at the cursor.' : 'Place the cursor in the editor and try again.')
+    if (didInsert) {
+      closePanel()
+      api.focus()
+    } else {
+      setNotice('Place the cursor in the editor and try again.')
+    }
+    setIsInserting(false)
   }
 
   // "Open" as a file-open action distinct from "Import" (insert): clears the
@@ -278,7 +292,7 @@ export function DocumentImportPanel({
                 <button type="button" disabled={!model.text.trim()} onClick={() => onSaveSource(toPreparedSource(file, model))} className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-[11px] font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"><BookOpen size={14} aria-hidden />Save as source</button>
               )}
               <button type="button" disabled={!api || !model.text.trim()} onClick={openAsNewDocument} className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-[11px] font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"><FolderOpen size={14} aria-hidden />Open as new document</button>
-              <button type="button" disabled={!api || !model.text.trim()} onClick={insert} className="inline-flex h-9 items-center gap-2 rounded-md bg-neutral-900 px-4 text-[11px] font-semibold text-white shadow-sm hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"><FileInput size={14} aria-hidden />Insert into editor</button>
+              <button type="button" disabled={!api || !model.text.trim() || isInserting} onClick={insert} className="inline-flex h-9 items-center gap-2 rounded-md bg-neutral-900 px-4 text-[11px] font-semibold text-white shadow-sm hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--document-editor-focus-ring)]"><FileInput size={14} aria-hidden />Insert into editor</button>
             </footer>
           </>
         )}

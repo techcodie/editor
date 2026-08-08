@@ -375,6 +375,28 @@
   min-height: calc(
     var(--page-height) - var(--page-margin-top) - var(--page-margin-bottom)
   );
+  /* Content still flows through one continuous editable region (see
+     applyPagination() in create-editor-api.ts) — this mask hides whatever
+     portion of a block falls in the gap between pages, so a paragraph,
+     image, or table row that doesn't fit reads as cut off at the page edge
+     instead of visually bleeding into the next page's gap. Uses the same
+     --page-gap/--page-margin-* values the background gradient above is
+     aligned to, offset by --content-height since .tiptap's own coordinate
+     origin already sits inside the surface's padding box. */
+  -webkit-mask-image: repeating-linear-gradient(
+    to bottom,
+    black 0,
+    black var(--content-height),
+    transparent var(--content-height),
+    transparent calc(var(--content-height) + var(--page-margin-top) + var(--page-margin-bottom) + var(--page-gap))
+  );
+  mask-image: repeating-linear-gradient(
+    to bottom,
+    black 0,
+    black var(--content-height),
+    transparent var(--content-height),
+    transparent calc(var(--content-height) + var(--page-margin-top) + var(--page-margin-bottom) + var(--page-gap))
+  );
 }
 
 .reader-document-surface {

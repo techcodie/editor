@@ -269,6 +269,16 @@ question as separate fields. Only the backend prompt builder formats those
 fields for Groq. The backend emits response metadata before content, including
 the configured model, stable source descriptors, and context size.
 
+Past a character threshold, the Knowledge Context Builder no longer sends the
+full current document text — it splits the document into heading/paragraph
+chunks (`documentChunker.ts`) and selects only the chunks most relevant to the
+question, scored with the same dependency-free local similarity search the
+Semantic Search feature already uses (`embeddingEngine.ts`'s hashed
+bag-of-words vectors, not a hosted embeddings API). This exists specifically
+so a large document degrades to "answers from the most relevant excerpts"
+instead of being rejected outright by the backend's request-size ceiling.
+Below the threshold, the full document is still sent, unchanged.
+
 Ask Document voice input is a browser-only input method. The native Web Speech
 API converts microphone speech into editable text before the existing Ask
 Document request flow begins. Voice input never submits a question
@@ -361,11 +371,18 @@ Editor API
 Selectable Editor Asset Node
 ```
 
-The Enterprise Asset Library is a generic, registry-driven side panel. Phase 1
+The Enterprise Asset Library is a generic, registry-driven picker. Phase 1
 ships stamps as its first asset type, but library UI, search, favorites, recent
 items, placement state, and editor insertion are modeled as assets rather than
 stamp-specific commands. Stamp presets configure one reusable, memoized SVG
 renderer; they do not include static image files.
+
+Unlike every other enterprise capability's right-dock panel (`PanelShell`),
+the Asset Library renders as a floating popup anchored to its own toolbar
+trigger (`AssetLibraryToolbarControl`, built on the same `@radix-ui/react-dropdown-menu`
+primitive `ToolbarDropdown` uses) instead of a docked sidebar. It's a picker
+interaction — browse, pick one, done — not a working sidebar, so it shouldn't
+reserve layout width from the editor column the way Ask AI/Search/Review do.
 
 Asset Library UI communicates with the editor only through `EditorApi.insertAsset`.
 The internal asset node extension renders the inserted document node and owns

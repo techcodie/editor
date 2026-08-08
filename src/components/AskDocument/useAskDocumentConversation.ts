@@ -141,7 +141,7 @@ export function useAskDocumentConversation(
 
       try {
         await streamAskDocument(
-          buildAskDocumentRequest(context, pendingRequest.history, pendingRequest.question),
+          await buildAskDocumentRequest(context, pendingRequest.history, pendingRequest.question),
           (content) => {
             responseContent += content
             if (options.streaming) streamBuffer.push(content)

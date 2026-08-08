@@ -1,6 +1,4 @@
 import { useMemo, useState } from 'react'
-import { Layers3 } from 'lucide-react'
-import { PanelShell } from '../../components/ui/PanelShell'
 import { AssetGrid } from './AssetGrid'
 import { AssetSearch } from './AssetSearch'
 import { AssetSidebar, type AssetSection } from './AssetSidebar'
@@ -13,9 +11,7 @@ import {
 import type { Asset } from '../types/asset'
 
 interface AssetLibraryProps {
-  isOpen: boolean
   recentAssetIds: readonly string[]
-  onClose: () => void
   onSelectAsset: (asset: Asset) => void
 }
 
@@ -27,9 +23,7 @@ function getSectionTitle(section: AssetSection): string {
 }
 
 export function AssetLibrary({
-  isOpen,
   recentAssetIds,
-  onClose,
   onSelectAsset,
 }: AssetLibraryProps) {
   const [query, setQuery] = useState('')
@@ -74,45 +68,35 @@ export function AssetLibrary({
         : 'This collection is currently empty.'
 
   return (
-    <PanelShell
-      isOpen={isOpen}
-      onClose={onClose}
-      initialFocusSelector="#asset-library-search"
-      title="Asset library"
-      subtitle="Reusable document assets"
-      icon={Layers3}
-      labelledById="asset-library-title"
-      panelId="asset-library-panel"
-      widthClassName="sm:max-w-[38rem] lg:w-[27rem] lg:max-w-none xl:w-[30rem]"
-    >
-      <div className="px-4 py-3">
+    <div className="flex min-h-0 flex-1 flex-col" aria-label="Asset library">
+      <div className="shrink-0 px-3 pt-3">
         <AssetSearch value={query} onChange={setQuery} />
       </div>
-
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <AssetSidebar
-          activeSection={activeSection}
-          favoriteCount={favoriteIds.size}
-          recentCount={recentAssetIds.length}
-          onSelect={setActiveSection}
+      {/* Below the `lg` breakpoint AssetSidebar already renders as a
+          horizontal scrollable row — this popup never reaches `lg` width,
+          so it always uses that mode, no extra wrapper needed. */}
+      <AssetSidebar
+        activeSection={activeSection}
+        favoriteCount={favoriteIds.size}
+        recentCount={recentAssetIds.length}
+        onSelect={setActiveSection}
+      />
+      <section aria-label={`${sectionTitle} assets`} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-3">
+        <div className="mb-3 flex items-baseline justify-between gap-3 px-0.5">
+          <h3 className="text-xs font-semibold text-neutral-900">{sectionTitle}</h3>
+          <span className="text-[10px] tabular-nums text-neutral-400">
+            {visibleAssets.length} {visibleAssets.length === 1 ? 'asset' : 'assets'}
+          </span>
+        </div>
+        <AssetGrid
+          assets={visibleAssets}
+          favoriteIds={favoriteIds}
+          onSelect={onSelectAsset}
+          onToggleFavorite={toggleFavorite}
+          emptyTitle={emptyTitle}
+          emptyDescription={emptyDescription}
         />
-        <section aria-label={`${sectionTitle} assets`} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-5 pt-3">
-          <div className="mb-3 flex items-baseline justify-between gap-3 px-0.5">
-            <h3 className="text-xs font-semibold text-neutral-900">{sectionTitle}</h3>
-            <span className="text-[10px] tabular-nums text-neutral-400">
-              {visibleAssets.length} {visibleAssets.length === 1 ? 'asset' : 'assets'}
-            </span>
-          </div>
-          <AssetGrid
-            assets={visibleAssets}
-            favoriteIds={favoriteIds}
-            onSelect={onSelectAsset}
-            onToggleFavorite={toggleFavorite}
-            emptyTitle={emptyTitle}
-            emptyDescription={emptyDescription}
-          />
-        </section>
-      </div>
-    </PanelShell>
+      </section>
+    </div>
   )
 }

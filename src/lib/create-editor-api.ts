@@ -87,6 +87,7 @@ export function createEditorApi(editor: Editor): EditorApi {
     surface.style.removeProperty('--page-margin-right')
     surface.style.removeProperty('--page-margin-bottom')
     surface.style.removeProperty('--page-margin-left')
+    surface.style.removeProperty('--content-height')
     surface.style.removeProperty('min-height')
     for (const child of editor.view.dom.children) {
       if (!(child instanceof HTMLElement)) continue
@@ -130,6 +131,9 @@ export function createEditorApi(editor: Editor): EditorApi {
     surface.style.setProperty('--page-margin-right', `${marginRight}px`)
     surface.style.setProperty('--page-margin-bottom', `${marginBottom}px`)
     surface.style.setProperty('--page-margin-left', `${marginLeft}px`)
+    // Used by editor.css to mask .tiptap content to each page's content band,
+    // so a block that doesn't fit no longer visually bleeds into the gap.
+    surface.style.setProperty('--content-height', `${contentHeight}px`)
 
     // Measuring `top`/`marginTop` never writes to the live DOM here — the
     // previously-applied pagination offset (tracked separately in a data
@@ -277,6 +281,7 @@ export function createEditorApi(editor: Editor): EditorApi {
         return true
       })
       .insertContentAt(position, content, { updateSelection: true })
+      .scrollIntoView()
       .run()
   }
 
